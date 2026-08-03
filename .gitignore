@@ -4,6 +4,9 @@
 .git
 
 uv.lock
+skills-lock.json
+
+!.specify/*
 
 docs/TODOs/future_ideas.xit
 
