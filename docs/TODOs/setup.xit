@@ -1,0 +1,4 @@
+[ ] Setup Hydra for config management
+[ ] Setup pdoc for API reference docs
+[ ] Setup MLFlow for experiment tracking
+[ ] Setup logging (+ MLFlow for DS logging?)
