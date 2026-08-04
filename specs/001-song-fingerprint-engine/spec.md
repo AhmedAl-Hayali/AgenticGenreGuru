@@ -14,7 +14,7 @@
 
 - Q: How should multi-channel (stereo or surround) audio snippets be processed during DSP feature extraction? → A: Convert multi-channel audio to mono by averaging channels prior to feature extraction.
 - Q: Which mathematical downsampling statistic should be used to collapse each acoustic feature's time-series vector into a single scalar value for V1 fingerprints? → A: Arithmetic mean across all frames (producing 1 scalar per feature).
-- Q: How should song identity and deduplication be determined to prevent duplicate feature records in the local relational database? → A: Use track ISRC (International Standard Recording Code) as the primary canonical deduplication key, falling back to the external platform track ID if ISRC is missing.
+- Q: How should song identity and deduplication be determined to prevent duplicate feature records in the local relational database? → A: Write both the track ISRC (International Standard Recording Code) and the external platform track ID (Deezer track ID) when storing a processed song. When checking whether a track was already processed, first try to match by ISRC, then by platform track ID if ISRC does not exist; if neither exists, generate a new feature vector and store it.
 
 ### Session 2026-08-03
 
@@ -38,9 +38,9 @@ As a user (music producer, hobbyist musician, audio engineer, music educator, mu
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` — explicitly omitting `spectral_flux`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database.
+1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` — explicitly omitting `spectral_flux`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC (when available) and the platform track ID (Deezer track ID) to the stored record.
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
-3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint and reuses stored data without duplicating entries.
+3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC first, then platform track ID if the ISRC does not exist, and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
 5. **Given** a fetched audio snippet in MP3, WAV, or FLAC format, **When** digital signal processing cannot process the audio data, **Then** the system displays an "audio file cannot be processed" error.
 
@@ -92,6 +92,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 ### Edge Cases
 
 - **Ambiguous Match Selection**: When user inputs a song name, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
+- **Duplicate Processing Detection**: When a track is processed again, the system matches existing records by track ISRC first, then by platform track ID (Deezer track ID) if the ISRC does not exist; only when neither identifier matches an existing record does it generate and store a new feature vector.
 - **Network Interruption**: Temporary network failure during online audio snippet fetching triggers up to 3 retries spaced 5 seconds apart. If all fail, "network disconnected" error is displayed.
 - **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multi-channel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
 - **Silent or Non-Musical Content**: Non-musical or silent tracks produce valid feature vectors with zero/low energy metrics without failing DSP pipeline.
