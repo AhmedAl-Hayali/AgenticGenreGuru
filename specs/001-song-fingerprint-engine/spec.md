@@ -28,11 +28,11 @@ As a user (music producer, hobbyist musician, audio engineer, music educator, mu
 
 **Why this priority**: Core value of GenreGuru. Without searching matches, fetching audio snippets first, extracting composite DSP fingerprint features, and storing them locally, no downstream analysis or recommendation capability can function.
 
-**Independent Test**: Can be tested independently by submitting a valid song name, confirming one of the top 5 matches, verifying online audio snippet retrieval first, validating composite feature extraction (spectral centroid, spectral flux), and checking that the resulting feature vector is saved in the local relational database.
+**Independent Test**: Can be tested independently by submitting a valid song name, confirming one of the top 5 matches, verifying online audio snippet retrieval first, validating composite feature extraction (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`), and checking that the resulting feature vector is saved in the local relational database.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (including spectral centroid and spectral flux) grouped into a song feature vector, and saves the vector to the local relational database.
+1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` — explicitly omitting `spectral_flux`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database.
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
 3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
@@ -96,7 +96,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **FR-001**: System MUST accept a song name input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
 - **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
-- **FR-003**: System MUST execute a composite feature engineering pipeline consisting of substeps computing individual acoustic features (including spectral centroid and spectral flux) and group them into a single song feature vector.
+- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`). In V1, each feature's time-vector MUST be downsampled (collapsed) into a single scalar value per feature, while allowing future versions to retain temporal dimensions.
 - **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
 - **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, audio source reference, and processing timestamp.
 - **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times.
@@ -110,7 +110,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **Song**: Represents a track identified by title and basic metadata (artist, title, source URL/identifier).
 - **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, and retrieval status.
-- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (including spectral centroid, spectral flux, temporal, harmonic, and energy descriptors) linked to a specific Song.
+- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values for V1 and linked to a specific Song.
 - **FeatureRecord**: The database table representation persisting the song fingerprint features, metadata, and timestamps in the local relational database.
 
 ## Success Criteria *(mandatory)*
@@ -126,7 +126,8 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 ## Assumptions
 
 - Target users have an active internet connection required to fetch online song snippets.
-- Online audio fetching utilizes publicly accessible audio snippets in MP3, WAV, or FLAC formats.
+- Online audio fetching currently utilizes publicly accessible, user-independent audio preview snippets in MP3, WAV, or FLAC formats via Deezer API.
+- Future versions may introduce user authentication (e.g., via `deezer-python`) to access personal user libraries on Deezer, Spotify, YouTube Music, Apple Music, Amazon Music, etc.
 - Audio source is assumed reliable regarding file truncation/corruption; unprocessable audio displays explicit error.
 - The local relational database is initialized and accessible on the local system environment.
 - Downstream recommendation algorithms will be implemented in subsequent project phases using the stored fingerprint data.
