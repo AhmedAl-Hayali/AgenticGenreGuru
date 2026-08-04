@@ -11,6 +11,7 @@
   "data": [
     {
       "id": 3135556,
+      "isrc": "GBDUW0200059",
       "title": "Harder, Better, Faster, Stronger",
       "artist": { "name": "Daft Punk" },
       "album": { "title": "Discovery" },
@@ -20,6 +21,8 @@
   "total": 1
 }
 ```
+
+> **ISRC Persistence**: When the Deezer track response includes an `isrc` field, it is captured and persisted to the database alongside the platform track ID (`id`, stored as `deezer_id`). If `isrc` is absent, only the platform track ID is written and it serves as the fallback deduplication identifier.
 
 ## 2. Audio Snippet Download Contract
 

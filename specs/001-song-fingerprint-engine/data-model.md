@@ -9,13 +9,16 @@ Represents a track retrieved from Deezer search results.
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `id` | Integer / UUID | Primary Key | Internal song record ID |
-| `deezer_id` | String | Unique, Indexed, Not Null | Deezer track ID |
+| `deezer_id` | String | Unique, Indexed, Not Null | Deezer track ID (platform track ID) |
+| `isrc` | String | Unique, Indexed, Nullable | International Standard Recording Code (ISO 39075); written when available, fallback deduplication key |
 | `title` | String(255) | Not Null | Track title |
 | `artist` | String(255) | Not Null | Artist name |
 | `album` | String(255) | Nullable | Album name |
 | `preview_url` | Text | Not Null | Deezer 30s preview MP3 URL |
 | `duration` | Integer | Nullable | Track duration in seconds |
 | `created_at` | DateTime (UTC) | Default: now() | Record creation timestamp |
+
+*Deduplication Strategy*: Every processed song stores both `deezer_id` and `isrc` (when the ISRC is available). When checking whether a track was already processed, look up by `isrc` first, then by `deezer_id` if the ISRC does not exist; only when neither matches is a new feature vector generated and stored.
 
 ### Entity: `SongFingerprint` (`song_fingerprints` table)
 
@@ -46,32 +49,35 @@ erDiagram
     SONG ||--o| SONG_FINGERPRINT : "has 1-to-1 fingerprint"
 
     SONG {
-        int id PK
-        string deezer_id UK
-        string title
-        string artist
+        int id PK "NN"
+        string deezer_id UK "NN"
+        string isrc UK
+        string title "NN"
+        string artist "NN"
         string album
-        string preview_url
-        int duration
-        datetime created_at
+        string preview_url "NN"
+        int duration "NN"
+        datetime created_at "NN"
     }
 
     SONG_FINGERPRINT {
-        int id PK
-        int song_id FK, UK
-        float spectral_centroid
-        float rms
-        float spectral_bandwidth
-        float spectral_contrast
-        float spectral_flatness
-        float spectral_rolloff
-        float zero_crossing_rate
-        float mfcc
-        string audio_format
-        int sample_rate
-        datetime created_at
+        int id PK "NN"
+        int song_id FK, UK "NN"
+        float spectral_centroid  "NN"
+        float rms  "NN"
+        float spectral_bandwidth  "NN"
+        float spectral_contrast  "NN"
+        float spectral_flatness  "NN"
+        float spectral_rolloff  "NN"
+        float zero_crossing_rate  "NN"
+        float mfcc  "NN"
+        string audio_format  "NN"
+        int sample_rate  "NN"
+        datetime created_at  "NN"
     }
 ```
+
+*Note*: `NN` corresponds to Not Null.
 
 ## State Transitions & Workflows
 
@@ -80,8 +86,10 @@ flowchart TD
     A["User Input Song Name"] --> B["Deezer API Search"]
     B -->|"Returns Top 5 Matches"| C["Display Candidates in UI"]
     C -->|"Click 1: Select Candidate"| D["Highlight Selected Track"]
-    D -->|"Click 2: Confirm Selection"| E["Fetch Audio Snippet (Deezer)"]
+    D -->|"Click 2: Confirm Selection"| DEDUP{"Already Processed? Match by ISRC, then platform track ID"}
+    DEDUP -->|"Match Found (ISRC or deezer_id)"| REUSE["Reuse Stored Fingerprint & Metadata"]
+    DEDUP -->|"No Match"| E["Fetch Audio Snippet (Deezer)"]
     E -->|"Retry 3x on Network Fail"| F["DSP Feature Extraction"]
-    F -->|"Extract 8 Collapsed Features"| G["Store via SQLAlchemy"]
+    F -->|"Extract 8 Collapsed Features"| G["Store via SQLAlchemy (write isrc + deezer_id)"]
     G --> H["Persist in songs & song_fingerprints Tables"]
 ```
