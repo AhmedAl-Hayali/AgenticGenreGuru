@@ -10,6 +10,12 @@
 
 ## Clarifications
 
+### Session 2026-08-04
+
+- Q: How should multi-channel (stereo or surround) audio snippets be processed during DSP feature extraction? → A: Convert multi-channel audio to mono by averaging channels prior to feature extraction.
+- Q: Which mathematical downsampling statistic should be used to collapse each acoustic feature's time-series vector into a single scalar value for V1 fingerprints? → A: Arithmetic mean across all frames (producing 1 scalar per feature).
+- Q: How should song identity and deduplication be determined to prevent duplicate feature records in the local relational database? → A: Use track ISRC (International Standard Recording Code) as the primary canonical deduplication key, falling back to the external platform track ID if ISRC is missing.
+
 ### Session 2026-08-03
 
 - Q: How should song selection and confirmation work upon user input? → A: After user inputs a song name, system returns top 5 match results and asks user for confirmation before proceeding to feature engineering.
@@ -87,7 +93,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **Ambiguous Match Selection**: When user inputs a song name, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
 - **Network Interruption**: Temporary network failure during online audio snippet fetching triggers up to 3 retries spaced 5 seconds apart. If all fail, "network disconnected" error is displayed.
-- **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
+- **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multi-channel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
 - **Silent or Non-Musical Content**: Non-musical or silent tracks produce valid feature vectors with zero/low energy metrics without failing DSP pipeline.
 
 ## Requirements *(mandatory)*
@@ -96,10 +102,10 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **FR-001**: System MUST accept a song name input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
 - **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
-- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`). In V1, each feature's time-vector MUST be downsampled (collapsed) into a single scalar value per feature, while allowing future versions to retain temporal dimensions.
+- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`). Multi-channel (stereo/surround) audio snippets MUST be downmixed to single-channel (mono) by averaging channels prior to DSP extraction. In V1, each feature's time-vector MUST be downsampled (collapsed) into a single scalar value per feature by computing the arithmetic mean across all audio frames, while allowing future versions to retain temporal dimensions.
 - **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
-- **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, audio source reference, and processing timestamp.
-- **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times.
+- **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC (if available), platform track ID, audio source reference, and processing timestamp.
+- **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness based primarily on track ISRC (International Standard Recording Code), falling back to external platform track ID if ISRC is missing or unavailable.
 - **FR-007**: System MUST handle network interruptions during snippet fetching by retrying up to 3 times with 5-second delays between attempts; if all fail, display "network disconnected" error feedback.
 - **FR-008**: System MUST display an "audio file cannot be processed" error if fetched MP3, WAV, or FLAC audio data fails digital signal processing.
 - **FR-009**: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database.
@@ -108,10 +114,10 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ### Key Entities *(include if feature involves data)*
 
-- **Song**: Represents a track identified by title and basic metadata (artist, title, source URL/identifier).
-- **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, and retrieval status.
-- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values for V1 and linked to a specific Song.
-- **FeatureRecord**: The database table representation persisting the song fingerprint features, metadata, and timestamps in the local relational database.
+- **Song**: Represents a track identified primarily by track ISRC (International Standard Recording Code), falling back to platform track ID if ISRC is missing, along with title, artist, and source reference.
+- **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, channel configuration (downmixed to mono for DSP), and retrieval status.
+- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked to a specific Song.
+- **FeatureRecord**: The database table representation persisting the song fingerprint features, track ISRC (or platform track ID fallback), metadata, and timestamps in the local relational database with unique constraints on the primary identifier.
 
 ## Success Criteria *(mandatory)*
 
