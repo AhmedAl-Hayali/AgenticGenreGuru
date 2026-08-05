@@ -52,7 +52,7 @@
 }
 ```
 *Note: In V1, each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
-- **Deduplication**: On confirm, the backend first checks whether a song with the same `isrc` exists in the database; if not, it checks for a song with the same `deezer_id`. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If neither identifier matches, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` (when available) and `deezer_id` written to the database.
+- **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
 - **Error Responses**:
   - `400 Bad Request`: `{"status": "error", "message": "audio file cannot be processed"}`
   - `503 Service Unavailable`: `{"status": "error", "message": "network disconnected"}`

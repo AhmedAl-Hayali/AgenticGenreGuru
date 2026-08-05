@@ -33,7 +33,7 @@ Open browser to `http://localhost:8000`.
 3. Click match once -> verifies UI item enters "Selected" state.
 4. Click match second time -> confirms selection; initiates Deezer audio fetch + librosa DSP fingerprinting.
 5. Verify success response and fingerprint metrics displayed.
-6. Re-submit the same song and confirm again -> verify the existing fingerprint is reused (matched by ISRC first, then platform track ID) without creating duplicate database records.
+6. Re-submit the same song and confirm again -> verify the existing fingerprint is reused (matched by ISRC) without creating duplicate database records.
 
 ### Scenario 2: Automated Integration Tests
 

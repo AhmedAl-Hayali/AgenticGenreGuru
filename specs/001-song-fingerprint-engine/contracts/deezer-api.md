@@ -22,7 +22,7 @@
 }
 ```
 
-> **ISRC Persistence**: When the Deezer track response includes an `isrc` field, it is captured and persisted to the database alongside the platform track ID (`id`, stored as `deezer_id`). If `isrc` is absent, only the platform track ID is written and it serves as the fallback deduplication identifier.
+> **ISRC Persistence**: The Deezer track response MUST include an `isrc` field; it is captured and persisted to the database alongside the platform track ID (`id`, stored as `deezer_id`). If `isrc` is absent in the external response, the system MUST fail loudly and throw an error rather than persisting the track without it.
 
 ## 2. Audio Snippet Download Contract
 
