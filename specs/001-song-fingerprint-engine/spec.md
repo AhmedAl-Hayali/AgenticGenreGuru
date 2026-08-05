@@ -14,7 +14,7 @@
 
 - Q: How should multi-channel (stereo or surround) audio snippets be processed during DSP feature extraction? → A: Convert multi-channel audio to mono by averaging channels prior to feature extraction.
 - Q: Which mathematical downsampling statistic should be used to collapse each acoustic feature's time-series vector into a single scalar value for V1 fingerprints? → A: Arithmetic mean across all frames (producing 1 scalar per feature).
-- Q: How should song identity and deduplication be determined to prevent duplicate feature records in the local relational database? → A: Write both the track ISRC (International Standard Recording Code) and the external platform track ID (Deezer track ID) when storing a processed song. When checking whether a track was already processed, first try to match by ISRC, then by platform track ID if ISRC does not exist; if neither exists, generate a new feature vector and store it.
+- Q: How should song identity and deduplication be determined to prevent duplicate feature records in the local relational database? → A: Write both the track ISRC (International Standard Recording Code) and the external platform track ID (Deezer track ID) when storing a processed song. When checking whether a track was already processed, match by ISRC; if no local record matches the ISRC — generate a new feature vector for that ISRC and track ID and store it.
 
 ### Session 2026-08-03
 
@@ -38,9 +38,9 @@ As a user (music producer, hobbyist musician, audio engineer, music educator, mu
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` — explicitly omitting `spectral_flux`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC (when available) and the platform track ID (Deezer track ID) to the stored record.
+1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` — explicitly omitting `spectral_flux`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the platform track ID (Deezer track ID) to the stored record.
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
-3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC first, then platform track ID if the ISRC does not exist, and reuses stored data without duplicating entries.
+3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
 5. **Given** a fetched audio snippet in MP3, WAV, or FLAC format, **When** digital signal processing cannot process the audio data, **Then** the system displays an "audio file cannot be processed" error.
 
@@ -92,7 +92,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 ### Edge Cases
 
 - **Ambiguous Match Selection**: When user inputs a song name, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
-- **Duplicate Processing Detection**: When a track is processed again, the system matches existing records by track ISRC first, then by platform track ID (Deezer track ID) if the ISRC does not exist; only when neither identifier matches an existing record does it generate and store a new feature vector.
+- **Duplicate Processing Detection**: When a track is processed again, the system matches existing records by track ISRC. If no local record matches, the system generates and stores a new feature vector.
 - **Network Interruption**: Temporary network failure during online audio snippet fetching triggers up to 3 retries spaced 5 seconds apart. If all fail, "network disconnected" error is displayed.
 - **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multi-channel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
 - **Silent or Non-Musical Content**: Non-musical or silent tracks produce valid feature vectors with zero/low energy metrics without failing DSP pipeline.
@@ -105,20 +105,23 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
 - **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`). Multi-channel (stereo/surround) audio snippets MUST be downmixed to single-channel (mono) by averaging channels prior to DSP extraction. In V1, each feature's time-vector MUST be downsampled (collapsed) into a single scalar value per feature by computing the arithmetic mean across all audio frames, while allowing future versions to retain temporal dimensions.
 - **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
-- **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC (if available), platform track ID, audio source reference, and processing timestamp.
-- **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness based primarily on track ISRC (International Standard Recording Code), falling back to external platform track ID if ISRC is missing or unavailable.
+- **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
+- **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness on the track ISRC (International Standard Recording Code).
 - **FR-007**: System MUST handle network interruptions during snippet fetching by retrying up to 3 times with 5-second delays between attempts; if all fail, display "network disconnected" error feedback.
 - **FR-008**: System MUST display an "audio file cannot be processed" error if fetched MP3, WAV, or FLAC audio data fails digital signal processing.
-- **FR-009**: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database.
+- **FR-009**: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database using a track's ISRC.
 - **FR-010**: System MAY (P3 lower priority) provide DSP visualization capabilities, showing song spectrograms with highlighted spectral centroid and feature contribution factors.
 - **FR-011**: System MAY (P3 lower priority) allow users to modify acoustic feature vector values to retrieve recommendations matching the modified profile.
+- **FR-014**: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1).
+- **FR-015**: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC.
+*Note*: ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
 
 ### Key Entities *(include if feature involves data)*
 
-- **Song**: Represents a track identified primarily by track ISRC (International Standard Recording Code), falling back to platform track ID if ISRC is missing, along with title, artist, and source reference.
+- **Song**: Represents a track identified by track ISRC (International Standard Recording Code) along with the platform track ID, title, artist, and source reference.
 - **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, channel configuration (downmixed to mono for DSP), and retrieval status.
 - **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked to a specific Song.
-- **FeatureRecord**: The database table representation persisting the song fingerprint features, track ISRC (or platform track ID fallback), metadata, and timestamps in the local relational database with unique constraints on the primary identifier.
+- **FeatureRecord**: The database table representation persisting the song fingerprint features, both track ISRC and platform track ID, metadata, and timestamps in the local relational database with unique constraints on the primary identifier.
 
 ## Success Criteria *(mandatory)*
 
