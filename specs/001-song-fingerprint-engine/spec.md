@@ -103,7 +103,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **FR-001**: System MUST accept a song name input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
 - **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
-- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`). Multi-channel (stereo/surround) audio snippets MUST be downmixed to single-channel (mono) by averaging channels prior to DSP extraction. In V1, each feature's time-vector MUST be downsampled (collapsed) into a single scalar value per feature by computing the arithmetic mean across all audio frames, while allowing future versions to retain temporal dimensions.
+- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`).
 - **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
 - **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
 - **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness on the track ISRC (International Standard Recording Code).
@@ -112,9 +112,14 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **FR-009**: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database using a track's ISRC.
 - **FR-010**: System MAY (P3 lower priority) provide DSP visualization capabilities, showing song spectrograms with highlighted spectral centroid and feature contribution factors.
 - **FR-011**: System MAY (P3 lower priority) allow users to modify acoustic feature vector values to retrieve recommendations matching the modified profile.
+- **FR-012**: System MUST downmix multi-channel (stereo/surround) audio snippets to single-channel (mono) by averaging channels prior to DSP extraction.
+- **FR-013**: System MUST downsample each feature's time-vector into a single scalar value by computing the arithmetic mean across all audio frames.
 - **FR-014**: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1).
 - **FR-015**: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC.
-*Note*: ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
+
+#### Notes
+- ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
+- **FR-013** is only for V1. Future versions should retain temporal dimensions by less aggressively downsampling, or not downsampling at all.
 
 ### Key Entities *(include if feature involves data)*
 
