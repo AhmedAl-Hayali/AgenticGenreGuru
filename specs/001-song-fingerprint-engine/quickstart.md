@@ -30,10 +30,10 @@ Open browser to `http://localhost:8000`.
 ### Scenario 1: Search & 2-Click Confirmation
 1. Type `Daft Punk` in text field and click **Search**.
 2. Verify top 5 candidate matches appear in list.
-3. Click match once -> verifies UI item enters "Selected" state.
-4. Click match second time -> confirms selection; initiates Deezer audio fetch + librosa DSP fingerprinting.
+3. Click match once → verifies UI item enters "Selected" state.
+4. Click match second time → confirms selection; initiates Deezer audio fetch + librosa DSP fingerprinting.
 5. Verify success response and fingerprint metrics displayed.
-6. Re-submit the same song and confirm again -> verify the existing fingerprint is reused (matched by ISRC) without creating duplicate database records.
+6. Re-submit the same song and confirm again → verify the existing fingerprint is reused (matched by ISRC) without creating duplicate database records.
 
 ### Scenario 2: Automated Integration Tests
 

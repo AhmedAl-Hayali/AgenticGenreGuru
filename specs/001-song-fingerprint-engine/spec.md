@@ -12,7 +12,7 @@
 
 ### Session 2026-08-04
 
-- Q: How should multi-channel (stereo or surround) audio snippets be processed during DSP feature extraction? → A: Convert multi-channel audio to mono by averaging channels prior to feature extraction.
+- Q: How should multichannel (stereo or surround) audio snippets be processed during DSP feature extraction? → A: Convert multichannel audio to mono by averaging channels prior to feature extraction.
 - Q: Which mathematical downsampling statistic should be used to collapse each acoustic feature's time-series vector into a single scalar value for V1 fingerprints? → A: Arithmetic mean across all frames (producing 1 scalar per feature).
 - Q: How should song identity and deduplication be determined to prevent duplicate feature records in the local relational database? → A: Write both the track ISRC (International Standard Recording Code) and the external platform track ID (Deezer track ID) when storing a processed song. When checking whether a track was already processed, match by ISRC; if no local record matches the ISRC — generate a new feature vector for that ISRC and track ID and store it.
 
@@ -94,7 +94,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **Ambiguous Match Selection**: When user inputs a song name, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
 - **Duplicate Processing Detection**: When a track is processed again, the system matches existing records by track ISRC. If no local record matches, the system generates and stores a new feature vector.
 - **Network Interruption**: Temporary network failure during online audio snippet fetching triggers up to 3 retries spaced 5 seconds apart. If all fail, "network disconnected" error is displayed.
-- **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multi-channel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
+- **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multichannel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
 - **Silent or Non-Musical Content**: Non-musical or silent tracks produce valid feature vectors with zero/low energy metrics without failing DSP pipeline.
 
 ## Requirements *(mandatory)*
@@ -112,7 +112,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **FR-009**: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database using a track's ISRC.
 - **FR-010**: System MAY (P3 lower priority) provide DSP visualization capabilities, showing song spectrograms with highlighted spectral centroid and feature contribution factors.
 - **FR-011**: System MAY (P3 lower priority) allow users to modify acoustic feature vector values to retrieve recommendations matching the modified profile.
-- **FR-012**: System MUST downmix multi-channel (stereo/surround) audio snippets to single-channel (mono) by averaging channels prior to DSP extraction.
+- **FR-012**: System MUST downmix multichannel (stereo/surround) audio snippets to single-channel (mono) by averaging channels prior to DSP extraction.
 - **FR-013**: System MUST downsample each feature's time-vector into a single scalar value by computing the arithmetic mean across all audio frames.
 - **FR-014**: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1).
 - **FR-015**: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC.

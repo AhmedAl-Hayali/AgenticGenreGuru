@@ -35,7 +35,7 @@ Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Dja
 *GATE: Passed*
 
 - **I. Standalone Library-First Architecture**: Core audio fetcher, DSP feature extractor, and database repositories implemented as decoupled Python modules independent of Django UI views.
-- **II. XP & Incremental Iteration**: Implementation split into small, testable modules (Deezer client -> Audio DSP -> SQLAlchemy models -> Django UI).
+- **II. XP & Incremental Iteration**: Implementation split into small, testable modules (Deezer client → Audio DSP → SQLAlchemy models → Django UI).
 - **III. Strict TDD**: Red-Green-Refactor enforced across all unit and integration tests.
 - **IV. Simplicity & Modular Adaptability**: Clean interfaces between Deezer API client, DSP engine, and database layer.
 - **V. SOLID**: Single Responsibility per service component (fetcher, extractor, repo, UI controller).
@@ -78,25 +78,25 @@ tests/
 
 ### Subdirectory Architecture Justification
 
-#### 1. Why `src/` is sub-divided into `core/audio/`, `core/deezer/`, and `core/db/`:
+#### 1. Why `src/` is subdivided into `core/audio/`, `core/deezer/`, and `core/db/`:
 - **`src/core/audio/` (DSP Feature Extraction)**: Encapsulates pure mathematical signal processing code (librosa, numpy, scipy). Isolating signal processing into its own subpackage ensures DSP algorithms can be developed, optimized, and unit-tested in isolation without dependencies on database connections or HTTP networking.
 - **`src/core/deezer/` (External API Client & Retry)**: Encapsulates network operations, HTTP transport, and Deezer-specific API error handling (`NetworkDisconnectedError`). Keeping external network clients separate from local DSP code isolates network volatility and simplifies mocking network responses during testing.
 - **`src/core/db/` (SQLAlchemy ORM & Persistence)**: Houses PostgreSQL database schemas, SQLAlchemy engine initialization, and repository pattern access functions. Repository functions persist both the track ISRC and the platform track ID (Deezer track ID) for every processed song and implement deduplication lookups that match existing songs by ISRC; if no local record matches the ISRC, they generate and store a new fingerprint. Separating persistence from DSP logic guarantees that audio features can be computed without mandating database writes (e.g. for transient preview testing).
 
-#### 2. Why `frontend/` is sub-divided into `genreguru_web/` and `fingerprint_app/`:
+#### 2. Why `frontend/` is subdivided into `genreguru_web/` and `fingerprint_app/`:
 - **`frontend/genreguru_web/` (Django Project Root)**: Follows standard Django framework conventions by isolating project-level configurations (`settings.py`), root URL dispatchers (`urls.py`), and WSGI/ASGI entrypoints (`wsgi.py`, `asgi.py`). This manages application-wide middleware and global setup.
 - **`frontend/fingerprint_app/` (Django Application Module)**: Contains application-specific controllers (`views.py`), templates (`templates/fingerprint_app/index.html`), and static UI assets. Grouping feature-specific views and templates into a dedicated Django app allows clean modular growth as additional web features (such as user management or recommendation views) are added.
 
 ### Architectural Trade-offs & Alternatives
 
-| Layout Strategy | Pros | Cons | Decision Rationale |
-|-----------------|------|------|--------------------|
-| **Selected Layout** (`src/` core + `frontend/` Django app) | High modularity, headless CLI capability, independent unit testing of DSP engine without Django boilerplate, clean boundary for future service extraction | Requires explicit `sys.path` / package import wiring between Django views and `src/` module | Chosen. Strictly upholds Constitution Principle I while keeping single `pyproject.toml` repository simplicity. |
-| **Alternative A: Monolithic Django App** (All logic inside `frontend/fingerprint_app/`) | Standard Django conventions, single package layout, simplest import paths | Couples audio DSP and SQLAlchemy models to Django framework lifecycle; prevents reusing DSP core in standalone scripts; violates Principle I | Rejected due to framework coupling and architectural rigidity. |
-| **Alternative B: Multi-Package Monorepo** (`packages/core` + `apps/web` with separate `pyproject.toml` files) | Strictest dependency isolation; independent package publishing and versioning | Complex tooling setup (workspace management, dual environment builds, multi-package lockfiles) | Rejected as over-engineering for current project scope. |
+| Layout Strategy                                                                                               | Pros                                                                                                                                                      | Cons                                                                                                                                         | Decision Rationale                                                                                             |
+|---------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------|
+| **Selected Layout** (`src/` core + `frontend/` Django app)                                                    | High modularity, headless CLI capability, independent unit testing of DSP engine without Django boilerplate, clean boundary for future service extraction | Requires explicit `sys.path` / package import wiring between Django views and `src/` module                                                  | Chosen. Strictly upholds Constitution Principle I while keeping single `pyproject.toml` repository simplicity. |
+| **Alternative A: Monolithic Django App** (All logic inside `frontend/fingerprint_app/`)                       | Standard Django conventions, single package layout, simplest import paths                                                                                 | Couples audio DSP and SQLAlchemy models to Django framework lifecycle; prevents reusing DSP core in standalone scripts; violates Principle I | Rejected due to framework coupling and architectural rigidity.                                                 |
+| **Alternative B: Multi-Package Monorepo** (`packages/core` + `apps/web` with separate `pyproject.toml` files) | Strictest dependency isolation; independent package publishing and versioning                                                                             | Complex tooling setup (workspace management, dual environment builds, multi-package lockfiles)                                               | Rejected as over-engineering for current project scope.                                                        |
 
 ## Complexity Tracking
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
+| Violation                              | Why Needed                                                                      | Simpler Alternative Rejected Because                                      |
+|----------------------------------------|---------------------------------------------------------------------------------|---------------------------------------------------------------------------|
 | Dual ORM (SQLAlchemy backend + Django) | User explicitly specified Django frontend and SQLAlchemy backend DB interfacing | Direct Django ORM would couple core DSP library to Django framework state |
