@@ -19,7 +19,7 @@
 ### Session 2026-08-03
 
 - Q: How should song selection and confirmation work upon user input? → A: After user inputs a song name, system returns top 5 match results and asks user for confirmation before proceeding to feature engineering.
-- Q: What structure does feature engineering follow? → A: Feature engineering is a composite step with multiple substeps computing individual acoustic features (such as spectral centroid and spectral flux) grouped into a single feature vector for the song.
+- Q: What structure does feature engineering follow? → A: Feature engineering is a composite step with multiple substeps computing individual acoustic features (such as spectral centroid) grouped into a single feature vector for the song.
 - Q: What priority and behavior applies to DSP visualizations? → A: Lower-priority objective to visualize DSP attributes (e.g., spectrogram with highlighted spectral centroid and top contributing factors for spectral features).
 - Q: What is the correct sequence of audio fetching vs fingerprinting? → A: System fetches online audio snippet first, then generates the fingerprint from the fetched audio snippet.
 - Q: How can users interact with recommendations based on acoustic characteristics? → A: Users can modify acoustic characteristics of a song to receive recommendations matching the modified vector rather than the original song.
@@ -38,7 +38,7 @@ As a user (music producer, hobbyist musician, audio engineer, music educator, mu
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` — explicitly omitting `spectral_flux`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the platform track ID (Deezer track ID) to the stored record.
+1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the platform track ID (Deezer track ID) to the stored record.
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
 3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
@@ -103,7 +103,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **FR-001**: System MUST accept a song name input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
 - **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
-- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`; explicitly omitting `spectral_flux`).
+- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`).
 - **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
 - **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
 - **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness on the track ISRC (International Standard Recording Code).

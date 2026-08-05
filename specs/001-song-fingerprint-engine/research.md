@@ -15,7 +15,6 @@
 
 - **Target Runtime**: Python 3.12 (in accordance with `pyproject.toml`).
 - **Decision**: Extract `spectral_centroid` (`librosa.feature.spectral_centroid`), `rms` (`librosa.feature.rms`), `spectral_bandwidth` (`librosa.feature.spectral_bandwidth`), `spectral_contrast` (`librosa.feature.spectral_contrast`), `spectral_flatness` (`librosa.feature.spectral_flatness`), `spectral_rolloff` (`librosa.feature.spectral_rolloff`), `zero_crossing_rate` (`librosa.feature.zero_crossing_rate`), and `mfcc` (`librosa.feature.mfcc`) using `librosa`, array operations in `numpy`, and signal filtering in `scipy`.
-- **Feature Exclusion**: `spectral_flux` (onset strength) is explicitly omitted from feature extraction.
 - **Downsampling & Temporal Strategy**: For V1, collapse each feature's temporal frame vector into a single scalar summary value (downsampling the feature space to manageable scalar dimensions). Future program editions may retain temporal frame sequences (less downsampling) for time-series analysis.
 - **Rationale**: `librosa` is the standard Python audio analysis library built on `numpy` and `scipy`, supporting MP3, WAV, and FLAC decoding via `soundfile` / `audioread`.
 - **Alternatives Considered**: `pyAudioAnalysis` (less active maintenance), raw `scipy.io.wavfile` (lacks MP3/FLAC out-of-the-box support).

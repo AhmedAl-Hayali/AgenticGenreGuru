@@ -6,13 +6,13 @@
 
 ## Summary
 
-Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Django serves the frontend UI featuring a song search bar and candidate match list with 2-click selection/confirmation UX. The backend core utilizes a standalone Python library structure with Deezer API integration for online audio snippet retrieval, librosa/numpy/scipy for digital signal processing (spectral centroid, spectral flux, etc.), and SQLAlchemy for PostgreSQL database persistence.
+Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Django serves the frontend UI featuring a song search bar and candidate match list with 2-click selection/confirmation UX. The backend core utilizes a standalone Python library structure with Deezer API integration for online audio snippet retrieval, librosa/numpy/scipy for digital signal processing (spectral centroid, etc.), and SQLAlchemy for PostgreSQL database persistence.
 
 ## Technical Context
 
 **Language/Version**: Python 3.12 (in accordance with `pyproject.toml`)
 
-**Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`; `spectral_flux` explicitly omitted), requests / httpx (Deezer API)
+**Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), requests / httpx (Deezer API)
 
 **Dev & Pre-commit Tooling**: Bandit (security audit), Radon (code metric & complexity analysis), FactoryBoy (`factory_boy` for integration test fixtures), Coverage (`coverage` / `pytest-cov` test coverage analysis), pytest & pytest-django
 
