@@ -12,12 +12,12 @@
 - [x] CHK002 Does the confirm endpoint contract define request schema fields for all metadata FR-005 requires to be stored (track ISRC, platform track ID, title, artist, audio source reference)? [Completeness, Spec §FR-005]
 - [x] CHK003 Is the deduplication reuse flow (match by ISRC, generate new fingerprint on local miss, fail loudly only on external ISRC absence) explicitly specified in the confirm endpoint contract? [Completeness, Spec §FR-006]
 - [x] CHK004 Are search match response fields specified for all data the 2-click selection flow requires (`deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`)? [Completeness, Spec §FR-001]
-- [x] CHK005 Is the `isrc` field documented as mandatory when interfacing with external platforms, with an explicit fail-loud error requirement when an external response omits it? [Completeness, deezer-api.md §1]
-- [x] CHK006 Are retry and timeout requirements for the external Deezer snippet download contract explicitly documented? [Completeness, deezer-api.md §2]
+- [x] CHK005 Is the `isrc` field documented as mandatory when interfacing with external platforms, with an explicit fail-loud error requirement when an external response omits it? [Completeness, [deezer-api.md](../contracts/deezer-api.md) §1]
+- [x] CHK006 Are retry and timeout requirements for the external Deezer snippet download contract explicitly documented? [Completeness, [deezer-api.md](../contracts/deezer-api.md) §2]
 
 ## Requirement Clarity
 
-- [ ] CHK007 Are response field types and formats unambiguous in both contracts (string vs integer identifiers, preview URL scheme)? [Clarity, search-api.md §1]
+- [ ] CHK007 Are response field types and formats unambiguous in both contracts (string vs integer identifiers, preview URL scheme)? [Clarity, [search-api.md](../contracts/search-api.md) §1]
 
 CHK007 is not fulfilled yet, but can be using the Deezer API reference. A [complete reference](https://developers.deezer.com/api/search) for field names and corresponding types returned from a GET `api/search/track?q={song_name}` request.
 
@@ -25,7 +25,7 @@ CHK007 is not fulfilled yet, but can be using the Deezer API reference. A [compl
 
 The internal search query should be idempotent — whether a song was already in the internal database, or is freshly generated, it should be identical.
 
-- [ ] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, deezer-api.md §1]
+- [ ] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, [deezer-api.md](../contracts/deezer-api.md) §1]
 
 [Global parameters](https://developers.deezer.com/api/parameters) and [optional search parameters](https://developers.deezer.com/api/search#:~:text=Optionnal%20Parameters) are listed on the Deezer API reference.
 
@@ -39,11 +39,11 @@ The internal search query should be idempotent — whether a song was already in
 
 <span style='color:red'>Revisit this!</span>
 
-- [ ] CHK012 Does the confirm request body exactly match the fields returned by the search match payload? [Consistency, search-api.md §1-§2]
+- [ ] CHK012 Does the confirm request body exactly match the fields returned by the search match payload? [Consistency, [search-api.md](../contracts/search-api.md) §1-§2]
 
 `album` field missing from the `/api/confirm/` request body.
 
-- [x] CHK013 Do retry requirements in deezer-api.md §2 align with FR-007 (3 retries, 5-second delay)? [Consistency, Spec §FR-007]
+- [x] CHK013 Do retry requirements in [deezer-api.md](../contracts/deezer-api.md) §2 align with FR-007 (3 retries, 5-second delay)? [Consistency, Spec §FR-007]
 - [x] CHK014 Are error messages consistent between spec FR-007/FR-008, the search-api error responses, and plan constraints? [Consistency]
 - [x] CHK015 Does the contract deduplication description match FR-006 (ISRC lookup, generate new fingerprint on local miss, fail loudly only on external ISRC absence)? [Consistency, Spec §FR-006]
 

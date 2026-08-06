@@ -154,4 +154,4 @@ sequenceDiagram
 - MP3/WAV/FLAC only. `FR-002`
 - 3 retries / 5s on fetch failure. `FR-007`, `NFR/Deezer §2`.
 
-**Note to future readers**: maintain the `search-api.md` + `deezer-api.md` field references as the single source of truth for payload shapes; whenever Deezer changes its schema, those files change first, then re-read this flow diagram.
+**Note to future readers**: maintain the [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) + [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) field references as the single source of truth for payload shapes; whenever Deezer changes its schema, those files change first, then re-read this flow diagram.

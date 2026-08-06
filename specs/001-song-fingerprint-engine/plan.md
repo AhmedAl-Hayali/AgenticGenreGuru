@@ -1,6 +1,6 @@
 # Implementation Plan: Song Fingerprint Engine
 
-**Branch**: `001-song-fingerprint-engine` | **Date**: 2026-08-03 | **Spec**: [`spec.md`](file:///C:/Users/Awalh/Desktop/learning_agentic_coding/genreguru/specs/001-song-fingerprint-engine/spec.md)
+**Branch**: `001-song-fingerprint-engine` | **Date**: 2026-08-03 | **Spec**: [spec.md](spec.md)
 
 **Input**: User explicit choices: Python, PostgreSQL, Django frontend, SQLAlchemy backend ORM, librosa/numpy/scipy audio DSP, Deezer API for audio snippets, 2-click song match confirmation UI.
 
@@ -10,7 +10,7 @@ Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Dja
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (in accordance with `pyproject.toml`)
+**Language/Version**: Python 3.12 (in accordance with [pyproject.toml](../../pyproject.toml))
 
 **Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), requests / httpx (Deezer API)
 
