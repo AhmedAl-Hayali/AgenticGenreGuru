@@ -2,7 +2,7 @@
 
 ## 1. Search Songs Endpoint
 
-- **Path**: `GET /api/search/?query={song_name}`
+- **Path**: `GET /api/search/?query={song_title}`
 - **Response**:
 ```json
 {

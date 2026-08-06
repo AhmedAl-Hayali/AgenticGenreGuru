@@ -6,7 +6,7 @@
 
 **Status**: Draft
 
-**Input**: User description: "Develop GenreGuru, a feature engineering tool with a song name as its input and processing that is fetching a song snippet from online, generating a song fingerprint using audio digital signal processing. the features that compose the song fingerprint should be stored in a local relational database. This stored data will later be used to expand the program and efficiently provide recommendations using songs with similar fingerprints to the one provided by the user. end users could be any of the following: music producers, hobbyist musicians, music theorists, audio engineers, music educators, or casual music listeners."
+**Input**: User description: "Develop GenreGuru, a feature engineering tool with a song title as its input and processing that is fetching a song snippet from online, generating a song fingerprint using audio digital signal processing. the features that compose the song fingerprint should be stored in a local relational database. This stored data will later be used to expand the program and efficiently provide recommendations using songs with similar fingerprints to the one provided by the user. end users could be any of the following: music producers, hobbyist musicians, music theorists, audio engineers, music educators, or casual music listeners."
 
 ## Clarifications
 
@@ -18,7 +18,7 @@
 
 ### Session 2026-08-03
 
-- Q: How should song selection and confirmation work upon user input? → A: After user inputs a song name, system returns top 5 match results and asks user for confirmation before proceeding to feature engineering.
+- Q: How should song selection and confirmation work upon user input? → A: After user inputs a song title, system returns top 5 match results and asks user for confirmation before proceeding to feature engineering.
 - Q: What structure does feature engineering follow? → A: Feature engineering is a composite step with multiple substeps computing individual acoustic features (such as spectral centroid) grouped into a single feature vector for the song.
 - Q: What priority and behavior applies to DSP visualizations? → A: Lower-priority objective to visualize DSP attributes (e.g., spectrogram with highlighted spectral centroid and top contributing factors for spectral features).
 - Q: What is the correct sequence of audio fetching vs fingerprinting? → A: System fetches online audio snippet first, then generates the fingerprint from the fetched audio snippet.
@@ -30,17 +30,17 @@
 
 ### User Story 1 - Song Input to Stored Audio Fingerprint (Priority: P1)
 
-As a user (music producer, hobbyist musician, audio engineer, music educator, music theorist, or casual listener), I want to input a song name, select from the top 5 matches, and confirm selection so that the system fetches an online audio snippet first, computes composite acoustic features, and stores the feature vector in a local database.
+As a user (music producer, hobbyist musician, audio engineer, music educator, music theorist, or casual listener), I want to input a song title, select from the top 5 matches, and confirm selection so that the system fetches an online audio snippet first, computes composite acoustic features, and stores the feature vector in a local database.
 
 **Why this priority**: Core value of GenreGuru. Without searching matches, fetching audio snippets first, extracting composite DSP fingerprint features, and storing them locally, no downstream analysis or recommendation capability can function.
 
-**Independent Test**: Can be tested independently by submitting a valid song name, confirming one of the top 5 matches, verifying online audio snippet retrieval first, validating composite feature extraction (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`), and checking that the resulting feature vector is saved in the local relational database.
+**Independent Test**: Can be tested independently by submitting a valid song title, confirming one of the top 5 matches, verifying online audio snippet retrieval first, validating composite feature extraction (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`), and checking that the resulting feature vector is saved in the local relational database.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid song name provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the platform track ID (Deezer track ID) to the stored record.
+1. **Given** a valid song title provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the platform track ID (Deezer track ID) to the stored record.
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
-3. **Given** a song name that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC and reuses stored data without duplicating entries.
+3. **Given** a song title that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
 5. **Given** a fetched audio snippet in MP3, WAV, or FLAC format, **When** digital signal processing cannot process the audio data, **Then** the system displays an "audio file cannot be processed" error.
 
@@ -91,7 +91,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ### Edge Cases
 
-- **Ambiguous Match Selection**: When user inputs a song name, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
+- **Ambiguous Match Selection**: When user inputs a song title, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
 - **Duplicate Processing Detection**: When a track is processed again, the system matches existing records by track ISRC. If no local record matches, the system generates and stores a new feature vector.
 - **Network Interruption**: Temporary network failure during online audio snippet fetching triggers up to 3 retries spaced 5 seconds apart. If all fail, "network disconnected" error is displayed.
 - **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multichannel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
@@ -101,7 +101,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ### Functional Requirements
 
-- **FR-001**: System MUST accept a song name input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
+- **FR-001**: System MUST accept a song title input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
 - **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
 - **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`).
 - **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
@@ -132,10 +132,10 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ### Measurable Outcomes
 
-- **SC-001**: 95% of valid, mainstream song name queries successfully return top 5 matches, retrieve an online audio snippet, and complete fingerprint generation without errors.
+- **SC-001**: 95% of valid, mainstream song title queries successfully return top 5 matches, retrieve an online audio snippet, and complete fingerprint generation without errors.
 - **SC-002**: Audio fingerprint feature extraction completes within 10 seconds per audio snippet on standard consumer hardware.
 - **SC-003**: 100% of generated song fingerprints are correctly persisted with complete composite feature vectors in the local relational database without data loss.
-- **SC-004**: Users across all target roles can initiate a song fingerprinting run by providing a song name and confirming one of the top 5 results.
+- **SC-004**: Users across all target roles can initiate a song fingerprinting run by providing a song title and confirming one of the top 5 results.
 - **SC-005**: Database queries for existing stored song fingerprints return results in under 500 milliseconds.
 
 ## Assumptions

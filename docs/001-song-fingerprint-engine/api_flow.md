@@ -12,7 +12,7 @@
 
 | Component                             | Role                                                                                  |
 |---------------------------------------|---------------------------------------------------------------------------------------|
-| **User**                              | Submits a song name, confirms a match via the web UI                                  |
+| **User**                              | Submits a song title, confirms a match via the web UI                                 |
 | **Django Frontend**                   | Serves UI; hosts internal `/api/search/` and `/api/confirm/` endpoints                |
 | **backend core (`src/core/deezer/`)** | Calls Deezer `/search`; fetches the 30s preview MP3                                   |
 | **backend core (`src/core/audio/`)**  | Runs librosa DSP feature extraction on the preview                                    |
@@ -26,7 +26,7 @@
 
 ```mermaid
 flowchart TD
-    U["User types song name"] --> A["GET /api/search/?query=..."]
+    U["User types song title"] --> A["GET /api/search/?query=..."]
     A --> D["Deezer /search?q=...&limit=5"]
     D --> A2["Return top 5 matches (id, title, isrc, duration, preview, artist, album)"]
     A2 --> UI["UI lists top 5 candidates"]
@@ -42,7 +42,7 @@ flowchart TD
 
 ### Step-by-step expectation
 
-1. **User input** → `GET /api/search/?query={song_name}` (Django internal endpoint).
+1. **User input** → `GET /api/search/?query={song_title}` (Django internal endpoint).
 2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
 3. **Search response returns top 5** → UI renders candidates and waits for the user.
 4. **2-click confirmation** → `POST /api/confirm/` with `{deezer_id, title, isrc, duration, preview, artist, album}`.
@@ -108,7 +108,7 @@ sequenceDiagram
     participant Core as Backend core
     participant DZ as Deezer API
     participant DB as PostgreSQL
-    User->>UI: song name
+    User->>UI: song title
     UI->>Core: GET /api/search?query=...
     Core->>DZ: GET /search?q=...&limit=5
     DZ-->>Core: track[] {id, title, isrc, duration, preview, link, artist, album}

@@ -85,7 +85,7 @@ erDiagram
 
 ```mermaid
 flowchart TD
-    A["User Input Song Name"] --> B["Deezer API Search"]
+    A["User Input Song Title"] --> B["Deezer API Search"]
     B -->|"Returns Top 5 Matches"| C["Display Candidates in UI"]
     C -->|"Click 1: Select Candidate"| D["Highlight Selected Track"]
     D -->|"Click 2: Confirm Selection"| DEDUP{"Already Processed? Local ISRC Lookup"}
