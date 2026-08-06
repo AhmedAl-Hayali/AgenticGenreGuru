@@ -29,7 +29,7 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 |-----------------------|---------|----------------------------------------------------------------------------------------------|
 | `status`              | string  | `"success"` or `"error"`                                                                     |
 | `matches`             | array   | List of match objects (top 5)                                                                |
-| `matches[].deezer_id` | integer | Deezer track `id` (integer in the Deezer API) serialized as a decimal string                 |
+| `matches[].deezer_id` | integer | Deezer track `id` (integer in the Deezer API)                                                |
 | `matches[].title`     | string  | Track title; mirrors Deezer Track `title`                                                    |
 | `matches[].isrc`      | string  | ISO 39075 ISRC; mandatory, mirrors Deezer Track `isrc`                                       |
 | `matches[].duration`  | integer | Track duration in seconds; mirrors Deezer Track `duration`                                   |
@@ -55,21 +55,21 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 
 ### Confirm Request Field Reference
 
-| Field       | Type    | Format / Notes                                                               |
-|-------------|---------|------------------------------------------------------------------------------|
-| `deezer_id` | integer | Deezer track `id` (integer in the Deezer API) serialized as a decimal string |
-| `title`     | string  | Track title                                                                  |
-| `isrc`      | string  | ISO 39075 ISRC; mandatory when interfacing with external platforms           |
-| `duration`  | integer | Track duration in seconds                                                    |
-| `preview`   | string  | HTTPS URL of the 30-second MP3 preview                                       |
-| `artist`    | object  | Artist object: `id` (integer), `name` (string)                               |
-| `album`     | object  | Album object: `id` (integer), `title` (string)                               |
+| Field       | Type    | Format / Notes                                                     |
+|-------------|---------|--------------------------------------------------------------------|
+| `deezer_id` | integer | Deezer track `id` (integer in the Deezer API)                      |
+| `title`     | string  | Track title                                                        |
+| `isrc`      | string  | ISO 39075 ISRC; mandatory when interfacing with external platforms |
+| `duration`  | integer | Track duration in seconds                                          |
+| `preview`   | string  | HTTPS URL of the 30-second MP3 preview                             |
+| `artist`    | object  | Artist object: `id` (integer), `name` (string)                     |
+| `album`     | object  | Album object: `id` (integer), `title` (string)                     |
 
 - **Response**:
 ```json
 {
   "status": "success",
-  "song_id": 12345678,
+  "song_id": "0195a1b8-0000-7000-8000-000000000000",
   "deezer_id": 3135556,
   "isrc": "GBDUW0000059",
   "fingerprint": {
@@ -91,7 +91,7 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 | Field                            | Type    | Format / Notes                                     |
 |----------------------------------|---------|----------------------------------------------------|
 | `status`                         | string  | `"success"` or `"error"`                           |
-| `song_id`                        | integer | Internal song record identifier (`songs` table PK) |
+| `song_id`                        | uuid    | Internal song record identifier (`songs` table PK) |
 | `deezer_id`                      | integer | Deezer track ID (platform track ID)                |
 | `isrc`                           | string  | International Standard Recording Code (ISO 39075); |
 | `fingerprint`                    | object  | Composite feature vector                           |

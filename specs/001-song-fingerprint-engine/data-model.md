@@ -8,8 +8,8 @@ Represents a track retrieved from Deezer search results.
 
 | Column        | Type           | Constraints               | Description                                                                                           |
 |---------------|----------------|---------------------------|-------------------------------------------------------------------------------------------------------|
-| `id`          | Integer / UUID | Primary Key               | Internal song record ID                                                                               |
-| `deezer_id`   | String         | Unique, Indexed, Not Null | Deezer track ID (platform track ID)                                                                   |
+| `id`          | UUID           | Primary Key               | Internal song record ID (UUIDv7)                                                                      |
+| `deezer_id`   | Integer        | Unique, Indexed, Not Null | Deezer track ID (platform track ID)                                                                   |
 | `isrc`        | String         | Unique, Indexed, Not Null | International Standard Recording Code (ISO 39075); mandatory when interfacing with external platforms |
 | `title`       | String(255)    | Not Null                  | Track title                                                                                           |
 | `artist`      | String(255)    | Not Null                  | Artist name                                                                                           |
@@ -20,14 +20,16 @@ Represents a track retrieved from Deezer search results.
 
 *Deduplication Strategy*: Every processed song stores both `deezer_id` and `isrc`. When checking whether a track was already processed, look up by `isrc`; if no local record matches, generate a new feature vector and store it.
 
+*UUIDv7 Generation*: All `UUID` columns are PostgreSQL `uuid` type storing UUIDv7 values. On PostgreSQL 18+, use the native `uuidv7()` function as the column default; on older versions, generate values in the application layer (e.g., Python `uuid.uuid7()` via SQLAlchemy default).
+
 ### Entity: `SongFingerprint` (`song_fingerprints` table)
 
 Represents extracted DSP acoustic feature vectors linked to a song.
 
 | Column               | Type           | Constraints                                | Description                             |
 |----------------------|----------------|--------------------------------------------|-----------------------------------------|
-| `id`                 | Integer / UUID | Primary Key                                | Internal fingerprint ID                 |
-| `song_id`            | Integer / UUID | Foreign Key (`songs.id`), Unique, Not Null | Linked song ID                          |
+| `id`                 | UUID           | Primary Key                                | Internal fingerprint ID (UUIDv7)        |
+| `song_id`            | UUID           | Foreign Key (`songs.id`), Unique, Not Null | Linked song ID (UUIDv7)                 |
 | `spectral_centroid`  | Float          | Not Null                                   | Collapsed Spectral Centroid value (Hz)  |
 | `rms`                | Float          | Not Null                                   | Collapsed Root Mean Square Energy value |
 | `spectral_bandwidth` | Float          | Not Null                                   | Collapsed Spectral Bandwidth value (Hz) |
@@ -49,8 +51,8 @@ erDiagram
     SONG ||--o| SONG_FINGERPRINT : "has 1-to-1 fingerprint"
 
     SONG {
-        int id PK "NN"
-        string deezer_id UK "NN"
+        uuid id PK "NN"
+        int deezer_id UK "NN"
         string isrc UK "NN"
         string title "NN"
         string artist "NN"
@@ -61,8 +63,8 @@ erDiagram
     }
 
     SONG_FINGERPRINT {
-        int id PK "NN"
-        int song_id FK, UK "NN"
+        uuid id PK "NN"
+        uuid song_id FK, UK "NN"
         float spectral_centroid  "NN"
         float rms  "NN"
         float spectral_bandwidth  "NN"
