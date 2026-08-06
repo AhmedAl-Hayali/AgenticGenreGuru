@@ -15,7 +15,7 @@ Represents a track retrieved from Deezer search results.
 | `artist`      | String(255)    | Not Null                  | Artist name                                                                                           |
 | `album`       | String(255)    | Nullable                  | Album name                                                                                            |
 | `preview_url` | Text           | Not Null                  | Deezer 30s preview MP3 URL                                                                            |
-| `duration`    | Integer        | Nullable                  | Track duration in seconds                                                                             |
+| `duration`    | Integer        | Not Null                  | Track duration in seconds                                                                             |
 | `created_at`  | DateTime (UTC) | Default: now()            | Record creation timestamp                                                                             |
 
 *Deduplication Strategy*: Every processed song stores both `deezer_id` and `isrc`. When checking whether a track was already processed, look up by `isrc`; if no local record matches, generate a new feature vector and store it.
