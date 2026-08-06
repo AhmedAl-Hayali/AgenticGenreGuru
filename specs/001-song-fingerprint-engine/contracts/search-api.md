@@ -9,12 +9,14 @@
   "status": "success",
   "matches": [
     {
-      "deezer_id": "3135556",
-      "isrc": "GBDUW0200059",
+      "deezer_id": 3135556,
       "title": "Harder, Better, Faster, Stronger",
-      "artist": "Daft Punk",
-      "album": "Discovery",
-      "preview_url": "https://cdns-preview-d.dzcdn.net/stream/..."
+      "isrc": "GBDUW0200059",
+      "link": "https://www.deezer.com/track/3135556",
+      "duration": 224,
+      "preview": "https://cdns-preview-d.dzcdn.net/stream/...",
+      "artist": { "id": 27, "name": "Daft Punk" },
+      "album": { "id": 302127, "title": "Discovery" }
     }
   ]
 }
@@ -22,46 +24,58 @@
 
 ### Search Response Field Reference
 
-| Field                   | Type   | Format / Notes                                                                               |
-|-------------------------|--------|----------------------------------------------------------------------------------------------|
-| `status`                | string | `"success"` or `"error"`                                                                     |
-| `matches`               | array  | List of match objects (top 5)                                                                |
-| `matches[].deezer_id`   | string | Deezer track `id` (integer in the Deezer API) serialized as a decimal string                 |
-| `matches[].isrc`        | string | ISO 39075 ISRC; mandatory, mirrors Deezer Track `isrc`                                       |
-| `matches[].title`       | string | Track title; mirrors Deezer Track `title`                                                    |
-| `matches[].artist`      | string | Artist name; flattened from Deezer `artist.name`                                             |
-| `matches[].album`       | string | Album title; flattened from Deezer `album.title`                                             |
-| `matches[].preview_url` | string | HTTPS URL of the 30-second MP3 preview; mirrors Deezer Track `preview` (may be empty string) |
+Each item in `matches` mirrors the Deezer Track object schema and field order (see [deezer-api.md](deezer-api.md) §1).
+
+| Field                 | Type    | Format / Notes                                                                               |
+|-----------------------|---------|----------------------------------------------------------------------------------------------|
+| `status`              | string  | `"success"` or `"error"`                                                                     |
+| `matches`             | array   | List of match objects (top 5)                                                                |
+| `matches[].deezer_id` | integer | Deezer track `id` (integer in the Deezer API) serialized as a decimal string                 |
+| `matches[].title`     | string  | Track title; mirrors Deezer Track `title`                                                    |
+| `matches[].isrc`      | string  | ISO 39075 ISRC; mandatory, mirrors Deezer Track `isrc`                                       |
+| `matches[].link`      | string  | HTTPS URL to the public Deezer track page; mirrors Deezer Track `link`                       |
+| `matches[].duration`  | integer | Track duration in seconds; mirrors Deezer Track `duration`                                   |
+| `matches[].preview`   | string  | HTTPS URL of the 30-second MP3 preview; mirrors Deezer Track `preview` (may be empty string) |
+| `matches[].artist`    | object  | Artist object: `id` (integer), `name` (string); mirrors Deezer `artist`                      |
+| `matches[].album`     | object  | Album object: `id` (integer), `title` (string); mirrors Deezer `album`                       |
 
 ## 2. Confirm & Fingerprint Endpoint
 
 - **Path**: `POST /api/confirm/`
-- **Request Body**:
+- **Request Body**: Selected match object (same schema as `matches[]` in the search response):
 ```json
 {
-  "deezer_id": "3135556",
-  "isrc": "GBDUW0200059",
+  "deezer_id": 3135556,
   "title": "Harder, Better, Faster, Stronger",
-  "artist": "Daft Punk",
-  "preview_url": "https://cdns-preview-d.dzcdn.net/stream/..."
+  "isrc": "GBDUW0200059",
+  "link": "https://www.deezer.com/track/3135556",
+  "duration": 224,
+  "preview": "https://cdns-preview-d.dzcdn.net/stream/...",
+  "artist": { "id": 27, "name": "Daft Punk" },
+  "album": { "id": 302127, "title": "Discovery" }
 }
 ```
 
 ### Confirm Request Field Reference
 
-| Field         | Type   | Format / Notes                                                               |
-|---------------|--------|------------------------------------------------------------------------------|
-| `deezer_id`   | string | Deezer track `id` (integer in the Deezer API) serialized as a decimal string |
-| `isrc`        | string | ISO 39075 ISRC; mandatory when interfacing with external platforms           |
-| `title`       | string | Track title                                                                  |
-| `artist`      | string | Artist name                                                                  |
-| `preview_url` | string | HTTPS URL of the 30-second MP3 preview                                       |
+| Field       | Type    | Format / Notes                                                               |
+|-------------|---------|------------------------------------------------------------------------------|
+| `deezer_id` | integer | Deezer track `id` (integer in the Deezer API) serialized as a decimal string |
+| `title`     | string  | Track title                                                                  |
+| `isrc`      | string  | ISO 39075 ISRC; mandatory when interfacing with external platforms           |
+| `link`      | string  | HTTPS URL to the public Deezer track page                                    |
+| `duration`  | integer | Track duration in seconds                                                    |
+| `preview`   | string  | HTTPS URL of the 30-second MP3 preview                                       |
+| `artist`    | object  | Artist object: `id` (integer), `name` (string)                               |
+| `album`     | object  | Album object: `id` (integer), `title` (string)                               |
 
 - **Response**:
 ```json
 {
   "status": "success",
-  "song_id": "3135556",
+  "song_id": 12345678,
+  "deezer_id": 3135556,
+  "isrc": "GBDUW0000059",
   "fingerprint": {
     "spectral_centroid": 2154.32,
     "rms": 0.045,
@@ -78,13 +92,22 @@
 
 ### Confirm Response Field Reference
 
-| Field                       | Type    | Format / Notes                                                                     |
-|-----------------------------|---------|------------------------------------------------------------------------------------|
-| `status`                    | string  | `"success"` or `"error"`                                                           |
-| `song_id`                   | string  | Internal song record identifier (Deezer track `id` serialized as a decimal string) |
-| `fingerprint`               | object  | Composite feature vector                                                           |
-| `fingerprint.*`             | float   | Each acoustic feature collapses to a single scalar value in V1                     |
-| `fingerprint.vector_length` | integer | Number of features (8 in V1)                                                       |
+| Field                            | Type    | Format / Notes                                     |
+|----------------------------------|---------|----------------------------------------------------|
+| `status`                         | string  | `"success"` or `"error"`                           |
+| `song_id`                        | integer | Internal song record identifier (`songs` table PK) |
+| `deezer_id`                      | integer | Deezer track ID (platform track ID)                |
+| `isrc`                           | string  | International Standard Recording Code (ISO 39075); |
+| `fingerprint`                    | object  | Composite feature vector                           |
+| `fingerprint.spectral_centroid`  | float   | Collapsed Spectral Centroid value (Hz)             |
+| `fingerprint.rms`                | float   | Collapsed Root Mean Square Energy value            |
+| `fingerprint.spectral_bandwidth` | float   | Collapsed Spectral Bandwidth value (Hz)            |
+| `fingerprint.spectral_contrast`  | float   | Collapsed Spectral Contrast value (dB)             |
+| `fingerprint.spectral_flatness`  | float   | Collapsed Spectral Flatness value                  |
+| `fingerprint.spectral_rolloff`   | float   | Collapsed Spectral Roll-off value (Hz)             |
+| `fingerprint.zero_crossing_rate` | float   | Collapsed Zero Crossing Rate value                 |
+| `fingerprint.mfcc`               | float   | Collapsed Mean MFCC summary value                  |
+| `fingerprint.vector_length`      | integer | Number of features (8 in V1)                       |
 
 *Note: In V1, each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
 - **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.

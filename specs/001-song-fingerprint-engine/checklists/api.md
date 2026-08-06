@@ -8,10 +8,7 @@
 
 ## Requirement Completeness
 
-- [ ] CHK001 Are error response contracts defined for every failure mode specified by FR-007 and FR-008 ("network disconnected" and "audio file cannot be processed")? [Completeness, Spec §FR-007]
-
-`deezer-api.md` §2 is missing a concrete error response.
-
+- [x] CHK001 Are error response contracts defined for every failure mode specified by FR-007 and FR-008 ("network disconnected" and "audio file cannot be processed")? [Completeness, Spec §FR-007]
 - [x] CHK002 Does the confirm endpoint contract define request schema fields for all metadata FR-005 requires to be stored (track ISRC, platform track ID, title, artist, audio source reference)? [Completeness, Spec §FR-005]
 - [x] CHK003 Is the deduplication reuse flow (match by ISRC, generate new fingerprint on local miss, fail loudly only on external ISRC absence) explicitly specified in the confirm endpoint contract? [Completeness, Spec §FR-006]
 - [x] CHK004 Are search match response fields specified for all data the 2-click selection flow requires (`deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`)? [Completeness, Spec §FR-001]
