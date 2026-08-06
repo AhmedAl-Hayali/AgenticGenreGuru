@@ -28,29 +28,29 @@
 flowchart TD
     U["User types song name"] --> A["GET /api/search/?query=..."]
     A --> D["Deezer /search?q=...&limit=5"]
-    D --> A2["Return top 5 matches (id, title, isrc, duration, preview, link, artist, album)"]
+    D --> A2["Return top 5 matches (id, title, isrc, duration, preview, artist, album)"]
     A2 --> UI["UI lists top 5 candidates"]
     UI --> C["User Click 1: select candidate"]
     C --> C2["Click 2: confirm selection"]
-    C2 --> POST["POST /api/confirm/ {deezer_id, isrc, title, artist, preview_url}"]
+    C2 --> POST["POST /api/confirm/ {deezer_id, title, isrc, duration, preview, artist, album}"]
     POST --> LOC["Local DB lookup by isrc"]
     LOC -->|"no match"| FETCH["Fetch preview MP3 from Deezer"]
     FETCH --> DSP["DSP feature extraction (8 collapsed features)"]
-    DSP --> DB["Store song + feature vector (write isrc + deezer_id)"]
-    DB --> RETURN["Return fingerprint + song_id to UI"]
+    DSP --> DB["Store song metadata + feature vector"]
+    DB --> RETURN["Return deezer_id + isrc + fingerprint to UI"]
 ```
 
 ### Step-by-step expectation
 
 1. **User input** → `GET /api/search/?query={song_name}` (Django internal endpoint).
-2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `link`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
+2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
 3. **Search response returns top 5** → UI renders candidates and waits for the user.
-4. **2-click confirmation** → `POST /api/confirm/` with `{deezer_id, isrc, title, artist, preview_url}`.
+4. **2-click confirmation** → `POST /api/confirm/` with `{deezer_id, title, isrc, duration, preview, artist, album}`.
 5. **Local ISRC lookup** → `core/db/` queries `songs` by `isrc`.
 6. **No local match**  → fetch the 30s preview MP3 from `preview` via `core/deezer/` (3 retries, 5s delay).
 7. **DSP extraction** → `core/audio/` computes 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), mono downmix, arithmetic-mean collapse to one scalar per feature.
-8. **Persist** → writes `songs` (row: `id`, `deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`) and `song_fingerprints` (row: `id`, FK `song_id` + 8 feature columns + `audio_format`, `sample_rate`, `created_at`) — see [data-model.md](../../specs/001-song-fingerprint-engine/data-model.md).
-9. **Return** → UI displays success + fingerprint metrics with `song_id` + `status` (confirm response shape in [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md)).
+8. **Persist** → writes `songs` (row: `id`, `deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`) and `song_fingerprints` (row: `id`, FK `song_id`, 8 feature columns, `audio_format`, `sample_rate`, `created_at`) — see [data-model.md](../../specs/001-song-fingerprint-engine/data-model.md).
+9. **Return** → UI displays success + fingerprint metrics with `deezer_id`, `isrc`, and `status` (confirm response shape in [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md)).
 
 > **Already-stored track (reuse path)**: Local ISRC lookup finds a match → returns the stored fingerprint without generating a new feature vector (dedup per spec FR-006).
 
@@ -91,11 +91,11 @@ These interrupt the happy path and must surface an expected error instead of pro
 
 ### 3.4 Database / API-side errors
 
-| Fault                                                                    | Expected Behavior                                                                |
-|--------------------------------------------------------------------------|----------------------------------------------------------------------------------|
-| DB write fails mid-persist (e.g., constraint violation, connection loss) | no partial/inconsistent record; return error; nothing returned to UI as success  |
-| `POST /api/confirm/` with missing `isrc` in body                         | ISRC is mandatory → reject request and fail loud (search-api dedup note, FR-006) |
-| Internal error anywhere in the pipeline                                  | transport as `status: "error"` with a message; do not fabricate a feature vector |
+| Fault                                                                    | Expected Behavior                                                                                                                                      |
+|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| DB write fails mid-persist (e.g., constraint violation, connection loss) | no partial/inconsistent record; return error; nothing returned to UI as success                                                                        |
+| `POST /api/confirm/` with missing `isrc` in body                         | ISRC is mandatory → reject request and fail loud ([search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) dedup note, FR-006) |
+| Internal error anywhere in the pipeline                                  | transport as `status: "error"` with a message; do not fabricate a feature vector                                                                       |
 
 ---
 
@@ -132,16 +132,16 @@ sequenceDiagram
 ```
 
 ### Key contract touchpoints
-| Step    | Internal route       | External call                                       | Outcome on happy path    |
-|---------|----------------------|-----------------------------------------------------|--------------------------|
-| Search  | `GET /api/search/`   | Deezer `/search`                                    | top-5 matches serialized |
-| Confirm | `POST /api/confirm/` | Deezer preview fetch (only when not already stored) | `song_id` + fingerprint  |
+| Step    | Internal route       | External call                                       | Outcome on happy path              |
+|---------|----------------------|-----------------------------------------------------|------------------------------------|
+| Search  | `GET /api/search/`   | Deezer `/search`                                    | top-5 matches serialized           |
+| Confirm | `POST /api/confirm/` | Deezer preview fetch (only when not already stored) | `deezer_id` + `isrc` + fingerprint |
 
 ---
 
 ## 5. Where single fallback to the "reuse" path short-circuits computing
 
-- IF the incoming `isrc` already exists locally → **no** Deezer preview fetch, no DSP run, no new row; the stored fingerprint is returned immediately.
+- If the incoming `isrc` already exists locally → **no** Deezer preview fetch, no DSP run, no new row; the stored fingerprint is returned immediately.
 - This is the primary optimized branch and the only one that skips `core/audio`.
 
 ---
@@ -149,8 +149,8 @@ sequenceDiagram
 ## 6. Reference Checklist (adherence)
 
 - ISRC is mandatory and read from the Deezer response; missing → fail loud, neither fallback nor silent. `FR-005`, `FR-006`
-- Local miss is NOT an error → generates a new vector. `FR-006`
-- 8 collapsed features, mono downmix, arithmetic-mean collapse. `FR-003`
+- Local miss is NOT an error → generates a new vector after fetching preview and running DSP. `FR-006`
+- DSP: 8 collapsed features, mono downmix, arithmetic-mean collapse. `FR-003`
 - MP3/WAV/FLAC only. `FR-002`
 - 3 retries / 5s on fetch failure. `FR-007`, `NFR/Deezer §2`.
 
