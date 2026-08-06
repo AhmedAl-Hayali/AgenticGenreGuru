@@ -12,7 +12,6 @@
       "deezer_id": 3135556,
       "title": "Harder, Better, Faster, Stronger",
       "isrc": "GBDUW0200059",
-      "link": "https://www.deezer.com/track/3135556",
       "duration": 224,
       "preview": "https://cdns-preview-d.dzcdn.net/stream/...",
       "artist": { "id": 27, "name": "Daft Punk" },
@@ -33,7 +32,6 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 | `matches[].deezer_id` | integer | Deezer track `id` (integer in the Deezer API) serialized as a decimal string                 |
 | `matches[].title`     | string  | Track title; mirrors Deezer Track `title`                                                    |
 | `matches[].isrc`      | string  | ISO 39075 ISRC; mandatory, mirrors Deezer Track `isrc`                                       |
-| `matches[].link`      | string  | HTTPS URL to the public Deezer track page; mirrors Deezer Track `link`                       |
 | `matches[].duration`  | integer | Track duration in seconds; mirrors Deezer Track `duration`                                   |
 | `matches[].preview`   | string  | HTTPS URL of the 30-second MP3 preview; mirrors Deezer Track `preview` (may be empty string) |
 | `matches[].artist`    | object  | Artist object: `id` (integer), `name` (string); mirrors Deezer `artist`                      |
@@ -48,7 +46,6 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
   "deezer_id": 3135556,
   "title": "Harder, Better, Faster, Stronger",
   "isrc": "GBDUW0200059",
-  "link": "https://www.deezer.com/track/3135556",
   "duration": 224,
   "preview": "https://cdns-preview-d.dzcdn.net/stream/...",
   "artist": { "id": 27, "name": "Daft Punk" },
@@ -63,7 +60,6 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 | `deezer_id` | integer | Deezer track `id` (integer in the Deezer API) serialized as a decimal string |
 | `title`     | string  | Track title                                                                  |
 | `isrc`      | string  | ISO 39075 ISRC; mandatory when interfacing with external platforms           |
-| `link`      | string  | HTTPS URL to the public Deezer track page                                    |
 | `duration`  | integer | Track duration in seconds                                                    |
 | `preview`   | string  | HTTPS URL of the 30-second MP3 preview                                       |
 | `artist`    | object  | Artist object: `id` (integer), `name` (string)                               |
