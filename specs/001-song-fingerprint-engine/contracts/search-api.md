@@ -11,8 +11,8 @@
     {
       "deezer_id": 3135556,
       "title": "Harder, Better, Faster, Stronger",
-      "isrc": "GBDUW0200059",
-      "duration": 224,
+      "isrc": "GBDUW0000059",
+      "duration": 226,
       "preview": "https://cdnt-preview.dzcdn.net/api/...",
       "artist": { "id": 27, "name": "Daft Punk" },
       "album": { "id": 302127, "title": "Discovery" }
@@ -45,8 +45,8 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 {
   "deezer_id": 3135556,
   "title": "Harder, Better, Faster, Stronger",
-  "isrc": "GBDUW0200059",
-  "duration": 224,
+  "isrc": "GBDUW0000059",
+  "duration": 226,
   "preview": "https://cdnt-preview.dzcdn.net/api/...",
   "artist": { "id": 27, "name": "Daft Punk" },
   "album": { "id": 302127, "title": "Discovery" }

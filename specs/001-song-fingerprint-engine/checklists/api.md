@@ -17,10 +17,7 @@
 
 ## Requirement Clarity
 
-- [ ] CHK007 Are response field types and formats unambiguous in both contracts (string vs integer identifiers, preview URL scheme)? [Clarity, [search-api.md](../contracts/search-api.md) §1]
-
-CHK007 is not fulfilled yet, but can be using the Deezer API reference. A [complete reference](https://developers.deezer.com/api/search) for field names and corresponding types returned from a GET `api/search/track?q={song_name}` request.
-
+- [x] CHK007 Are response field types and formats unambiguous in both contracts (string vs integer identifiers, preview URL scheme)? [Clarity, [search-api.md](../contracts/search-api.md) §1]
 - [ ] CHK008 Is it specified whether a reused (dedup-matched) fingerprint response is structurally identical to a freshly generated one? [Ambiguity, Gap]
 
 The internal search query should be idempotent — whether a song was already in the internal database, or is freshly generated, it should be identical.
@@ -29,20 +26,15 @@ The internal search query should be idempotent — whether a song was already in
 
 [Global parameters](https://developers.deezer.com/api/parameters) and [optional search parameters](https://developers.deezer.com/api/search#:~:text=Optionnal%20Parameters) are listed on the Deezer API reference.
 
-- [ ] CHK010 Is the boundary between the external Deezer contract and the internal Django contract clearly stated so implementers know which layer owns each response? [Clarity]
+- [x] CHK010 Is the boundary between the external Deezer contract and the internal Django contract clearly stated so implementers know which layer owns each response? [Clarity]
 
-<span style='color:red'>Revisit this!</span>
+<span style='color:gold'>`song_title` is passed from the search endpoint to the Deezer API, and the Deezer API returns a `Track` object as expected.</span>
 
 ## Requirement Consistency
 
-- [ ] CHK011 Are identifiers named consistently across contracts (`deezer_id` vs Deezer `id` vs `song_id`), or is the mapping explicitly defined? [Consistency]
+- [x] CHK011 Are identifiers named consistently across contracts (`deezer_id` vs Deezer `id` vs `song_id`), or is the mapping explicitly defined? [Consistency]
 
-<span style='color:red'>Revisit this!</span>
-
-- [ ] CHK012 Does the confirm request body exactly match the fields returned by the search match payload? [Consistency, [search-api.md](../contracts/search-api.md) §1-§2]
-
-`album` field missing from the `/api/confirm/` request body.
-
+- [x] CHK012 Does the confirm request body exactly match the fields returned by the search match payload? [Consistency, [search-api.md](../contracts/search-api.md) §1-§2]
 - [x] CHK013 Do retry requirements in [deezer-api.md](../contracts/deezer-api.md) §2 align with FR-007 (3 retries, 5-second delay)? [Consistency, Spec §FR-007]
 - [x] CHK014 Are error messages consistent between spec FR-007/FR-008, the search-api error responses, and plan constraints? [Consistency]
 - [x] CHK015 Does the contract deduplication description match FR-006 (ISRC lookup, generate new fingerprint on local miss, fail loudly only on external ISRC absence)? [Consistency, Spec §FR-006]
