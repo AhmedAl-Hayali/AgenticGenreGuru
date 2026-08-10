@@ -37,6 +37,15 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 | `matches[].artist`    | object  | Artist object: `id` (integer), `name` (string); mirrors Deezer `artist`                      |
 | `matches[].album`     | object  | Album object: `id` (integer), `title` (string); mirrors Deezer `album`                       |
 
+### Search Error Responses
+
+Raised when the search flow cannot return matches:
+
+| Status Code               | Meaning                                                                                                                                                                               | Body                                                     |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
+| `404 Not Found`           | Deezer `/search` returned zero matches → raise `TrackNotFoundError`; show `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."` | `{"status": "error", "error": "TrackNotFoundError"}`     |
+| `503 Service Unavailable` | Deezer `/search` unreachable (Deezer / DNS / network)                                                                                                                                 | `{"status": "error", "message": "network disconnected"}` |
+
 ## 2. Confirm & Fingerprint Endpoint
 
 - **Path**: `POST /api/confirm/`

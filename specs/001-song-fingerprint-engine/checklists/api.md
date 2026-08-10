@@ -41,9 +41,7 @@ The internal search query should be idempotent — whether a song was already in
 
 ## Scenario Coverage
 
-- [ ] CHK016 Are exception flows defined for search queries that return zero matches (empty result handling)? [Coverage, Gap, Spec §FR-001]
-
-No exception flow is needed. When a user makes a search that returns no results, show them a "No results found. \n Make sure everything is spelled correctly, or try searching for something different" prompt.
+- [x] CHK016 Are exception flows defined for search queries that return zero matches (empty result handling)? [Coverage, Gap, Spec §FR-001]
 
 - [ ] CHK017 Is a recovery/state flow specified when a confirm request fails mid-processing (e.g., snippet fetch fails after confirmation)? [Coverage, Gap]
 
