@@ -22,9 +22,9 @@
 
 The internal search query should be idempotent — whether a song was already in the internal database, or is freshly generated, it should be identical.
 
-- [ ] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, [deezer-api.md](../contracts/deezer-api.md) §1]
+- [x] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, [deezer-api.md](../contracts/deezer-api.md) §1]
 
-[Global parameters](https://developers.deezer.com/api/parameters) and [optional search parameters](https://developers.deezer.com/api/search#:~:text=Optionnal%20Parameters) are listed on the Deezer API reference.
+<span style='color:gold'>Captured in</span> [next_phase_features.xit](../../../docs/TODOs/next_phase_features.xit)<span style='color:gold'>.</span>
 
 - [x] CHK010 Is the boundary between the external Deezer contract and the internal Django contract clearly stated so implementers know which layer owns each response? [Clarity]
 
