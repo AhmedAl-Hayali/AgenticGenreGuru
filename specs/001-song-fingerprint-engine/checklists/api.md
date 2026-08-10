@@ -51,9 +51,9 @@ That is when the second error response of the search api, i.e., error 503, is di
 
 This is an implementation detail that is abstracted away from the caller. The caller does not need to know whether their result is from a new or existing fingerprint.
 
-- [ ] CHK019 Are duplicate-submission scenarios (same track confirmed concurrently) addressed in the API requirements? [Coverage, Gap]
+- [x] CHK019 Are duplicate-submission scenarios (same track confirmed concurrently) addressed in the API requirements? [Coverage, Gap]
 
-This isn't captured in the API requirements, but shouldn't matter very much right now. There should only be one user, not multiple users concurrently.
+Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md) §3.2.
 
 ## Edge Case Coverage
 
