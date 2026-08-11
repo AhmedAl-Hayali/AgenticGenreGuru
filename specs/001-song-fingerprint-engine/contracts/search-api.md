@@ -114,6 +114,8 @@ Raised when the search flow cannot return matches:
 | `fingerprint.mfcc`               | float   | Collapsed Mean MFCC summary value                  |
 | `fingerprint.vector_length`      | integer | Number of features (8 in V1)                       |
 
+*Note: In V1, all audio snippets are processed as single-channel (mono) audio, downmixing multichannel audio by averaging channels.*
+
 *Note: In V1, each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
 - **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
 - **Error Responses**:
