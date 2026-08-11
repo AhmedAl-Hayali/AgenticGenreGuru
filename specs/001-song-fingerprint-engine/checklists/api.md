@@ -18,9 +18,11 @@
 ## Requirement Clarity
 
 - [x] CHK007 Are response field types and formats unambiguous in both contracts (string vs integer identifiers, preview URL scheme)? [Clarity, [search-api.md](../contracts/search-api.md) §1]
-- [ ] CHK008 Is it specified whether a reused (dedup-matched) fingerprint response is structurally identical to a freshly generated one? [Ambiguity, Gap]
+- [x] CHK008 Is it specified whether a reused (dedup-matched) fingerprint response is structurally identical to a freshly generated one? [Ambiguity, Gap]
 
-The internal search query should be idempotent — whether a song was already in the internal database, or is freshly generated, it should be identical.
+The internal search query should be idempotent under the same version — whether a song was already in the internal database, or is freshly generated, it should be identical. Captured in [search-api.md](../contracts/search-api.md) §2 **Deduplication**.
+
+<span style='color:red'>Note to future versions: Update fingerprints in database by backfilling with new DSP logic. *This likely requires `data-model.md` overhauling.*</span>
 
 - [x] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, [deezer-api.md](../contracts/deezer-api.md) §1]
 
