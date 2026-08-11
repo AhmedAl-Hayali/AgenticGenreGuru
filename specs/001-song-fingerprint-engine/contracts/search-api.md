@@ -41,10 +41,10 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 
 Raised when the search flow cannot return matches:
 
-| Status Code               | Meaning                                                                                                                                                                               | Body                                                     |
-|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|
-| `404 Not Found`           | Deezer `/search` returned zero matches → raise `TrackNotFoundError`; show `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."` | `{"status": "error", "error": "TrackNotFoundError"}`     |
-| `503 Service Unavailable` | Deezer `/search` unreachable (Deezer / DNS / network)                                                                                                                                 | `{"status": "error", "message": "network disconnected"}` |
+| Status Code               | Meaning                                                                                                                                                                               | Body                                                                                        |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `404 Not Found`           | Deezer `/search` returned zero matches → raise `TrackNotFoundError`; show `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."` | `{"status": "error", "error": "TrackNotFoundError"}`                                        |
+| `503 Service Unavailable` | Deezer `/search` unreachable (Deezer / DNS / network)                                                                                                                                 | `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}` |
 
 ## 2. Confirm & Fingerprint Endpoint
 
@@ -117,8 +117,8 @@ Raised when the search flow cannot return matches:
 *Note: In V1, each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
 - **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
 - **Error Responses**:
-  - `400 Bad Request`: `{"status": "error", "message": "audio file cannot be processed"}`
-  - `503 Service Unavailable`: `{"status": "error", "message": "network disconnected"}`
+  - `400 Bad Request`: `{"status": "error", error: "AudioProcessingError", "message": "audio file cannot be processed"}`
+  - `503 Service Unavailable`: `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}`
 
 ## 3. Latency & Performance Requirements
 
