@@ -48,7 +48,7 @@ Raised when the search flow cannot return matches:
 
 ## 2. Confirm & Fingerprint Endpoint
 
-- **Path**: `POST /api/confirm/`
+- **Path**: `POST /api/confirm/{match}`
 - **Request Body**: Selected match object (same schema as `matches[]` in the search response):
 ```json
 {
@@ -124,10 +124,10 @@ Raised when the search flow cannot return matches:
 
 Performance targets quantified per the [spec.md](../spec.md) Success Criteria:
 
-| Endpoint / Path                       | Scenario                                    | Target                                                                                                                                                 | Source       |
-|---------------------------------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `GET /api/search/`                    | Return top 5 matches via Deezer `/search`   | Turnaround bounded by the upstream Deezer round-trip; no internal sub-second target defined (coverage target: 95% of valid mainstream queries succeed) | Spec §SC-001 |
-| `POST /api/confirm/`                  | Local ISRC match → reuse stored fingerprint | Stored fingerprint retrieval MUST return in **under 500 ms**                                                                                           | Spec §SC-005 |
-| `POST /api/confirm/` (no local match) | Fetch snippet + generate new fingerprint    | End-to-end (snippet fetch + DSP extraction) MUST complete **within 10 seconds** per audio snippet on standard consumer hardware                        | Spec §SC-002 |
+| Endpoint / Path                              | Scenario                                    | Target                                                                                                                                                 | Source       |
+|----------------------------------------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `GET /api/search/`                           | Return top 5 matches via Deezer `/search`   | Turnaround bounded by the upstream Deezer round-trip; no internal sub-second target defined (coverage target: 95% of valid mainstream queries succeed) | Spec §SC-001 |
+| `POST /api/confirm/{match}`                  | Local ISRC match → reuse stored fingerprint | Stored fingerprint retrieval MUST return in **under 500 ms**                                                                                           | Spec §SC-005 |
+| `POST /api/confirm/{match}` (no local match) | Fetch snippet + generate new fingerprint    | End-to-end (snippet fetch + DSP extraction) MUST complete **within 10 seconds** per audio snippet on standard consumer hardware                        | Spec §SC-002 |
 
 *Note: The reuse path (under 500 ms) applies only when no audio fetch or DSP is required. The fresh-generation path target (10 s) covers the entire snippet-fetch → fingerprint-extraction pipeline, matching plan.md Performance Goals.

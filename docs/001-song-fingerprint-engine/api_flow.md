@@ -32,7 +32,7 @@ flowchart TD
     A2 --> UI["UI lists top 5 candidates"]
     UI --> C["User Click 1: select candidate"]
     C --> C2["Click 2: confirm selection"]
-    C2 --> POST["POST /api/confirm/ {deezer_id, title, isrc, duration, preview, artist, album}"]
+    C2 --> POST["POST /api/confirm/{match} ({match}={deezer_id, title, isrc, duration, preview, artist, album})"]
     POST --> LOC["Local DB lookup by isrc"]
     LOC -->|"no match"| FETCH["Fetch preview MP3 from Deezer"]
     FETCH --> DSP["DSP feature extraction (8 collapsed features)"]
@@ -45,7 +45,7 @@ flowchart TD
 1. **User input** → `GET /api/search/?query={song_title}` (Django internal endpoint).
 2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
 3. **Search response returns top 5** → UI renders candidates and waits for the user.
-4. **2-click confirmation** → `POST /api/confirm/` with `{deezer_id, title, isrc, duration, preview, artist, album}`.
+4. **2-click confirmation** → `POST /api/confirm/{match}` with `{match}={deezer_id, title, isrc, duration, preview, artist, album}`.
 5. **Local ISRC lookup** → `core/db/` queries `songs` by `isrc`.
 6. **No local match**  → fetch the 30s preview MP3 from `preview` via `core/deezer/` (3 retries, 5s delay).
 7. **DSP extraction** → `core/audio/` computes 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), mono downmix, arithmetic-mean collapse to one scalar per feature.
