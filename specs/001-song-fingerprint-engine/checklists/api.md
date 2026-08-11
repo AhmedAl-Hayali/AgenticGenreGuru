@@ -45,9 +45,9 @@ The internal search query should be idempotent under the same version — whethe
 
 - [x] CHK016 Are exception flows defined for search queries that return zero matches (empty result handling)? [Coverage, Gap, Spec §FR-001]
 
-- [ ] CHK017 Is a recovery/state flow specified when a confirm request fails mid-processing (e.g., snippet fetch fails after confirmation)? [Coverage, Gap]
+- [x] CHK017 Is a recovery/state flow specified when a confirm request fails mid-processing (e.g., snippet fetch fails after confirmation)? [Coverage, Gap]
 
-That is when the second error response of the search api, i.e., error 503, is displayed.
+That is when the second error response of [search-api.md](../contracts/search-api.md), i.e., error 503, is displayed. <span style='color:red'>Not convinced this is the correct move, try splitting the errors to handle more specific issues each</span>
 
 - [x] CHK018 Is the "already processed" alternate flow reflected in the confirm contract response so callers can distinguish reuse from new fingerprint? [Coverage, Spec §FR-006]
 
