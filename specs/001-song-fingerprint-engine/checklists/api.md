@@ -83,9 +83,7 @@ Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md)
 
 ## Traceability & Dependencies
 
-- [ ] CHK025 Does every contract behavior trace back to a spec FR or acceptance scenario? [Traceability]
-
-API contract behaviours are not yet enumerated so they haven't explicitly been traced back to FRs or acceptance scenarios.
+- [x] CHK025 Does every contract behavior trace back to a spec FR or acceptance scenario? [Traceability]
 
 - [ ] CHK026 Are dependencies on Deezer API availability, response shape, and mandatory `isrc` presence documented as assumptions? [Dependency, Gap]
 

@@ -116,9 +116,11 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **FR-013**: System MUST downsample each feature's time-vector into a single scalar value by computing the arithmetic mean across all audio frames.
 - **FR-014**: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1).
 - **FR-015**: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC.
+- **FR-016**: System MUST fail loudly and throw an exception, surfacing a user-friendly error message to the UI, if the external platform response omits or returns an empty `preview` URL for a track that requires snippet fetching. Such a track MUST NOT be persisted and MUST NOT proceed to the snippet fetch.
 
 #### Notes
 - ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
+- **FR-016**: On the deduplication reuse path (local `isrc` match), no snippet fetch occurs, so `preview` is not required; the stored fingerprint is returned without evaluating `preview`.
 - **FR-013** is only for V1. Future versions should retain temporal dimensions by less aggressively downsampling, or not downsampling at all.
 
 ### Key Entities *(include if feature involves data)*
