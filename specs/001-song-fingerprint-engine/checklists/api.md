@@ -22,7 +22,7 @@
 
 The internal search query should be idempotent under the same version — whether a song was already in the internal database, or is freshly generated, it should be identical. Captured in [search-api.md](../contracts/search-api.md) §2 **Deduplication**.
 
-<span style='color:red'>Note to future versions: Update fingerprints in database by backfilling with new DSP logic. *This likely requires `data-model.md` overhauling.*</span>
+<span style='color:red'>Note to future versions: Update fingerprints in database by backfilling with new DSP logic. *This likely requires [data-model.md](../data-model.md) overhauling.*</span>
 
 - [x] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, [deezer-api.md](../contracts/deezer-api.md) §1]
 
