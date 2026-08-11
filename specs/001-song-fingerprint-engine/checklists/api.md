@@ -75,9 +75,9 @@ Captured in [search-api.md](../contracts/search-api.md) §3 (Latency & Performan
 
 <span style='color:gold'>Captured in</span> [next_phase_features.xit](../../../docs/TODOs/next_phase_features.xit)<span style='color:gold'>.</span>
 
-- [ ] CHK024 Are input validation/sanitization requirements documented for user-supplied search queries? [NFR, Gap]
+- [x] CHK024 Are input validation/sanitization requirements documented for user-supplied search queries? [NFR, Gap]
 
-No, but the user input should just be piped to the Deezer API search request.
+Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md) §**Step-by-step expectation** steps 1 & 2, namely user search input is just piped to the Deezer API search request.
 
 ## Traceability & Dependencies
 
