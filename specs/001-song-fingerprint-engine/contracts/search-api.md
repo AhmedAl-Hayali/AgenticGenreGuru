@@ -114,10 +114,14 @@ Raised when the search flow cannot return matches:
 | `fingerprint.mfcc`               | float   | Collapsed Mean MFCC summary value                  |
 | `fingerprint.vector_length`      | integer | Number of features (8 in V1)                       |
 
-*Note: In V1, all audio snippets are processed as single-channel (mono) audio, downmixing multichannel audio by averaging channels.*
+> **V1 Notes**
+> - All audio snippets are processed as single-channel (mono) audio, downmixing multichannel audio by averaging channels. 
+> - Each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
 
-*Note: In V1, each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
-- **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
+> **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
+
+> **Fingerprint reuse vs. fresh generation**: To aid developer debugging, the backend shall set a logging flag (e.g., `reused=true` / `reused=false`) in the request logs to distinguish between fingerprints that are freshly generated or reused from an existing database record — the caller is not informed which path was taken.
+
 - **Error Responses**:
   - `400 Bad Request`: `{"status": "error", error: "AudioProcessingError", "message": "audio file cannot be processed"}`
   - `503 Service Unavailable`: `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}`

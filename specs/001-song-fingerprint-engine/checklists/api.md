@@ -49,9 +49,9 @@ The internal search query should be idempotent under the same version — whethe
 
 That is when the second error response of the search api, i.e., error 503, is displayed.
 
-- [ ] CHK018 Is the "already processed" alternate flow reflected in the confirm contract response so callers can distinguish reuse from new fingerprint? [Coverage, Spec §FR-006]
+- [x] CHK018 Is the "already processed" alternate flow reflected in the confirm contract response so callers can distinguish reuse from new fingerprint? [Coverage, Spec §FR-006]
 
-This is an implementation detail that is abstracted away from the caller. The caller does not need to know whether their result is from a new or existing fingerprint.
+This is an implementation detail that is abstracted away from the caller. Fingerprint reuse logging captured in [search-api.md](../contracts/search-api.md) §2.
 
 - [x] CHK019 Are duplicate-submission scenarios (same track confirmed concurrently) addressed in the API requirements? [Coverage, Gap]
 
@@ -59,9 +59,9 @@ Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md)
 
 ## Edge Case Coverage
 
-- [ ] CHK020 Is behavior defined when multiple search matches share the same `isrc`? [Edge Case, Gap]
+- [x] CHK020 Is behavior defined when multiple search matches share the same `isrc`? [Edge Case, Gap]
 
-`isrc` is a unique key, there shouldn't be instances where multiple matches share it.
+`isrc` is a unique key, there shouldn't be instances where multiple matches share it. In tandem with [CHK018](#scenario-coverage) above, logs can be checked where "already processed" isrc's have matching metadata, i.e., deezer id (in v1), title, duration, artist, album
 
 - [x] CHK021 Are the missing-`isrc` (external fail-loud) and missing-`preview_url` cases defined in the contract requirements? [Edge Case, Gap]
 
