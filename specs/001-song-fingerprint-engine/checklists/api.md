@@ -71,9 +71,9 @@ Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md)
 
 Captured in [search-api.md](../contracts/search-api.md) §3 (Latency & Performance Requirements)
 
-- [ ] CHK023 Are rate-limiting or abuse-prevention requirements for the internal API specified? [NFR, Gap]
+- [x] CHK023 Are rate-limiting or abuse-prevention requirements for the internal API specified? [NFR, Gap]
 
-No, and they shouldn't be necessary at this stage.
+<span style='color:gold'>Captured in</span> [next_phase_features.xit](../../../docs/TODOs/next_phase_features.xit)<span style='color:gold'>.</span>
 
 - [ ] CHK024 Are input validation/sanitization requirements documented for user-supplied search queries? [NFR, Gap]
 

@@ -1,1 +1,2 @@
 - [Global parameters](https://developers.deezer.com/api/parameters) and [optional search parameters](https://developers.deezer.com/api/search#:~:text=Optionnal%20Parameters) are listed on the Deezer API reference.
+- As per CHK024 in `api.md`, enforce rate-limiting & abuse-prevention for the internal API, `search-api.md`
