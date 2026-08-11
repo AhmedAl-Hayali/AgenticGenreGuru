@@ -40,9 +40,12 @@ Per the official Deezer API reference (`https://developers.deezer.com/api/search
 
 > **ISRC Persistence**: The Deezer track response MUST include an `isrc` field; it is captured and persisted to the database alongside the platform track ID (`id`, stored as `deezer_id`). If `isrc` is absent in the external response, the system MUST fail loudly and throw an error rather than persisting the track without it.
 
+> **Preview URL Persistence**: The Deezer track response MUST include a `preview` field for every track returned in `data`. If `preview` is absent or an empty string, a snippet is unavailable and the track cannot be fingerprinted; the system MUST fail loudly and throw an error rather than persisting the track or proceeding to the snippet fetch, and MUST surface a user-friendly error message (e.g., `"audio preview unavailable for this track"`) to the UI so the user receives actionable feedback instead of a silent failure. This guard keeps the `preview_url` column on the `songs` table **Not Null** (see [data-model.md](../data-model.md)). The displayed search candidate may still be surfaced in the UI, but any confirm-and-fingerprint attempt on a track without a `preview` MUST not succeed.
+
 ## 2. Audio Snippet Download Contract
 
 - **URL**: `preview` field from track response (HTTP GET)
+- **Missing Preview**: If `preview` is absent or an empty string in the track response, raise the same fail-loud error as §1 rather than attempting an HTTP GET on a blank URL.
 - **Expected Formats**: MP3 audio stream (30 seconds)
 - **Retry Rule**: 3 retries, 5-second interval on network failure before raising `NetworkDisconnectedError`.
 

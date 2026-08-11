@@ -61,9 +61,9 @@ Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md)
 
 `isrc` is a unique key, there shouldn't be instances where multiple matches share it.
 
-- [ ] CHK021 Are the missing-`isrc` (external fail-loud) and missing-`preview_url` cases defined in the contract requirements? [Edge Case, Gap]
+- [x] CHK021 Are the missing-`isrc` (external fail-loud) and missing-`preview_url` cases defined in the contract requirements? [Edge Case, Gap]
 
-`deezer-api.md` should include a clause to handle the missing `preview_url` case. `search-api.md` should include a clause to handle a missing `isrc`, i.e., it must invoke the song audio fetch then feature fingerprint generation step.
+[deezer-api.md](../contracts/deezer-api.md)'s **Preview URL Persistence** (§1) and **Missing Preview** (§2) capture missing `preview_url` response behaviour. [search-api.md](../contracts/search-api.md)'s **Deduplication** (§2) captures missing `isrc` response behaviour.
 
 ## Non-Functional Requirements
 
