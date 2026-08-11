@@ -67,9 +67,9 @@ Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md)
 
 ## Non-Functional Requirements
 
-- [ ] CHK022 Are API latency requirements quantified for search/confirm endpoints (e.g., spec SC-005 <500ms for stored-fingerprint retrieval)? [Measurability, Spec §SC-005]
+- [x] CHK022 Are API latency requirements quantified for search/confirm endpoints (e.g., spec SC-005 <500ms for stored-fingerprint retrieval)? [Measurability, Spec §SC-005]
 
-They are not yet quantified, they need to be included in `search-api.md`
+Captured in [search-api.md](../contracts/search-api.md) §3 (Latency & Performance Requirements)
 
 - [ ] CHK023 Are rate-limiting or abuse-prevention requirements for the internal API specified? [NFR, Gap]
 
