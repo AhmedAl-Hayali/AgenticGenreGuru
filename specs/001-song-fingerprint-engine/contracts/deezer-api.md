@@ -45,7 +45,7 @@ Per the official Deezer API reference (`https://developers.deezer.com/api/search
 ## 2. Audio Snippet Download Contract
 
 - **URL**: `preview` field from track response (HTTP GET)
-- **Missing Preview**: If `preview` is absent or an empty string in the track response, raise the same fail-loud error as §1 rather than attempting an HTTP GET on a blank URL.
+- **Missing Preview**: If `preview` is absent or an empty string in the query request, raise the same fail-loud error as §1.
 - **Expected Formats**: MP3 audio stream (30 seconds)
 - **Retry Rule**: 3 retries, 5-second interval on network failure before raising `NetworkDisconnectedError`.
 
