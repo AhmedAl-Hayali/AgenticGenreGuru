@@ -1,47 +1,57 @@
 # Requirements (EARS, converted): Song Fingerprint Engine
 
 - **Slug**: 001-song-fingerprint-engine
-- **Converted**: 2026-08-03
-- **Source**: `specs/001-song-fingerprint-engine/spec.md`
+- **Converted**: 2026-08-11
+- **Source**: `specs/001-song-fingerprint-engine/spec.md` (Functional Requirements FR-001..FR-016)
 
 ## Event-Driven
 
-- **REQ-001**: When a user inputs a song name string, the system shall search online catalog sources and return the top 5 matching song candidates.
-- **REQ-002**: When top 5 song match candidates are displayed, the system shall await user confirmation before initiating snippet fetching.
-- **REQ-003**: When a user confirms a song match selection, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction.
-- **REQ-004**: When an online audio snippet is fetched, the system shall execute composite feature engineering substeps to compute individual acoustic features including spectral centroid and spectral flux.
-- **REQ-005**: When individual acoustic features are computed, the system shall group the acoustic features into a single song feature vector.
-- **REQ-006**: When a song feature vector is generated, the system shall store the feature vector in the local relational database.
-- **REQ-007**: When storing a fingerprint record in the local relational database, the system shall associate the record with song metadata including song title, audio source reference, and processing timestamp.
-- **REQ-008**: When a user submits a song that is already fingerprinted in the local relational database, the system shall reuse the existing fingerprint record without creating duplicate database entries.
-- **REQ-012**: When a user requests stored fingerprint details, the system shall retrieve and display the fingerprint feature record from the local relational database.
+- **REQ-001**: When a user inputs a song title, the system shall search online catalog sources and return the top 5 matching candidates.
+- **REQ-002**: When top 5 matching candidates are returned, the system shall await user confirmation before initiating snippet fetching.
+- **REQ-003**: When a user confirms a song match, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction.
+- **REQ-004**: When an online audio snippet is fetched, the system shall execute a composite feature engineering pipeline computing the acoustic features `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`.
+- **REQ-005**: When a song fingerprint feature vector is generated, the system shall store it in the local relational database.
+- **REQ-006**: When storing a fingerprint record, the system shall associate the record with song metadata including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
+- **REQ-007**: When a song is processed more than once, the system shall prevent duplicate feature records by enforcing uniqueness on the track ISRC.
+- **REQ-008**: When a user requests fingerprint feature records for a track by ISRC, the system shall query the local relational database and retrieve the matching records.
+- **REQ-009**: When multichannel audio is fetched, the system shall downmix the audio to single-channel (mono) by averaging channels prior to DSP extraction.
+- **REQ-010**: When a feature time-vector is computed, the system shall downsample it into a single scalar value by computing the arithmetic mean across all audio frames.
+- **REQ-011**: When the system retrieves a track from an external platform, the system shall require the track ISRC.
 
 ## Unwanted Behavior
 
-- **REQ-009**: If a network interruption occurs during audio snippet fetching, then the system shall retry fetching up to 3 times with 5-second delays between attempts.
-- **REQ-010**: If all 3 snippet fetching retries fail, then the system shall display a "network disconnected" error message to the user.
-- **REQ-011**: If fetched audio data fails digital signal processing, then the system shall display an "audio file cannot be processed" error message to the user.
+- **REQ-012**: If a network interruption occurs during audio snippet fetching, then the system shall retry fetching up to 3 times with 5-second delays between attempts.
+- **REQ-013**: If all 3 retries fail during a network interruption, then the system shall display a "network disconnected" error message.
+- **REQ-014**: If fetched MP3, WAV, or FLAC audio data fails digital signal processing, then the system shall display an "audio file cannot be processed" error message.
+- **REQ-015**: If the external platform response is missing the ISRC, then the system shall throw an exception.
+- **REQ-016**: If the external platform response omits or returns an empty `preview` URL, then the system shall throw an exception and surface an error message to the UI.
+- **REQ-017**: If the external platform response omits or returns an empty `preview` URL, then the system shall not persist the track or proceed to the snippet fetch.
 
 ## Optional Features
 
-- **REQ-013**: Where DSP visualization is enabled, when a user selects a fingerprinted song, the system shall display the song spectrogram with highlighted spectral centroid and top feature contribution factors.
-- **REQ-014**: Where custom recommendation querying is enabled, when a user modifies acoustic feature vector values for a processed song, the system shall retrieve song recommendations matching the modified feature vector.
+- **REQ-018**: Where DSP visualization is enabled, when a user requests visualization for a song, the system shall display the song spectrogram with highlighted spectral centroid and feature contribution factors.
+- **REQ-019**: Where custom recommendation querying is enabled, when a user modifies acoustic feature vector values for a processed song, the system shall retrieve song recommendations matching the modified feature vector.
 
 ## Traceability
 
-| Original | EARS Requirement(s) | Pattern | Notes / Assumptions |
-|----------|---------------------|---------|---------------------|
-| FR-001 | REQ-001, REQ-002 | Event-Driven | Split: input search vs awaiting confirmation |
-| FR-002 | REQ-003 | Event-Driven | Specified format constraints (MP3, WAV, FLAC) |
-| FR-003 | REQ-004, REQ-005 | Event-Driven | Split: computing features vs grouping into vector |
-| FR-004 | REQ-006 | Event-Driven | Target system explicit |
-| FR-005 | REQ-007 | Event-Driven | Metadata association explicit |
-| FR-006 | REQ-008 | Event-Driven | Deduplication trigger explicit |
-| FR-007 | REQ-009, REQ-010 | Unwanted Behavior | Split: retry loop vs final error display |
-| FR-008 | REQ-011 | Unwanted Behavior | Format failure condition explicit |
-| FR-009 | REQ-012 | Event-Driven | Query trigger explicit |
-| FR-010 | REQ-013 | Optional Feature | Optional feature flag explicit |
-| FR-011 | REQ-014 | Optional Feature | Optional feature flag explicit |
+| Original                                                                                                                                                                                                                                                                                                         | EARS Requirement(s) | Pattern           | Notes / Assumptions                                                                                        |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|-------------------|------------------------------------------------------------------------------------------------------------|
+| "FR-001: System MUST accept a song title input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching."                                                                                                                         | REQ-001, REQ-002    | Event-Driven      | Split: search+return top 5 vs await confirmation                                                           |
+| "FR-002: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats."                                                                                                                                              | REQ-003             | Event-Driven      | Trigger = user confirms match; format constraint preserved                                                 |
+| "FR-003: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`)."                                                           | REQ-004             | Event-Driven      | Complete feature list preserved verbatim                                                                   |
+| "FR-004: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence."                                                                                                                                                                              | REQ-005             | Event-Driven      | Trigger = feature vector generated                                                                         |
+| "FR-005: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp."                                                                                                                | REQ-006             | Event-Driven      | Full metadata list preserved                                                                               |
+| "FR-006: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness on the track ISRC (International Standard Recording Code)."                                                                                                                        | REQ-007             | Event-Driven      | Trigger = same song processed again                                                                        |
+| "FR-007: System MUST handle network interruptions during snippet fetching by retrying up to 3 times with 5-second delays between attempts; if all fail, display 'network disconnected' error feedback."                                                                                                          | REQ-012, REQ-013    | Unwanted Behavior | Split: retry loop vs final error display                                                                   |
+| "FR-008: System MUST display an 'audio file cannot be processed' error if fetched MP3, WAV, or FLAC audio data fails digital signal processing."                                                                                                                                                                 | REQ-014             | Unwanted Behavior | Failure condition explicit                                                                                 |
+| "FR-009: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database using a track's ISRC."                                                                                                                                                            | REQ-008             | Event-Driven      | Trigger = user requests by ISRC                                                                            |
+| "FR-010: System MAY (P3 lower priority) provide DSP visualization capabilities, showing song spectrograms with highlighted spectral centroid and feature contribution factors."                                                                                                                                  | REQ-018             | Optional Feature  | Optional feature flag = DSP visualization enabled                                                          |
+| "FR-011: System MAY (P3 lower priority) allow users to modify acoustic feature vector values to retrieve recommendations matching the modified profile."                                                                                                                                                         | REQ-019             | Optional Feature  | Optional feature flag = custom recommendation querying enabled                                             |
+| "FR-012: System MUST downmix multichannel (stereo/surround) audio snippets to single-channel (mono) by averaging channels prior to DSP extraction."                                                                                                                                                              | REQ-009             | Event-Driven      | Trigger = multichannel audio fetched                                                                       |
+| "FR-013: System MUST downsample each feature's time-vector into a single scalar value by computing the arithmetic mean across all audio frames."                                                                                                                                                                 | REQ-010             | Event-Driven      | Trigger = feature time-vector computed                                                                     |
+| "FR-014: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1)."                                                                                                                                                                                                  | REQ-011             | Event-Driven      | Trigger = external platform track retrieval                                                                |
+| "FR-015: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC."                                                                                                                                                                                                  | REQ-015             | Unwanted Behavior | Condition = missing ISRC                                                                                   |
+| "FR-016: System MUST fail loudly and throw an exception, surfacing a user-friendly error message to the UI, if the external platform response omits or returns an empty `preview` URL for a track that requires snippet fetching. Such a track MUST NOT be persisted and MUST NOT proceed to the snippet fetch." | REQ-016, REQ-017    | Unwanted Behavior | Split: throw+surface error vs do-not-persist guardrail; "user-friendly" dropped as unmeasurable in rewrite |
 
 ## Open Clarifications
 
