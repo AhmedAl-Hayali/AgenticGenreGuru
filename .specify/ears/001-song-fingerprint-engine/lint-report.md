@@ -1,36 +1,36 @@
 # EARS Lint Report
 
 - **Slug**: 001-song-fingerprint-engine
-- **Linted**: 2026-08-03
-- **Source**: `specs/001-song-fingerprint-engine/spec.md`
-- **Conformance**: 0 of 11 requirements conform to EARS (0%)
+- **Linted**: 2026-08-11
+- **Source**: `specs/001-song-fingerprint-engine/spec.md` (Functional Requirements, lines 104-119)
+- **Conformance**: 0 of 16 requirements conform to EARS (0%)
 
 ## Findings
 
 | Ref | Verdict | Pattern / Issues | Severity | Suggested EARS Rewrite |
 |-----|---------|------------------|----------|------------------------|
-| L97 / FR-001 | non-conformant | missing modal (`MUST`); missing trigger; compound requirement | error | When a user inputs a song name, the system shall return the top 5 matching candidates from online catalog sources and await user confirmation. |
-| L98 / FR-002 | non-conformant | missing modal (`MUST`); missing trigger; weak verb "supporting" | error | When the user confirms a song match, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction. |
-| L99 / FR-003 | non-conformant | missing modal (`MUST`); missing trigger; compound requirement | error | When an audio snippet is fetched, the system shall compute individual acoustic features including spectral centroid and spectral flux and group them into a single song feature vector. |
-| L100 / FR-004 | non-conformant | missing modal (`MUST`); missing trigger | error | When a song feature vector is generated, the system shall store the feature vector in the local relational database. |
-| L101 / FR-005 | non-conformant | missing modal (`MUST`); missing trigger/state | error | When storing a fingerprint record, the system shall associate the record with song title, audio source reference, and processing timestamp. |
-| L102 / FR-006 | non-conformant | missing modal (`MUST`); informal event structure | error | When a user submits a song that is already fingerprinted in the database, the system shall reuse the existing fingerprint record without creating a duplicate entry. |
-| L103 / FR-007 | non-conformant | missing modal (`MUST`); weak verb "handle"; compound requirement | error | If a network interruption occurs during audio snippet fetching, then the system shall retry fetching up to 3 times with 5-second delays between attempts; if all 3 retries fail, then the system shall display a "network disconnected" error message. |
-| L104 / FR-008 | non-conformant | missing modal (`MUST`) | error | If fetched audio data fails digital signal processing, then the system shall display an "audio file cannot be processed" error message. |
-| L105 / FR-009 | non-conformant | missing modal (`MUST`); missing trigger | error | When a user requests stored fingerprint details, the system shall retrieve and display the fingerprint feature record from the local relational database. |
-| L106 / FR-010 | non-conformant | missing modal (`MAY`); missing trigger | error | Where DSP visualization is enabled, when a user selects a fingerprinted song, the system shall display the spectrogram with highlighted spectral centroid and feature contribution factors. |
-| L107 / FR-011 | non-conformant | missing modal (`MAY`); missing trigger | error | Where custom recommendation querying is enabled, when a user modifies acoustic feature vector values, the system shall retrieve song recommendations matching the modified feature vector. |
+| FR-001 (L104) | non-conformant | missing modal ("MUST"); compound (4 behaviors joined: accept input, search, return top 5, await confirmation) | error | When the user submits a song title, the system shall search the online catalog and present the top 5 matching candidates. When the user confirms a candidate, the system shall initiate snippet fetching. |
+| FR-002 (L105) | non-conformant | missing modal ("MUST"); compound ("fetch... supporting MP3/WAV/FLAC") | error | When the user confirms a song, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction. |
+| FR-003 (L106) | non-conformant | missing modal ("MUST") | error | The system shall extract the acoustic features `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc` from the fetched audio snippet. (Ubiquitous) |
+| FR-004 (L107) | non-conformant | missing modal ("MUST"); unmeasurable term ("full data persistence") | error | The system shall store the extracted song fingerprint feature vector in the local relational database. (Ubiquitous) |
+| FR-005 (L108) | non-conformant | missing modal ("MUST") | error | When the system stores a fingerprint record, the system shall associate the record with the song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp. |
+| FR-006 (L109) | non-conformant | missing modal ("MUST") | error | If a track ISRC already exists in the local relational database, the system shall not create a duplicate fingerprint record for that ISRC. |
+| FR-007 (L110) | non-conformant | missing modal ("MUST"); compound (retry logic + error display) | error | When a network interruption occurs during snippet fetching, the system shall retry fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system shall display the error "network disconnected". |
+| FR-008 (L111) | non-conformant | missing modal ("MUST") | error | If the fetched MP3, WAV, or FLAC audio data fails digital signal processing, the system shall display the error "audio file cannot be processed". |
+| FR-009 (L112) | non-conformant | missing modal ("MUST") | error | When the user requests fingerprint details for a track by ISRC, the system shall retrieve the existing fingerprint record from the local relational database. |
+| FR-010 (L113) | non-conformant | missing modal ("MAY"); weak verb ("provide... capabilities") | error | When the user requests visualization for a processed song, the system shall display the song spectrogram with highlighted spectral centroid and feature contribution factors. |
+| FR-011 (L114) | non-conformant | missing modal ("MAY") | error | When the user modifies acoustic feature vector values for a song, the system shall generate recommendations that match the modified feature vector. |
+| FR-012 (L115) | non-conformant | missing modal ("MUST") | error | Where the fetched audio snippet contains multiple channels, the system shall downmix the audio to mono by averaging channels prior to DSP extraction. (Optional Feature) |
+| FR-013 (L116) | non-conformant | missing modal ("MUST") | error | The system shall compute the arithmetic mean across all audio frames to produce a single scalar value for each feature's time-vector. (Ubiquitous) |
+| FR-014 (L117) | non-conformant | missing modal ("MUST") | error | When the system retrieves a track from an external platform, the system shall require the track ISRC. |
+| FR-015 (L118) | non-conformant | missing modal ("MUST"); unmeasurable term ("fail loudly") | error | If the external platform response omits the track ISRC, the system shall throw an exception. |
+| FR-016 (L119) | non-conformant | missing modal ("MUST"); compound (throw exception + no persist + no fetch) | error | If the external platform response omits or returns an empty `preview` URL for a track that requires snippet fetching, the system shall not persist the track, shall not proceed to snippet fetching, and shall surface a user-friendly error. |
 
 ## Summary
 
-- **Errors**: 11
-- **Warnings**: 2 (weak verbs: "supporting", "handle")
-- **Info**: 0
-- **Top Recurring Issues**:
-  1. Missing mandatory `shall` modal (used `MUST` or `MAY` throughout).
-  2. Missing EARS trigger keywords (`When`, `While`, `If`, `Where`).
-  3. Compound requirements combining multiple distinct actions into single statements.
-
-## Suggested Next Step
-
-Run `/speckit-ears-convert` to apply these EARS-conformant rewrites to `specs/001-song-fingerprint-engine/spec.md`.
+- Errors: 20   Warnings: 3   Info: 0
+- Recurring issues:
+  1. **Missing modal** — every requirement (16/16) uses `MUST`/`MAY` instead of `shall`.
+  2. **Compound requirements** — several FRs bundle multiple behaviors (FR-001, FR-002, FR-007, FR-016); acceptance scenarios and edge cases also use multi-clause GWT style.
+  3. **Weak/unmeasurable phrasing** — "full data persistence", "fail loudly", "provide ... capabilities".
+- Suggested next step: no `[NEEDS CLARIFICATION]` items — the FR rewrites preserve original intent. Run `/speckit-ears-convert` to apply the rewrites, or edit the FR section yourself to replace `MUST`/`MAY` with `shall` and split the compound requirements.
