@@ -66,7 +66,12 @@ src/
 ├── core/
 │   ├── audio/           # librosa/numpy/scipy DSP feature engineering
 │   ├── deezer/          # Deezer API client & retry logic
-│   └── db/              # SQLAlchemy models, engine, & repositories
+│   ├── db/              # SQLAlchemy models, engine, & repositories
+│   ├── config.py        # Hydra compose helper (Django path)
+│   ├── logging.py       # dictConfig setup, JsonFormatter, NonErrorFilter, QueueHandler (logging-report.md)
+│   ├── errors.py        # shared exception hierarchy (NetworkDisconnectedError, AudioProcessingError, ...)
+│   ├── fingerprint_service.py  # US1 orchestration (ISRC reuse, fetch → extract → store)
+│   └── recommendations.py      # US4 RecommendationService (cosine similarity over 8-dim vectors)
 frontend/                # Django web application
 ├── genreguru_web/       # Django project settings & URL routing
 ├── fingerprint_app/     # Django app (views, templates, static JS/CSS)
@@ -77,7 +82,8 @@ frontend/                # Django web application
 tests/
 ├── unit/                # Core DSP, Deezer client, and model unit tests
 ├── integration/         # DB integration & Deezer retry tests (with FactoryBoy)
-└── contract/            # Search & fingerprint contract tests
+├── contract/            # Search & fingerprint contract tests
+└── benchmarks/          # SC-002 (<10s extraction) & SC-005 (<500ms ISRC reuse) benchmarks
 ```
 
 > **Configuration management**: all non-secret settings (logging handler config, DB connection) live in the Hydra `config/` tree and are overridable from the CLI; secrets resolve via `${env:...}` interpolation. Standalone scripts use `@hydra.main`; the Django app uses the compose API via `src/core/config.py`. See [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
