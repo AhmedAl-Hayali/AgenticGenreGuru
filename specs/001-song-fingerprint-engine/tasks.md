@@ -117,6 +117,8 @@
 
 **Goal**: Users view a spectrogram of a fingerprinted song with the spectral centroid highlighted and top contributing feature factors, on demand.
 
+**⚠️ OPTIONAL FEATURE (REQ-018)**: This story implements the optional DSP-visualization capability only. It is gated behind a config feature flag; all REQ-018 behavior is skipped when `features.visualization.enabled=false`. Do not implement until core stories (US1, US2) are complete.
+
 **Independent Test**: Select a processed song and toggle visualization mode to verify spectrogram rendering and feature-factor highlighting.
 
 ### Tests for User Story 3 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
