@@ -8,10 +8,10 @@
 
 ## Requirement Completeness
 
-- [x] CHK001 Are error response contracts defined for every failure mode specified by REQ-012, REQ-013, and REQ-014 ("network disconnected" and "audio file cannot be processed")? [Completeness, Spec §REQ-012/REQ-013]
-- [x] CHK002 Does the confirm endpoint contract define request schema fields for all metadata REQ-006 requires to be stored (track ISRC, platform track ID, title, artist, audio source reference)? [Completeness, Spec §REQ-006]
-- [x] CHK003 Is the deduplication reuse flow (match by ISRC, generate new fingerprint on local miss, fail loudly only on external ISRC absence) explicitly specified in the confirm endpoint contract? [Completeness, Spec §REQ-007]
-- [x] CHK004 Are search match response fields specified for all data the 2-click selection flow requires (`deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`)? [Completeness, Spec §REQ-001/REQ-002]
+- [x] CHK001 Are error response contracts defined for every failure mode specified by REQ-013, REQ-014, and REQ-015 ("network disconnected" and "audio file cannot be processed")? [Completeness, Spec §REQ-013/REQ-014]
+- [x] CHK002 Does the confirm endpoint contract define request schema fields for all metadata REQ-007 requires to be stored (track ISRC, platform track ID, title, artist, audio source reference)? [Completeness, Spec §REQ-007]
+- [x] CHK003 Is the deduplication reuse flow (match by ISRC, generate new fingerprint on local miss, fail loudly only on external ISRC absence) explicitly specified in the confirm endpoint contract? [Completeness, Spec §REQ-008]
+- [x] CHK004 Are search match response fields specified for all data the 2-click selection flow requires (`deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`)? [Completeness, Spec §REQ-001]
 - [x] CHK005 Is the `isrc` field documented as mandatory when interfacing with external platforms, with an explicit fail-loud error requirement when an external response omits it? [Completeness, [deezer-api.md](../contracts/deezer-api.md) §1]
 - [x] CHK006 Are retry and timeout requirements for the external Deezer snippet download contract explicitly documented? [Completeness, [deezer-api.md](../contracts/deezer-api.md) §2]
 
@@ -37,9 +37,9 @@ The internal search query should be idempotent under the same version — whethe
 - [x] CHK011 Are identifiers named consistently across contracts (`deezer_id` vs Deezer `id` vs `song_id`), or is the mapping explicitly defined? [Consistency]
 
 - [x] CHK012 Does the confirm request body exactly match the fields returned by the search match payload? [Consistency, [search-api.md](../contracts/search-api.md) §1-§2]
-- [x] CHK013 Do retry requirements in [deezer-api.md](../contracts/deezer-api.md) §2 align with REQ-012 (3 retries, 5-second delay)? [Consistency, Spec §REQ-012]
-- [x] CHK014 Are error messages consistent between spec REQ-013/REQ-014, the search-api error responses, and plan constraints? [Consistency]
-- [x] CHK015 Does the contract deduplication description match REQ-007 (ISRC lookup, generate new fingerprint on local miss, fail loudly only on external ISRC absence)? [Consistency, Spec §REQ-007]
+- [x] CHK013 Do retry requirements in [deezer-api.md](../contracts/deezer-api.md) §2 align with REQ-013 (3 retries, 5-second delay)? [Consistency, Spec §REQ-013]
+- [x] CHK014 Are error messages consistent between spec REQ-014/REQ-015, the search-api error responses, and plan constraints? [Consistency]
+- [x] CHK015 Does the contract deduplication description match REQ-008 (ISRC lookup, generate new fingerprint on local miss, fail loudly only on external ISRC absence)? [Consistency, Spec §REQ-008]
 
 ## Scenario Coverage
 
@@ -51,7 +51,7 @@ The first error response of [search-api.md](../contracts/search-api.md), i.e., e
 
 That is when the second error response of [search-api.md](../contracts/search-api.md), i.e., error 503, is displayed. <span style='color:red'>Not convinced this is the correct move, try splitting the errors to handle more specific issues each</span>
 
-- [x] CHK018 Is the "already processed" alternate flow reflected in the confirm contract response so callers can distinguish reuse from new fingerprint? [Coverage, Spec §REQ-007]
+- [x] CHK018 Is the "already processed" alternate flow reflected in the confirm contract response so callers can distinguish reuse from new fingerprint? [Coverage, Spec §REQ-008]
 
 This is an implementation detail that is abstracted away from the caller. Fingerprint reuse logging captured in [search-api.md](../contracts/search-api.md) §2.
 
