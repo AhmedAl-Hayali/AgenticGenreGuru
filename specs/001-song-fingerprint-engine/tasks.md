@@ -31,8 +31,8 @@
 - [ ] T001 Create directory structure per plan.md: `src/core/audio/`, `src/core/deezer/`, `src/core/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` (Hydra config groups)
 - [ ] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, pytest-django, pytest-mock, factory_boy, coverage, pytest-cov, bandit, radon); verify `hydra-core` pin works on Python 3.14 (upgrade to 1.4 dev release if needed per `docs/001-song-fingerprint-engine/config-report.md`)
 - [ ] T003 \[P\] Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
-- [ ] T004 \[P\] Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
-- [ ] T005 \[P\] Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal); add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
+- [ ] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
+- [ ] T005 \[P\] Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
 
 ---
 
@@ -174,7 +174,7 @@
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - User stories can proceed in parallel (if staffed)
+  - Backend/core user story work can proceed in parallel (if staffed) — but UI frontend tasks are serialized (they share `index.html`/`app.js`)
   - Or sequentially in priority order (P1 → P2 → P3)
 - **Polish (Final Phase)**: Depends on all desired user stories being complete
 
@@ -272,11 +272,12 @@ Task: "Implement RecommendationService in src/core/recommendations.py"
 With multiple developers:
 
 1. Team completes Setup + Foundational together
-2. Once Foundational is done:
-   - Developer A: User Story 1
-   - Developer B: User Story 2
-   - Developer C: User Story 3 / 4
-3. Stories complete and integrate independently
+2. Once Foundational is done, backend/core work is parallel-safe across stories (all core-library and endpoint tasks live in separate modules):
+   - Developer A: User Story 1 (core + endpoints + UI for search/confirm)
+   - Developer B: User Story 2 (core + endpoints)
+   - Developer C: User Story 3 / 4 (core + endpoints)
+3. UI integration is the serial bottleneck: US1/2/3/4 frontend tasks all edit the SAME files (`frontend/fingerprint_app/templates/fingerprint_app/index.html` + `.../static/fingerprint_app/app.js`). These tasks (T029/T030, T036, T041, T046) MUST be done sequentially ON ONE workstream to avoid merge conflicts — they can NOT run in parallel.
+4. Core/endpoint tasks per story run in parallel; UI tasks are consolidated and merged into `index.html`/`app.js` one story at a time.
 
 ---
 
@@ -289,4 +290,5 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+- UI tasks share `index.html`/`app.js` — mark them non-parallel and serialize across stories
 - Performance targets: SC-001 95% query success, SC-002 <10s/snippet, SC-003 100% persistence, SC-005 <500ms reuse lookup
