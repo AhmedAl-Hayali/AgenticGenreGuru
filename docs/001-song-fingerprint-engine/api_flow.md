@@ -52,7 +52,7 @@ flowchart TD
 8. **Persist** → writes `songs` (row: `id`, `deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`) and `song_fingerprints` (row: `id`, FK `song_id`, 8 feature columns, `audio_format`, `sample_rate`, `created_at`) — see [data-model.md](../../specs/001-song-fingerprint-engine/data-model.md).
 9. **Return** → UI displays success + fingerprint metrics with `deezer_id`, `isrc`, and `status` (confirm response shape in [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md)).
 
-> **Already-stored track (reuse path)**: Local ISRC lookup finds a match → returns the stored fingerprint without generating a new feature vector (dedup per spec FR-006).
+> **Already-stored track (reuse path)**: Local ISRC lookup finds a match → returns the stored fingerprint without generating a new feature vector (dedup per spec REQ-007).
 
 ### API Abstract
 - The flow is **read-retrieve-write-read**: internal `/api/search` → Deezer, UI confirmation → `/api/confirm` → local lookup / fetch / extract / write → response.
@@ -73,29 +73,29 @@ These interrupt the happy path and must surface an expected error instead of pro
 
 ### 3.2 ISRC & record identity
 
-| Fault                                        | Location                     | Expected Behavior                                                                                                                                                |
-|----------------------------------------------|------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| External Deezer response omits `isrc`        | Deezer interface (retrieval) | **Fail loud** — throw an error; do not persist without ISRC ([deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) note, spec FR-005) |
+| Fault                                        | Location                     | Expected Behavior                                                                                                                                                                                             |
+|----------------------------------------------|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| External Deezer response omits `isrc`        | Deezer interface (retrieval) | **Fail loud** — throw an error; do not persist without ISRC ([deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) note, spec REQ-006)                                             |
 | Search returns zero matches                  | `/api/search` → Deezer       | raise `TrackNotFoundError` (404) and show user `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."`; no incomplete DB record created (spec scenario 2) |
-| `isrc` already exists in `songs`             | DB lookup                    | local record found → reuse stored fingerprint, no duplicate rows (spec FR-006)                                                                                   |
-| Concurrent duplicate submission, same `isrc` | DB write                     | DB unique constraint on `isrc` flips the second write into a uniqueness error rather than a duplicate record                                                     |
+| `isrc` already exists in `songs`             | DB lookup                    | local record found → reuse stored fingerprint, no duplicate rows (spec REQ-007)                                                                                                                               |
+| Concurrent duplicate submission, same `isrc` | DB write                     | DB unique constraint on `isrc` flips the second write into a uniqueness error rather than a duplicate record                                                                                                  |
 
 ### 3.3 Audio / DSP processing
 
 | Fault                                              | Expected Behavior                                                                                 |
 |----------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| Fetched MP3/WAV/FLAC corrupted or unprocessable    | show `"audio file cannot be processed"` (400) (FR-008)                                            |
+| Fetched MP3/WAV/FLAC corrupted or unprocessable    | show `"audio file cannot be processed"` (400) (REQ-014)                                           |
 | Multi-channel audio                                | downmixed to mono before DSP; no error                                                            |
 | Silent / non-musical file                          | valid zero/low-energy vector; no failure (edge case)                                              |
 | `preview` empty string (unavailable/region-locked) | treat as fetch failure; surface `"network disconnected"` or fetch error so no success is produced |
 
 ### 3.4 Database / API-side errors
 
-| Fault                                                                    | Expected Behavior                                                                                                                                      |
-|--------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
-| DB write fails mid-persist (e.g., constraint violation, connection loss) | no partial/inconsistent record; return error; nothing returned to UI as success                                                                        |
-| `POST /api/confirm/` with missing `isrc` in body                         | ISRC is mandatory → reject request and fail loud ([search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) dedup note, FR-006) |
-| Internal error anywhere in the pipeline                                  | transport as `status: "error"` with a message; do not fabricate a feature vector                                                                       |
+| Fault                                                                    | Expected Behavior                                                                                                                                       |
+|--------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| DB write fails mid-persist (e.g., constraint violation, connection loss) | no partial/inconsistent record; return error; nothing returned to UI as success                                                                         |
+| `POST /api/confirm/` with missing `isrc` in body                         | ISRC is mandatory → reject request and fail loud ([search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) dedup note, REQ-007) |
+| Internal error anywhere in the pipeline                                  | transport as `status: "error"` with a message; do not fabricate a feature vector                                                                        |
 
 ---
 
@@ -148,10 +148,10 @@ sequenceDiagram
 
 ## 6. Reference Checklist (adherence)
 
-- ISRC is mandatory and read from the Deezer response; missing → fail loud, neither fallback nor silent. `FR-005`, `FR-006`
-- Local miss is NOT an error → generates a new vector after fetching preview and running DSP. `FR-006`
-- DSP: 8 collapsed features, mono downmix, arithmetic-mean collapse. `FR-003`
-- MP3/WAV/FLAC only. `FR-002`
-- 3 retries / 5s on fetch failure. `FR-007`, `NFR/Deezer §2`.
+- ISRC is mandatory and read from the Deezer response; missing → fail loud, neither fallback nor silent. `REQ-006`, `REQ-007`
+- Local miss is NOT an error → generates a new vector after fetching preview and running DSP. `REQ-007`
+- DSP: 8 collapsed features, mono downmix, arithmetic-mean collapse. `REQ-004`
+- MP3/WAV/FLAC only. `REQ-003`
+- 3 retries / 5s on fetch failure. `REQ-012`, `NFR/Deezer §2`.
 
 **Note to future readers**: maintain the [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) + [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) field references as the single source of truth for payload shapes; whenever Deezer changes its schema, those files change first, then re-read this flow diagram.
