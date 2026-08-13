@@ -136,9 +136,8 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 ### Key Entities *(include if feature involves data)*
 
 - **Song**: Represents a track identified by track ISRC (International Standard Recording Code) along with the platform track ID, title, artist, and source reference.
-- **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, channel configuration (downmixed to mono for DSP), and retrieval status.
-- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked to a specific Song.
-- **FeatureRecord**: The database table representation persisting the song fingerprint features, both track ISRC and platform track ID, metadata, and timestamps in the local relational database with unique constraints on the primary identifier.
+- **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, channel configuration (downmixed to mono for DSP), and retrieval status. **Transient**: exists only in memory during processing; never persisted to the database (no corresponding table in data-model.md).
+- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked to a specific Song. Persisted to the `song_fingerprints` table (see data-model.md) with both track ISRC and platform track ID, metadata, and timestamps, with unique constraints on the primary identifier.
 
 ## Success Criteria *(mandatory)*
 
