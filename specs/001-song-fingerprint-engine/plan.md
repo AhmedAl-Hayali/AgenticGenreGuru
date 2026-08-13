@@ -12,7 +12,7 @@ Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Dja
 
 **Language/Version**: Python 3.14 (in accordance with [pyproject.toml](../../pyproject.toml))
 
-**Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), requests / httpx (Deezer API)
+**Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), requests / httpx (Deezer API), hydra-core + OmegaConf (configuration management)
 
 **Dev & Pre-commit Tooling**: Bandit (security audit), Radon (code metric & complexity analysis), FactoryBoy (`factory_boy` for integration test fixtures), Coverage (`coverage` / `pytest-cov` test coverage analysis), pytest & pytest-django
 
@@ -58,6 +58,10 @@ specs/001-song-fingerprint-engine/
 ### Source Code Structure
 
 ```text
+config/                    # Hydra config tree (config.yaml defaults + config groups)
+├── config.yaml            # defaults: - logging: dev, - db: dev, - _self_
+├── logging/               # dev.yaml / prod.yaml (logging group; see logging-report.md)
+└── db/                    # dev.yaml / prod.yaml (db group; secrets via ${env:...})
 src/
 ├── core/
 │   ├── audio/           # librosa/numpy/scipy DSP feature engineering
@@ -75,6 +79,8 @@ tests/
 ├── integration/         # DB integration & Deezer retry tests (with FactoryBoy)
 └── contract/            # Search & fingerprint contract tests
 ```
+
+> **Configuration management**: all non-secret settings (logging handler config, DB connection) live in the Hydra `config/` tree and are overridable from the CLI; secrets resolve via `${env:...}` interpolation. Standalone scripts use `@hydra.main`; the Django app uses the compose API via `src/core/config.py`. See [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
 
 ### Subdirectory Architecture Justification
 

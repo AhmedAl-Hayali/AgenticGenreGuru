@@ -39,3 +39,10 @@
   - **FactoryBoy (`factory_boy`)**: Test fixture generation for integration test suites alongside `pytest`.
   - **Coverage (`coverage` / `pytest-cov`)**: Code coverage tracking and assertion.
 - **Rationale**: Enforces strict code quality, security standards, and high test coverage across core DSP modules and integration layers.
+
+### 6. Configuration Management (Hydra)
+
+- **Decision**: Use Hydra (`hydra-core`) for all non-secret application configuration, stored in hierarchical YAML under `config/` with `defaults` groups (`logging`, `db`). Detailed design: [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
+- **Rationale**: Centralizes settings (levels, connection strings, retry counts, sample rates) outside logic, enables environment switching (dev/prod) via a single defaults/CLI switch, allows any key to be overridden on the command line without code edits, resolves secrets via `${env:...}` interpolation so credentials never enter the repo, and provides `--multirun` for future experimentation.
+- **Alternatives Considered**: Raw `os.environ` reads (no structure, no defaults composition, no CLI overrides), bare OmegaConf YAML without Hydra (no `defaults`/override machinery), hard-coded defaults behind `argparse`/dataclasses (scattered, no env groups).
+- **Constraint**: The project runs Python 3.14 but `hydra-core>=1.3.4` supports up to Python 3.11; plan the 1.4 development release pin accordingly (task T002).
