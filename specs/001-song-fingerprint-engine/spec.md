@@ -101,27 +101,38 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ### Functional Requirements
 
-- **FR-001**: System MUST accept a song title input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching.
-- **FR-002**: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats.
-- **FR-003**: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`).
-- **FR-004**: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence.
-- **FR-005**: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
-- **FR-006**: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness on the track ISRC (International Standard Recording Code).
-- **FR-007**: System MUST handle network interruptions during snippet fetching by retrying up to 3 times with 5-second delays between attempts; if all fail, display "network disconnected" error feedback.
-- **FR-008**: System MUST display an "audio file cannot be processed" error if fetched MP3, WAV, or FLAC audio data fails digital signal processing.
-- **FR-009**: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database using a track's ISRC.
-- **FR-010**: System MAY (P3 lower priority) provide DSP visualization capabilities, showing song spectrograms with highlighted spectral centroid and feature contribution factors.
-- **FR-011**: System MAY (P3 lower priority) allow users to modify acoustic feature vector values to retrieve recommendations matching the modified profile.
-- **FR-012**: System MUST downmix multichannel (stereo/surround) audio snippets to single-channel (mono) by averaging channels prior to DSP extraction.
-- **FR-013**: System MUST downsample each feature's time-vector into a single scalar value by computing the arithmetic mean across all audio frames.
-- **FR-014**: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1).
-- **FR-015**: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC.
-- **FR-016**: System MUST fail loudly and throw an exception, surfacing a user-friendly error message to the UI, if the external platform response omits or returns an empty `preview` URL for a track that requires snippet fetching. Such a track MUST NOT be persisted and MUST NOT proceed to the snippet fetch.
+#### Event-Driven
+
+- **REQ-001**: When a user inputs a song title, the system shall search online catalog sources and return the top 5 matching candidates.
+- **REQ-002**: When top 5 matching candidates are returned, the system shall await user confirmation before initiating snippet fetching.
+- **REQ-003**: When a user confirms a song match, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction.
+- **REQ-004**: When an online audio snippet is fetched, the system shall execute a composite feature engineering pipeline computing the acoustic features `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`.
+- **REQ-005**: When a song fingerprint feature vector is generated, the system shall store it in the local relational database.
+- **REQ-006**: When storing a fingerprint record, the system shall associate the record with song metadata including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
+- **REQ-007**: When a song is processed more than once, the system shall prevent duplicate feature records by enforcing uniqueness on the track ISRC.
+- **REQ-008**: When a user requests fingerprint feature records for a track by ISRC, the system shall query the local relational database and retrieve the matching records.
+- **REQ-009**: When multichannel audio is fetched, the system shall downmix the audio to single-channel (mono) by averaging channels prior to DSP extraction.
+- **REQ-010**: When a feature time-vector is computed, the system shall downsample it into a single scalar value by computing the arithmetic mean across all audio frames.
+- **REQ-011**: When the system retrieves a track from an external platform, the system shall require the track ISRC.
+
+#### Unwanted Behavior
+
+- **REQ-012**: If a network interruption occurs during audio snippet fetching, then the system shall retry fetching up to 3 times with 5-second delays between attempts.
+- **REQ-013**: If all 3 retries fail during a network interruption, then the system shall display a "network disconnected" error message.
+- **REQ-014**: If fetched MP3, WAV, or FLAC audio data fails digital signal processing, then the system shall display an "audio file cannot be processed" error message.
+- **REQ-015**: If the external platform response is missing the ISRC, then the system shall throw an exception.
+- **REQ-016**: If the external platform response omits or returns an empty `preview` URL, then the system shall throw an exception and surface an error message to the UI.
+- **REQ-017**: If the external platform response omits or returns an empty `preview` URL, then the system shall not persist the track or proceed to the snippet fetch.
+
+#### Optional Features
+
+- **REQ-018**: Where DSP visualization is enabled, when a user requests visualization for a song, the system shall display the song spectrogram with highlighted spectral centroid and feature contribution factors.
+- **REQ-019**: Where custom recommendation querying is enabled, when a user modifies acoustic feature vector values for a processed song, the system shall retrieve song recommendations matching the modified feature vector.
 
 #### Notes
 - ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
-- **FR-016**: On the deduplication reuse path (local `isrc` match), no snippet fetch occurs, so `preview` is not required; the stored fingerprint is returned without evaluating `preview`.
-- **FR-013** is only for V1. Future versions should retain temporal dimensions by less aggressively downsampling, or not downsampling at all.
+- **REQ-017**: On the deduplication reuse path (local `isrc` match), no snippet fetch occurs, so `preview` is not required; the stored fingerprint is returned without evaluating `preview`.
+- **REQ-010** is only for V1. Future versions should retain temporal dimensions by less aggressively downsampling, or not downsampling at all.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -148,3 +159,26 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - Audio source is assumed reliable regarding file truncation/corruption; unprocessable audio displays explicit error.
 - The local relational database is initialized and accessible on the local system environment.
 - Downstream recommendation algorithms will be implemented in subsequent project phases using the stored fingerprint data.
+
+## Traceability
+
+Original functional requirements (FR-001 → FR-016) were converted to EARS-conformant requirements (REQ-001 → REQ-019) on 2026-08-11. Source of truth for the converted statements: `.specify/ears/001-song-fingerprint-engine/requirements.md`.
+
+| Original                                                                                                                                                                                                                                                                                                      | EARS Requirement(s) | Pattern           | Notes / Assumptions                                                                                        |
+|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|-------------------|------------------------------------------------------------------------------------------------------------|
+| FR-001: System MUST accept a song title input string, search online catalog sources, return top 5 matching candidates, and await user confirmation before initiating snippet fetching                                                                                                                         | REQ-001, REQ-002    | Event-Driven      | Split: search+return top 5 vs await confirmation                                                           |
+| FR-002: System MUST fetch an online audio snippet *first* (prior to feature extraction) for the user-confirmed song, supporting MP3, WAV, and FLAC audio formats                                                                                                                                              | REQ-003             | Event-Driven      | Trigger = user confirms match; format constraint preserved                                                 |
+| FR-003: System MUST execute a composite feature engineering pipeline computing acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`)                                                           | REQ-004             | Event-Driven      | Complete feature list preserved verbatim                                                                   |
+| FR-004: System MUST store extracted song fingerprint feature vectors into a local relational database with full data persistence                                                                                                                                                                              | REQ-005             | Event-Driven      | Trigger = feature vector generated                                                                         |
+| FR-005: System MUST associate each stored fingerprint record with song metadata, including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp                                                                                                                | REQ-006             | Event-Driven      | Full metadata list preserved                                                                               |
+| FR-006: System MUST prevent duplicate feature records when the same song is processed multiple times by enforcing uniqueness on the track ISRC (International Standard Recording Code)                                                                                                                        | REQ-007             | Event-Driven      | Trigger = same song processed again                                                                        |
+| FR-007: System MUST handle network interruptions during snippet fetching by retrying up to 3 times with 5-second delays between attempts; if all fail, display "network disconnected" error feedback                                                                                                          | REQ-012, REQ-013    | Unwanted Behavior | Split: retry loop vs final error display                                                                   |
+| FR-008: System MUST display an "audio file cannot be processed" error if fetched MP3, WAV, or FLAC audio data fails digital signal processing                                                                                                                                                                 | REQ-014             | Unwanted Behavior | Failure condition explicit                                                                                 |
+| FR-009: System MUST allow users to query and retrieve existing fingerprint feature records from the local relational database using a track's ISRC                                                                                                                                                            | REQ-008             | Event-Driven      | Trigger = user requests by ISRC                                                                            |
+| FR-010: System MAY (P3 lower priority) provide DSP visualization capabilities, showing song spectrograms with highlighted spectral centroid and feature contribution factors                                                                                                                                  | REQ-018             | Optional Feature  | Optional feature flag = DSP visualization enabled                                                          |
+| FR-011: System MAY (P3 lower priority) allow users to modify acoustic feature vector values to retrieve recommendations matching the modified profile                                                                                                                                                         | REQ-019             | Optional Feature  | Optional feature flag = custom recommendation querying enabled                                             |
+| FR-012: System MUST downmix multichannel (stereo/surround) audio snippets to single-channel (mono) by averaging channels prior to DSP extraction                                                                                                                                                              | REQ-009             | Event-Driven      | Trigger = multichannel audio fetched                                                                       |
+| FR-013: System MUST downsample each feature's time-vector into a single scalar value by computing the arithmetic mean across all audio frames                                                                                                                                                                 | REQ-010             | Event-Driven      | Trigger = feature time-vector computed                                                                     |
+| FR-014: System MUST require the track ISRC when retrieving a track from an external platform (Deezer for V1)                                                                                                                                                                                                  | REQ-011             | Event-Driven      | Trigger = external platform track retrieval                                                                |
+| FR-015: System MUST fail loudly and throw an exception if the external platform response is missing the ISRC                                                                                                                                                                                                  | REQ-015             | Unwanted Behavior | Condition = missing ISRC                                                                                   |
+| FR-016: System MUST fail loudly and throw an exception, surfacing a user-friendly error message to the UI, if the external platform response omits or returns an empty `preview` URL for a track that requires snippet fetching. Such a track MUST NOT be persisted and MUST NOT proceed to the snippet fetch | REQ-016, REQ-017    | Unwanted Behavior | Split: throw+surface error vs do-not-persist guardrail; "user-friendly" dropped as unmeasurable in rewrite |
