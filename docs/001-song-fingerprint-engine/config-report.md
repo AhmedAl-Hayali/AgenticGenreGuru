@@ -40,12 +40,15 @@ config/
 ├── logging/                  # config group: logging setup (dev/prod)
 │   ├── dev.yaml
 │   └── prod.yaml
-└── db/                       # config group: database connection (dev/prod)
-    ├── dev.yaml
-    └── prod.yaml
+├── db/                       # config group: database connection (dev/prod)
+│   ├── dev.yaml
+│   └── prod.yaml
+└── features/                 # config group: optional-feature flags (REQ-018/REQ-019 gating)
+    ├── default.yaml          # visualization.enabled: false, recommendations.enabled: false
+    └── all.yaml              # both enabled
 ```
 
-Future groups (added as their tasks land): `audio/` (sample rate, frame parameters), `deezer/` (base URL, `limit=5`, retry count/delay), `retry/` (shared 3x/5s network policy), `recommend/` (top-N, distance metric).
+Future groups (added as their tasks land): `audio/` (sample rate, frame parameters), `deezer/` (base URL, `limit=5`, retry count/delay), `retry/` (shared 3x/5s network policy), `recommend/` (top-N=5, distance metric).
 
 ### `config/config.yaml`
 
@@ -53,16 +56,19 @@ Future groups (added as their tasks land): `audio/` (sample rate, frame paramete
 defaults:
   - logging: dev        # switch to `logging=prod` at runtime
   - db: dev             # `db=prod` swaps connection without code changes
+  - features: default   # REQ-018/REQ-019 optional features OFF by default
   - _self_
 ```
 
 ### Config groups (environment-specific values)
 
 ```text
-config/logging/dev.yaml     # level: DEBUG, formatters/console + json, handlers, queue on, rich: true
-config/logging/prod.yaml    # level: INFO/WARNING, JSONL-centric, tighter rotation, rich: false
-config/db/dev.yaml          # url: postgresql://postgres:postgres@localhost:5432/genreguru
-config/db/prod.yaml         # url: ${env:DATABASE_URL}  (secret stays out of YAML/repo)
+config/logging/dev.yaml      # level: DEBUG, formatters/console + json, handlers, queue on, rich: true
+config/logging/prod.yaml     # level: INFO/WARNING, JSONL-centric, tighter rotation, rich: false
+config/db/dev.yaml           # url: postgresql://postgres:postgres@localhost:5432/genreguru
+config/db/prod.yaml          # url: ${env:DATABASE_URL}  (secret stays out of YAML/repo)
+config/features/default.yaml # visualization.enabled: false, recommendations.enabled: false (REQ-018/019 OFF)
+config/features/all.yaml     # visualization.enabled: true, recommendations.enabled: true
 ```
 
 ---
@@ -85,15 +91,16 @@ config/db/prod.yaml         # url: ${env:DATABASE_URL}  (secret stays out of YAM
 
 ## 4. Per-Module Usage
 
-| Consumer                 | Module / task                   | Config group             | Notes                                                                                                                         |
-|--------------------------|---------------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Engine + session factory | `src/core/db/engine.py` (T007)  | `db`                     | Read `cfg.db.url`, pool params from group; log host/db (never password)                                                       |
-| Logging setup            | `src/core/logging.py` (T011)    | `logging`                | Convert to dict via `OmegaConf.to_container(resolve=True)` → `logging.config.dictConfig`; Rich toggle from `logging.dev.rich` |
-| Table creation CLI       | `src/core/db/init_db.py` (T010) | `@hydra.main` → `config` | Entrypoint loads composed config, calls `setup_logging()`                                                                     |
-| Config bootstrap helper  | `src/core/config.py` (T005)     | compose API              | `hydra.initialize` + `hydra.compose` for the Django path                                                                      |
-| Future: DSP params       | `src/core/audio/*`              | `audio`                  | sample rate, frame/hop sizes (default `22050` per data-model)                                                                 |
-| Future: Deezer client    | `src/core/deezer/*`             | `deezer`, `retry`        | base URL, `limit=5`, 3x/5s retry policy                                                                                       |
-| Future: recommendations  | `src/core/recommendations.py`   | `recommend`              | top-N, distance metric                                                                                                        |
+| Consumer                 | Module / task                      | Config group             | Notes                                                                                                                         |
+|--------------------------|------------------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| Engine + session factory | `src/core/db/engine.py` (T007)     | `db`                     | Read `cfg.db.url`, pool params from group; log host/db (never password)                                                       |
+| Logging setup            | `src/core/logging.py` (T011)       | `logging`                | Convert to dict via `OmegaConf.to_container(resolve=True)` → `logging.config.dictConfig`; Rich toggle from `logging.dev.rich` |
+| Table creation CLI       | `src/core/db/init_db.py` (T010)    | `@hydra.main` → `config` | Entrypoint loads composed config, calls `setup_logging()`                                                                     |
+| Config bootstrap helper  | `src/core/config.py` (T005)        | compose API              | `hydra.initialize` + `hydra.compose` for the Django path                                                                      |
+| Future: DSP params       | `src/core/audio/*`                 | `audio`                  | sample rate, frame/hop sizes (default `22050` per data-model)                                                                 |
+| Future: Deezer client    | `src/core/deezer/*`                | `deezer`, `retry`        | base URL, `limit=5`, 3x/5s retry policy                                                                                       |
+| Future: recommendations  | `src/core/recommendations.py`      | `recommend`              | top-N=5, distance metric                                                                                                      |
+| Optional-feature gating  | US3/US4 endpoints + UI (T040-T047) | `features`               | REQ-018/REQ-019 behavior only when `features.visualization.enabled` / `features.recommendations.enabled` = true               |
 
 ---
 
