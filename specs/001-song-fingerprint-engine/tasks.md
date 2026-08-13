@@ -66,7 +66,7 @@
 ### Tests for User Story 1 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
 
 - [ ] T014 \[P\] \[US1\] Unit tests for mono downmix loader + 8-feature extraction with arithmetic-mean collapse in `tests/unit/test_audio_features.py`
-- [ ] T015 \[P\] \[US1\] Unit tests for Deezer search client (field mapping, missing `isrc` → `MissingISRCError`, empty `preview` → `PreviewUnavailableError`) in `tests/unit/test_deezer_client.py`
+- [ ] T015 \[P\] \[US1\] Unit tests for Deezer search client (field mapping, missing `isrc` → `MissingISRCError`, empty `preview` → `PreviewUnavailableError`, error-code mapping per `contracts/deezer-api.md` incl. QUOTA(4)/SERVICE_BUSY(700) retry classification) in `tests/unit/test_deezer_client.py`
 - [ ] T016 \[P\] \[US1\] Integration test for snippet-fetch retry (3 attempts, 5s delay, `NetworkDisconnectedError`) in `tests/integration/test_deezer_retry.py`
 - [ ] T017 \[P\] \[US1\] Integration test for `SongRepository` dedup-by-ISRC persistence (fresh insert vs reuse) in `tests/integration/test_repositories.py`
 - [ ] T018 \[P\] \[US1\] Contract test for `GET /api/search/` (top-5, 404 `TrackNotFoundError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_search_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
@@ -74,7 +74,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T020 \[P\] \[US1\] Implement audio snippet loader with mono downmix (mean of channels) in `src/core/audio/loader.py`; module logger: DEBUG source/sample_rate/channels/duration/format + mono-downmix, ERROR `logger.exception` → `AudioProcessingError` (REQ-015 message), lazy `%s` args, never log binary buffer
+- [ ] T020 \[P\] \[US1\] Implement audio snippet loader with mono downmix (mean of channels) in `src/core/audio/loader.py`; module logger: DEBUG source/sample_rate/channels/duration/format + mono-downmix, ERROR `logger.exception` → `AudioProcessingError` (REQ-015 message), lazy `%s` args, never log binary buffer; validate format (MP3/WAV/FLAC accepted per REQ-004, unsupported format → error before DSP processing)
 - [ ] T021 \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) with arithmetic-mean collapse to scalars in `src/core/audio/features.py`; module logger: DEBUG frame shape + per-feature collapse mean, WARNING/INFO on zero/low-energy frames (silent-non-musical edge case), INFO extraction complete + elapsed (SC-002)
 - [ ] T022 \[P\] \[US1\] Implement Deezer search client in `src/core/deezer/client.py` (`GET https://api.deezer.com/search?q={query}&limit=5`, Track field mapping, fail-loud on missing `isrc`/`preview`, error-code mapping per `contracts/deezer-api.md`); module logger: INFO request query+limit=5 and response `total`, DEBUG counts only (no payload dumps), WARNING on `QUOTA`(4)/`SERVICE_BUSY`(700) before retry, ERROR `logger.exception` on missing `isrc` → `MissingISRCError` and empty `preview` → `PreviewUnavailableError` with `extra={isrc, deezer_id}`
 - [ ] T023 \[P\] \[US1\] Implement audio snippet fetcher with 3x retry / 5s delay (`NetworkDisconnectedError` on all-fail) in `src/core/deezer/snippets.py`; module logger: INFO fetch start/success (bytes, elapsed), WARNING per retry (`attempt=%d delay=%ds`), ERROR+`logger.exception` → `NetworkDisconnectedError` after 3rd fail (REQ-013/014), never log bytes
