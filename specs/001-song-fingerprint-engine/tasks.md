@@ -128,7 +128,7 @@
 ### Implementation for User Story 3
 
 - [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top feature contribution factors via librosa matplotlib/numpy) in `src/core/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
-- [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py`
+- [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
 - [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
 - [ ] T042 \[US3\] Register visualization route in `frontend/fingerprint_app/urls.py`
 
@@ -136,20 +136,22 @@
 
 ---
 
-## Phase 5b: User Story 4 - Custom Feature Vector Modification for Recommendations (Priority: P3)
+## Phase 6: User Story 4 - Custom Feature Vector Modification for Recommendations (Priority: P3)
 
 **Goal**: Users adjust acoustic feature sliders on a processed song so recommendations are generated against the modified vector rather than the original track.
+
+**⚠️ OPTIONAL FEATURE (REQ-019)**: This story implements the optional custom-recommendation-querying capability only. It is gated behind a config feature flag; all REQ-019 behavior is skipped when `features.recommendations.enabled=false`. Do not implement until core stories (US1, US2) are complete.
 
 **Independent Test**: Adjust feature vector values on a song profile and verify the recommendation query results change accordingly.
 
 ### Tests for User Story 4 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
 
-- [ ] T043 \[P\] \[US4\] Integration test for modified-vector recommendation query (top-N matches change with adjusted vector) in `tests/integration/test_recommendations.py`
+- [ ] T043 \[P\] \[US4\] Integration test for modified-vector recommendation query (top-N=5 matches change with adjusted vector) in `tests/integration/test_recommendations.py`
 
 ### Implementation for User Story 4
 
-- [ ] T044 \[P\] \[US4\] Implement `RecommendationService` (cosine similarity over the 8-dimensional fingerprint vectors) in `src/core/recommendations.py`; module logger: INFO result size + top-N similarity scores, WARNING on fewer candidates than N or degenerate (all-zero) query vector
-- [ ] T045 \[US4\] Implement `POST /api/recommend/` endpoint (accepts modified vector, returns top matches) in `frontend/fingerprint_app/views.py`
+- [ ] T044 \[P\] \[US4\] Implement `RecommendationService` (cosine similarity over the 8-dimensional fingerprint vectors, returns top-N=5 matches) in `src/core/recommendations.py`; module logger: INFO result size + top-N=5 similarity scores, WARNING on fewer candidates than N=5 or degenerate (all-zero) query vector
+- [ ] T045 \[US4\] Implement `POST /api/recommend/` endpoint (accepts modified vector, returns top matches; only active when `features.recommendations.enabled=true`, else 404) in `frontend/fingerprint_app/views.py`
 - [ ] T046 \[US4\] Add acoustic feature slider controls + recommendation list render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
 - [ ] T047 \[US4\] Register `/api/recommend/` route in `frontend/fingerprint_app/urls.py`
 
