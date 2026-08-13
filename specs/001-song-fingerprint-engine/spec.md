@@ -162,7 +162,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ## Traceability
 
-Original functional requirements (FR-001 → FR-016) were converted to EARS-conformant requirements (REQ-001 → REQ-019) on 2026-08-11. Source of truth for the converted statements: `.specify/ears/001-song-fingerprint-engine/requirements.md`.
+Original functional requirements (FR-001 → FR-016) were converted to EARS-conformant requirements (REQ-001 → REQ-019) on 2026-08-11. Source of truth for the converted statements: [requirements.md](../../docs/001-song-fingerprint-engine/requirements.md)
 
 | Original                                                                                                                                                                                                                                                                                                      | EARS Requirement(s) | Pattern           | Notes / Assumptions                                                                                        |
 |---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|-------------------|------------------------------------------------------------------------------------------------------------|
