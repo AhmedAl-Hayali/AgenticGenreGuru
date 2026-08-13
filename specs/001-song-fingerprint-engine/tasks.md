@@ -203,10 +203,10 @@
 
 - All Setup tasks marked \[P\] can run in parallel (T003-T005 are separate files)
 - All Foundational tasks marked **without** \[P\] are sequential (T009 models, T010 init_db depend on engine/base); T012 and T013 can overlap once models exist
-- Once Foundational completes, all user stories can start in parallel (team capacity permitting)
+- Once Foundational completes, all user stories' core/endpoint work can start in parallel (team capacity permitting); UI tasks are serialized
 - All tests within a story marked \[P\] run in parallel (separate test files)
 - US1 core-library tasks T020-T024 run in parallel (separate modules)
-- Different user stories parallelizable across team members
+- Different user stories parallelizable across team members (core + endpoints only — NOT the shared `index.html`/`app.js` UI tasks)
 
 ---
 
