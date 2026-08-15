@@ -36,7 +36,7 @@ logs/                        # runtime artifacts (gitignored, created on first r
 config/logging/*.yaml        # dev/prod logging groups — see config-report.md for the full Hydra config tree
 ```
 
-> **Config management**: the Hydra config tree, `defaults` composition, `@hydra.main` vs compose API, secrets via `${env:...}`, and the Python 3.14 `hydra-core` pin are documented in [config-report.md](config-report.md). This report covers how `src/core/logging.py` consumes the `logging` group.
+> **Config management**: the Hydra config tree, `defaults` composition, `@hydra.main` vs compose API, and secrets via `${env:...}` are documented in [config-report.md](config-report.md). This report covers how `src/core/logging.py` consumes the `logging` group.
 
 ### `setup_logging()` — build the `dictConfig` dict from the Hydra `logging` group
 

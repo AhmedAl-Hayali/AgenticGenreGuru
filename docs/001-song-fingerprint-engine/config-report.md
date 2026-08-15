@@ -3,7 +3,7 @@
 **Purpose**: Authoritative design for configuration management in `src/core/` using Hydra. Derived from the Hydra docs (https://hydra.cc/docs/intro/) and the CodeCut article "Stop Hard-Coding in a Data Science Project: Use Configuration Files Instead" (https://codecut.ai/stop-hard-coding-in-a-data-science-project-use-configuration-files-instead/). This report is the single source of truth for how `config/` is structured, loaded, overridden, and secured. Logging-specific configuration details are documented in [logging-report.md](logging-report.md).
 **Created**: 2026-08-13
 **Feature**: `001-song-fingerprint-engine`
-**Applicable tasks**: T001 (config tree), T002 (verify `hydra-core` for Python 3.14), T005 (config skeleton + `src/core/config.py` + `.env.example`), T007 (db group), T010 (`@hydra.main`), T011 (logging group consumer)
+**Applicable tasks**: T001 (config tree), T005 (config skeleton + `src/core/config.py` + `.env.example`), T007 (db group), T010 (`@hydra.main`), T011 (logging group consumer)
 
 ---
 
@@ -25,10 +25,6 @@ Hydra (`hydra-core`) manages all non-secret application configuration for this f
 | Raw `os.environ` everywhere                  | Zero deps, simple                                                              | No structure/typing, no defaults composition, hard to audit, no CLI overrides               | Rejected |
 | Bare OmegaConf YAML (no Hydra)               | Hierarchical access                                                            | No `defaults` composition, no CLI override machinery, no multirun                           | Rejected |
 | `argparse` / dataclasses hard-coded defaults | Typed                                                                          | Scattered across modules, no env groups, no override-of-any-key                             | Rejected |
-
-### Version note (Python 3.14)
-
-The project runs Python 3.14 and `pyproject.toml` pins `hydra-core>=1.3.4`. Hydra 1.3 supports up to Python 3.11; the 1.4 development release is required for Python 3.14. Task T002 MUST verify/upgrade the pin before any core module imports, otherwise the library fails at import time before any config or logging runs.
 
 ---
 

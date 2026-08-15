@@ -37,7 +37,6 @@ Re-check after any contract or spec change: matrix must stay in sync with both d
 - **REQ-010** / **REQ-011** surface in [search-api.md](search-api.md) §2 and are enforced in [data-model.md](../data-model.md).
 - **SC-002** and **SC-003** are enforced by [search-api.md](search-api.md) §2 as described in §3.
 - **SC-004** is enforced by both contracts, [deezer-api.md](deezer-api.md) & [search-api.md](search-api.md), together.
-- <span style='color:red'>**SC-001** must be expanded on to capture how it's tested. Perhaps search by billboard hot 100 for the past X weeks?</span>
 - <span style='color:red'>**SC-005** must be expanded on to capture how it's tested.</span>
 
 ## Notes

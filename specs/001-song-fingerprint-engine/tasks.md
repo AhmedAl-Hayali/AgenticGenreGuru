@@ -18,7 +18,7 @@
 
 - **core library**: `src/core/audio/`, `src/core/deezer/`, `src/core/db/` at repository root
 - **web app**: `frontend/fingerprint_app/`, `frontend/genreguru_web/`
-- **tests**: `tests/unit/`, `tests/integration/`, `tests/contract/`
+- **tests**: `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks`
 - **Stack**: Python 3.14, Django, SQLAlchemy + psycopg, librosa/numpy/scipy, httpx, PostgreSQL
 - **Dev tooling**: pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon, ruff, ty
 
@@ -28,11 +28,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create directory structure per plan.md: `src/core/audio/`, `src/core/deezer/`, `src/core/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` (Hydra config groups)
-- [ ] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon); verify `hydra-core` pin works on Python 3.14 (upgrade to 1.4 dev release if needed per `docs/001-song-fingerprint-engine/config-report.md`)
-- [ ] T003 \[P\] Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
+- [ ] T001 Create directory structure per plan.md: `src/core/audio/`, `src/core/deezer/`, `src/core/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` + `config/features/` (Hydra config groups)
+- [ ] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, hydra-core, omegaconf, librosa, numpy, scipy, prek, ruff, ty, pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon)
+- [ ] T003 Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
 - [ ] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
-- [ ] T005 \[P\] Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
+- [ ] T005 Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
 
 ---
 
@@ -43,14 +43,14 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [ ] T006 Implement shared exception hierarchy in `src/core/errors.py` (`NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`); each exception carries structured attrs (`isrc`, `deezer_id`, `code`, `attempts`) for structured log context; no logging inside exception classes
-- [ ] T007 Implement database engine + session factory in `src/core/db/engine.py` (reads connection config from the Hydra `db` group via `src/core/config.py`, not hard-coded env parsing; creates SQLAlchemy `engine` + `SessionLocal` via psycopg); module logger: INFO on engine init (host/db/pool size, never the password), DEBUG session open/close, WARNING on pool/disconnect events
+- [ ] T012 Create shared pytest fixtures in `tests/conftest.py` (test DB session, engine override, Django test client)
+- [ ] T012a \[P\] Unit test for DB engine factory (`src/core/db/engine.py`): hydra `db` group ingestion, psycopg URL construction, engine type; assert failures on missing `${env:DATABASE_URL}` in prod group — in `tests/unit/test_engine.py` (write first, confirm FAIL)
+- [ ] T012b \[P\] Integration test for `init_db` table creation (`python -m src.core.db.init_db`): all tables created idempotently, rerun-safe; assert schema matches data-model.md — in `tests/integration/test_init_db.py` (write first, confirm FAIL)
+- [ ] T007 Implement database engine + session factory in `src/core/db/engine.py` (reads connection config from the Hydra `db` group via `src/core/config.py`, not hard-coded env parsing; creates SQLAlchemy `engine` + `SessionLocal` via psycopg); module logger: INFO on engine init (host/db/pool size, never the password), DEBUG session open/close, WARNING on pool/disconnect events — make T012a pass
 - [ ] T008 Create SQLAlchemy declarative `Base` in `src/core/db/base.py`
 - [ ] T009 Create `Song` and `SongFingerprint` models in `src/core/db/models.py` per data-model.md (`songs`: uuid7 `id`, unique `deezer_id`, unique `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`; `song_fingerprints`: uuid7 `id`, unique FK `song_id`, 8 collapsed float features, `audio_format`, `sample_rate`, `created_at`); keep models logging-free (persistence logging lives in the repository layer T024)
 - [ ] T010 Implement table-creation script in `src/core/db/init_db.py` (runnable as `python -m src.core.db.init_db`); decorate with `@hydra.main(config_path="../../../config", config_name="config")` (or call the compose helper), then `setup_logging()`; INFO table-creation start/completion (count), `logger.exception` on failure
 - [ ] T011 Configure logging infrastructure in `src/core/logging.py` per `docs/001-song-fingerprint-engine/logging-report.md` (loads the active Hydra `logging` config group per `docs/001-song-fingerprint-engine/config-report.md`, converts via `OmegaConf.to_container(resolve=True)`, feeds `logging.config.dictConfig` — no hard-coded dict; `JsonFormatter` + `NonErrorFilter` utils; stdout non-errors / stderr errors / rotating JSONL `logs/` handlers; named `QueueHandler` + `QueueListener`; package-root `NullHandler` for standalone-library safety; `setup_logging()` entrypoint; `LoggerAdapter` injecting `isrc`/`deezer_id`/`song_id`/`reused` context via `extra` for the reused=`true/false` fingerprint flag; dev-only `RichHandler` console pair — `rich_tracebacks=True`, `tracebacks_suppress=[django]`, `markup` off — driven by `logging.dev.rich` from YAML, never replacing the JSONL sink)
-- [ ] T012 Create shared pytest fixtures in `tests/conftest.py` (test DB session, engine override, Django test client)
-- [ ] T012a \[P\] Unit test for DB engine factory (`src/core/db/engine.py`): hydra `db` group ingestion, psycopg URL construction, engine type; assert failures on missing `${env:DATABASE_URL}` in prod group — in `tests/unit/test_engine.py`
-- [ ] T012b \[P\] Integration test for `init_db` table creation (`python -m src.core.db.init_db`): all tables created idempotently, rerun-safe; assert schema matches data-model.md — in `tests/integration/test_init_db.py`
 - [ ] T013 Create FactoryBoy factories `SongFactory` + `SongFingerprintFactory` in `tests/factories.py`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
@@ -88,6 +88,8 @@
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+
 ---
 
 ## Phase 4: User Story 2 - Fingerprint Feature Retrieval & Inspection (Priority: P2)
@@ -111,28 +113,32 @@
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+
 ---
 
 ## Phase 5: User Story 3 - Digital Signal Processing Visualization (Priority: P3)
 
-**Goal**: Users view a spectrogram of a fingerprinted song with the spectral centroid highlighted and top contributing feature factors, on demand.
+**Goal**: Users view a spectrogram of a fingerprinted song with the spectral centroid highlighted and the top 3 feature factors by normalized contribution magnitude, on demand.
 
 **⚠️ OPTIONAL FEATURE (REQ-018)**: This story implements the optional DSP-visualization capability only. It is gated behind a config feature flag; all REQ-018 behavior is skipped when `features.visualization.enabled=false`. Do not implement until core stories (US1, US2) are complete.
 
-**Independent Test**: Select a processed song and toggle visualization mode to verify spectrogram rendering and feature-factor highlighting.
+**Independent Test**: Select a processed song and toggle visualization mode to verify spectrogram rendering and the top 3 feature factors by normalized contribution magnitude highlighting.
 
 ### Tests for User Story 3 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
 
-- [ ] T038 \[P\] \[US3\] Unit tests for visualization data builder (spectrogram + centroid overlay + factor contributions) in `tests/unit/test_visualization.py`
+- [ ] T038 \[P\] \[US3\] Unit tests for visualization data builder (spectrogram + centroid overlay + top 3 feature factors by normalized contribution magnitude) in `tests/unit/test_visualization.py`
 
 ### Implementation for User Story 3
 
-- [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top feature contribution factors via librosa matplotlib/numpy) in `src/core/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
+- [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top 3 feature factors by normalized contribution magnitude via librosa matplotlib/numpy) in `src/core/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
 - [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
 - [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
 - [ ] T042 \[US3\] Register visualization route in `frontend/fingerprint_app/urls.py`
 
 **Checkpoint**: User Story 3 functional and testable independently
+
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
 
 ---
 
@@ -157,18 +163,22 @@
 
 **Checkpoint**: All user stories should now be independently functional
 
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+
 ---
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T048 \[P\] Validate or create `.prek.toml` (ruff, bandit, ty) and run it on the full tree
+**Note**: Per-story checkpoint gates (Phases 3-6) enforce `ruff check` + `ty check` + story tests before each story checkpoint is marked complete. T048-T051 are the final full-tree sweep, not the first lint/type/security run.
+
+- [ ] T048 \[P\] Validate `.prek.toml` (ruff, bandit, ty hooks) and run it on the full tree as the final sweep
 - [ ] T049 \[P\] Run bandit security audit over `src/` and `frontend/`; fix findings
 - [ ] T050 \[P\] Run radon complexity analysis on `src/core/`; refactor any module exceeding cyclomatic complexity 10
 - [ ] T051 \[P\] Run coverage report over `tests/`; add missing tests to satisfy Constitution III coverage expectations
 - [ ] T052 \[P\] Benchmark performance: confirm SC-002 (<10s extraction per snippet) and SC-005 (<500ms ISRC reuse lookup) in `tests/benchmarks/`. Standard consumer hardware can be comparable to a GitHub Actions [`ubuntu-slim` private repository CI runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for--private-repositories), i.e., Ubuntu 24.04.4 LTS x64, 1 CPU, 5GB RAM, and 14GB storage
-- [ ] T053 \[P\] Validate quickstart.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus) and SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors)
+- [ ] T053 \[P\] Validate quickstart.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus — captured as a versioned snapshot fixture rather than live network calls), SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors), and SC-004 (users can initiate a run and confirm a top-5 match)
 - [ ] T054 \[P\] Update `docs/001-song-fingerprint-engine/` with implementation notes and any contract deviations
 
 ---
@@ -197,12 +207,13 @@
 - Models before services (Foundation)
 - Services before endpoints
 - Core implementation before integration (Django views)
+- Lint/type gate: `ruff check` + `ty check` MUST pass before a story checkpoint is marked complete
 - Story complete before moving to next priority
 
 ### Parallel Opportunities
 
 - All Setup tasks marked \[P\] can run in parallel (T003-T005 are separate files)
-- All Foundational tasks marked **without** \[P\] are sequential (T009 models, T010 init_db depend on engine/base); T012 and T013 can overlap once models exist
+- Foundational tests (T012 fixtures → T012a/T012b) MUST be written and confirmed failing before their implementations (T007, T010); T013 can overlap once models (T009) exist
 - Once Foundational completes, all user stories' core/endpoint work can start in parallel (team capacity permitting); UI tasks are serialized
 - All tests within a story marked \[P\] run in parallel (separate test files)
 - US1 core-library tasks T020-T024 run in parallel (separate modules)

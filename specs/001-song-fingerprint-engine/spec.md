@@ -34,11 +34,11 @@ As a user (music producer, hobbyist musician, audio engineer, music educator, mu
 
 **Why this priority**: Core value of GenreGuru. Without searching matches, fetching audio snippets first, extracting composite DSP fingerprint features, and storing them locally, no downstream analysis or recommendation capability can function.
 
-**Independent Test**: Can be tested independently by submitting a valid song title, confirming one of the top 5 matches, verifying online audio snippet retrieval first, validating composite feature extraction (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`), and checking that the resulting feature vector is saved in the local relational database.
+**Independent Test**: See Acceptance Scenario 1 below — it fully defines the pass criteria for this story.
 
 **Acceptance Scenarios**:
 
-1. **Given** a valid song title provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the platform track ID (Deezer track ID) to the stored record.
+1. **Given** a valid song title provided by the user, **When** search is performed, **Then** the system presents the top 5 song match results and requests user confirmation. Upon confirmation, the system fetches the online audio snippet first, executes feature engineering substeps to compute acoustic features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`) grouped into a song feature vector, downsampling each feature time-vector into a single collapsed scalar value for V1, and saves the vector to the local relational database, writing both the track ISRC and the `deezer_id` to the stored record.
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
 3. **Given** a song title that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
@@ -67,11 +67,11 @@ As an audio engineer or music theorist, I want to view visual representations of
 
 **Why this priority**: Enhances analytical depth for technical users but is secondary to core fingerprint storage and recommendation functionality.
 
-**Independent Test**: Can be tested by selecting a processed song and toggling visualization mode to verify spectrogram rendering and feature factor highlighting.
+**Independent Test**: Can be tested by selecting a processed song and toggling visualization mode to verify spectrogram rendering and the top 3 feature factors by normalized contribution magnitude highlighting.
 
 **Acceptance Scenarios**:
 
-1. **Given** a fingerprinted song, **When** visualization is requested, **Then** the system displays the song spectrogram with highlighted spectral centroid and top contributing feature factors.
+1. **Given** a fingerprinted song, **When** visualization is requested, **Then** the system displays the song spectrogram with highlighted spectral centroid and the top 3 feature factors by normalized contribution magnitude (from `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`).
 
 ---
 
@@ -109,7 +109,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **REQ-004**: When a user confirms a song match, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction.
 - **REQ-005**: When an online audio snippet is fetched, the system shall execute a composite feature engineering pipeline computing the acoustic features `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`.
 - **REQ-006**: When a song fingerprint feature vector is generated, the system shall store it in the local relational database.
-- **REQ-007**: When storing a fingerprint record, the system shall associate the record with song metadata including song title, artist, track ISRC, platform track ID, audio source reference, and processing timestamp.
+- **REQ-007**: When storing a fingerprint record, the system shall associate the record with song metadata including song title, artist, track ISRC, `deezer_id`, audio source reference (`preview_url`), album (nullable), duration in seconds, and processing timestamp.
 - **REQ-008**: When a song is processed more than once, the system shall prevent duplicate feature records by enforcing uniqueness on the track ISRC.
 - **REQ-009**: When a user requests fingerprint feature records for a track by ISRC, the system shall query the local relational database and retrieve the matching records.
 - **REQ-010**: When multichannel audio is fetched, the system shall downmix the audio to single-channel (mono) by averaging channels prior to DSP extraction.
@@ -126,8 +126,8 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 #### Optional Features
 
-- **REQ-018**: Where DSP visualization is enabled, when a user requests visualization for a song, the system shall display the song spectrogram with highlighted spectral centroid and feature contribution factors.
-- **REQ-019**: Where custom recommendation querying is enabled, when a user modifies acoustic feature vector values for a processed song, the system shall retrieve song recommendations matching the modified feature vector.
+- **REQ-018**: Where DSP visualization is enabled, when a user requests visualization for a song, the system shall display the song spectrogram with highlighted spectral centroid and the top 3 feature factors by normalized contribution magnitude.
+- **REQ-019**: Where custom recommendation querying is enabled, when a user modifies acoustic feature vector values for a processed song, the system shall retrieve the top 5 song recommendations matching the modified feature vector, ranked by cosine similarity over the 8 collapsed fingerprint features.
 
 #### Notes
 - ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
@@ -135,18 +135,18 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 ### Key Entities *(include if feature involves data)*
 
-- **Song**: Represents a track identified by track ISRC (International Standard Recording Code) along with the platform track ID, title, artist, and source reference.
+- **Song**: Represents a track identified by track ISRC (International Standard Recording Code) along with the `deezer_id` (Deezer track ID), title, artist, and audio source reference (`preview_url`).
 - **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, channel configuration (downmixed to mono for DSP), and retrieval status. **Transient**: exists only in memory during processing; never persisted to the database (no corresponding table in data-model.md).
-- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked via FK to Song carrying ISRC & platform track ID (deezer ID). Persisted to the `song_fingerprints` table (see data-model.md), carrying the 8 collapsed feature scalars and linked by FK `song_id` to a `Song`; the `Song` row holds track ISRC and platform track ID, metadata, and timestamps. Fingerprint linked 1-to-1 (unique FK).
+- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked via FK to Song carrying ISRC & `deezer_id`. Persisted to the `song_fingerprints` table (see data-model.md), carrying the 8 collapsed feature scalars and linked by FK `song_id` to a `Song`; the `Song` row holds track ISRC and `deezer_id`, metadata, and timestamps. Fingerprint linked 1-to-1 (unique FK).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 95% of valid song title queries (drawn from the current Billboard Hot 100 chart — the corpus shifts as the chart changes, keeping the system current with recent releases while accepting associated regression risk) successfully return top 5 matches, retrieve an online audio snippet, and complete fingerprint generation without errors.
+- **SC-001**: 95% of valid song title queries (drawn from the odd-numbered placings of the current Billboard Hot 100 chart — the corpus shifts as the chart changes, keeping the system current with recent releases while accepting associated regression risk) successfully return top 5 matches, retrieve an online audio snippet, and complete fingerprint generation without errors.
 - **SC-002**: Audio fingerprint feature extraction completes within 10 seconds per audio snippet on the CI runner baseline (ubuntu-slim, 1 CPU).
 - **SC-003**: 100% of generated song fingerprints are correctly persisted with complete composite feature vectors in the local relational database without data loss.
-- **SC-004**: Users across all target roles can initiate a song fingerprinting run by providing a song title and confirming one of the top 5 results.
+- **SC-004**: Users across all target roles can initiate a song fingerprinting run by providing a song title and confirming one of the top 5 results. (Verified by User Story 1 acceptance and task T053.)
 - **SC-005**: Database queries for existing stored song fingerprints (ISRC-reuse lookup) return results in under 500 milliseconds.
 
 ## Assumptions
