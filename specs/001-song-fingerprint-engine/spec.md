@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-03
 
-**Status**: Draft
+**Status**: Approved (requirements finalized 2026-08-14)
 
 **Input**: User description: "Develop GenreGuru, a feature engineering tool with a song title as its input and processing that is fetching a song snippet from online, generating a song fingerprint using audio digital signal processing. the features that compose the song fingerprint should be stored in a local relational database. This stored data will later be used to expand the program and efficiently provide recommendations using songs with similar fingerprints to the one provided by the user. end users could be any of the following: music producers, hobbyist musicians, music theorists, audio engineers, music educators, or casual music listeners."
 
@@ -137,17 +137,17 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **Song**: Represents a track identified by track ISRC (International Standard Recording Code) along with the platform track ID, title, artist, and source reference.
 - **AudioSnippet**: Represents the fetched sample audio file/buffer in MP3, WAV, or FLAC format, including duration, sampling parameters, channel configuration (downmixed to mono for DSP), and retrieval status. **Transient**: exists only in memory during processing; never persisted to the database (no corresponding table in data-model.md).
-- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked to a specific Song. Persisted to the `song_fingerprints` table (see data-model.md) with both track ISRC and platform track ID, metadata, and timestamps, with unique constraints on the primary identifier.
+- **SongFingerprint**: Represents the composite set of numerical feature vectors extracted via digital signal processing (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`) downsampled to single scalar values (arithmetic mean across frames) for V1 and linked via FK to Song carrying ISRC & platform track ID (deezer ID). Persisted to the `song_fingerprints` table (see data-model.md), carrying the 8 collapsed feature scalars and linked by FK `song_id` to a `Song`; the `Song` row holds track ISRC and platform track ID, metadata, and timestamps. Fingerprint linked 1-to-1 (unique FK).
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: 95% of valid, mainstream song title queries successfully return top 5 matches, retrieve an online audio snippet, and complete fingerprint generation without errors.
-- **SC-002**: Audio fingerprint feature extraction completes within 10 seconds per audio snippet on standard consumer hardware.
+- **SC-001**: 95% of valid song title queries (drawn from the current Billboard Hot 100 chart — the corpus shifts as the chart changes, keeping the system current with recent releases while accepting associated regression risk) successfully return top 5 matches, retrieve an online audio snippet, and complete fingerprint generation without errors.
+- **SC-002**: Audio fingerprint feature extraction completes within 10 seconds per audio snippet on the CI runner baseline (ubuntu-slim, 1 CPU).
 - **SC-003**: 100% of generated song fingerprints are correctly persisted with complete composite feature vectors in the local relational database without data loss.
 - **SC-004**: Users across all target roles can initiate a song fingerprinting run by providing a song title and confirming one of the top 5 results.
-- **SC-005**: Database queries for existing stored song fingerprints return results in under 500 milliseconds.
+- **SC-005**: Database queries for existing stored song fingerprints (ISRC-reuse lookup) return results in under 500 milliseconds.
 
 ## Assumptions
 

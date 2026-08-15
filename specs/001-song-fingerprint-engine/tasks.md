@@ -20,7 +20,7 @@
 - **web app**: `frontend/fingerprint_app/`, `frontend/genreguru_web/`
 - **tests**: `tests/unit/`, `tests/integration/`, `tests/contract/`
 - **Stack**: Python 3.14, Django, SQLAlchemy + psycopg, librosa/numpy/scipy, httpx, PostgreSQL
-- **Dev tooling**: pytest, pytest-django, pytest-mock, factory_boy, coverage, bandit, radon, ruff, ty
+- **Dev tooling**: pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon, ruff, ty
 
 ---
 
@@ -29,7 +29,7 @@
 **Purpose**: Project initialization and basic structure
 
 - [ ] T001 Create directory structure per plan.md: `src/core/audio/`, `src/core/deezer/`, `src/core/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` (Hydra config groups)
-- [ ] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, pytest-django, pytest-mock, factory_boy, coverage, pytest-cov, bandit, radon); verify `hydra-core` pin works on Python 3.14 (upgrade to 1.4 dev release if needed per `docs/001-song-fingerprint-engine/config-report.md`)
+- [ ] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon); verify `hydra-core` pin works on Python 3.14 (upgrade to 1.4 dev release if needed per `docs/001-song-fingerprint-engine/config-report.md`)
 - [ ] T003 \[P\] Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
 - [ ] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
 - [ ] T005 \[P\] Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
@@ -163,12 +163,12 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T048 \[P\] Create `.pre-commit-config.yaml` (ruff, bandit, ty) and run it on the full tree
+- [ ] T048 \[P\] Validate or create `.prek.toml` (ruff, bandit, ty) and run it on the full tree
 - [ ] T049 \[P\] Run bandit security audit over `src/` and `frontend/`; fix findings
 - [ ] T050 \[P\] Run radon complexity analysis on `src/core/`; refactor any module exceeding cyclomatic complexity 10
 - [ ] T051 \[P\] Run coverage report over `tests/`; add missing tests to satisfy Constitution III coverage expectations
-- [ ] T052 \[P\] Benchmark performance: confirm SC-002 (<10s extraction per snippet) and SC-005 (<500ms ISRC reuse lookup) in `tests/benchmarks/`
-- [ ] T053 \[P\] Validate quickstart.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error) and SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors)
+- [ ] T052 \[P\] Benchmark performance: confirm SC-002 (<10s extraction per snippet) and SC-005 (<500ms ISRC reuse lookup) in `tests/benchmarks/`. Standard consumer hardware can be comparable to a GitHub Actions [`ubuntu-slim` private repository CI runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for--private-repositories), i.e., Ubuntu 24.04.4 LTS x64, 1 CPU, 5GB RAM, and 14GB storage
+- [ ] T053 \[P\] Validate quickstart.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus) and SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors)
 - [ ] T054 \[P\] Update `docs/001-song-fingerprint-engine/` with implementation notes and any contract deviations
 
 ---

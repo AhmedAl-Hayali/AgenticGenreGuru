@@ -12,13 +12,13 @@ Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Dja
 
 **Language/Version**: Python 3.14 (in accordance with [pyproject.toml](../../pyproject.toml))
 
-**Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), requests / httpx (Deezer API), hydra-core + OmegaConf (configuration management)
+**Primary Dependencies**: Django (frontend), SQLAlchemy & psycopg (backend DB), librosa, numpy, scipy (audio DSP: `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), httpx (Deezer API), rich (terminal/RichHandler console), hydra-core + OmegaConf (configuration management)
 
-**Dev & Pre-commit Tooling**: Bandit (security audit), Radon (code metric & complexity analysis), FactoryBoy (`factory_boy` for integration test fixtures), Coverage (`coverage` / `pytest-cov` test coverage analysis), pytest & pytest-django
+**Dev & Pre-commit Tooling**: Bandit (security audit), Radon (code metric & complexity analysis), FactoryBoy (`factory_boy` for integration test fixtures), pytest, pytest-django, pytest-mock, pytest-cov (test coverage analysis), ruff (linting & formatting via `ruff check`/`ruff format`), ty (type-checking), prek (pre-commit hooks framework)
 
 **Storage**: PostgreSQL (local relational database)
 
-**Testing**: pytest, pytest-django, pytest-mock, factory_boy, coverage
+**Testing**: pytest, pytest-django, pytest-mock, factory_boy, pytest-cov
 
 **Target Platform**: Web application (Django web interface + Python DSP core)
 
@@ -28,7 +28,7 @@ Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Dja
 
 **Constraints**: Network retry (3x, 5s delay) on snippet fetch failures; error handling for unprocessable audio; support MP3, WAV, FLAC. Current Deezer integration is user-independent (30s previews only); future scope plans `deezer-python` and multi-provider auth (Spotify, YouTube Music, Apple Music, Amazon Music) for user library access. V1 downsamples temporal feature vectors into single scalar values per feature.
 
-**Scale/Scope**: Top 5 match candidates display, 2-click selection UI, 14 EARS-compliant functional requirements.
+**Scale/Scope**: Top 5 match candidates display, 2-click selection UI, 19 EARS-compliant functional requirements.
 
 ## Constitution Check
 
@@ -61,7 +61,8 @@ specs/001-song-fingerprint-engine/
 config/                    # Hydra config tree (config.yaml defaults + config groups)
 ├── config.yaml            # defaults: - logging: dev, - db: dev, - _self_
 ├── logging/               # dev.yaml / prod.yaml (logging group; see logging-report.md)
-└── db/                    # dev.yaml / prod.yaml (db group; secrets via ${env:...})
+├── db/                    # dev.yaml / prod.yaml (db group; secrets via ${env:...})
+└── features/              # default.yaml / all.yaml (visualization + recommendations flags)
 src/
 ├── core/
 │   ├── audio/           # librosa/numpy/scipy DSP feature engineering

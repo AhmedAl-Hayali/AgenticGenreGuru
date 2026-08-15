@@ -37,7 +37,7 @@
   - **Bandit**: Automated static analysis for security vulnerability detection.
   - **Radon**: Code metric analysis (cyclomatic complexity and maintainability index).
   - **FactoryBoy (`factory_boy`)**: Test fixture generation for integration test suites alongside `pytest`.
-  - **Coverage (`coverage` / `pytest-cov`)**: Code coverage tracking and assertion.
+  - **Coverage (`pytest-cov`)**: Code coverage tracking and assertion.
 - **Rationale**: Enforces strict code quality, security standards, and high test coverage across core DSP modules and integration layers.
 
 ### 6. Configuration Management (Hydra)
