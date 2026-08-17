@@ -5,9 +5,14 @@ on:
   push:
     branches:
       - main
-    # Alternative: only build for tags.
-    # tags:
-    #   - '*'
+    paths:
+      - "*.py"
+  pull_request:
+    branches:
+      - main
+    paths:
+        - "*.py"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -37,7 +42,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: build docs
-        run: uv run pdoc -o docs/pandoc/ -d google --mermaid src/genreguru/main.py
+        run: uv run pdoc -o docs/pandoc/ -d google --mermaid src/
 
       - uses: actions/upload-pages-artifact@v4
         with:
