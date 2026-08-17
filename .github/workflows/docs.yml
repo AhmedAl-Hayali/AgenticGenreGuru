@@ -1,0 +1,59 @@
+name: website
+
+# build the documentation whenever there are new commits on main
+on:
+  push:
+    branches:
+      - main
+    # Alternative: only build for tags.
+    # tags:
+    #   - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  # Build the documentation and upload the static HTML files as an artifact.
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: repo checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: python setup
+        uses: actions/setup-python@v7
+        with:
+          python-version-file: ".python-version"
+
+      - name: uv install
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+          version: "0.12.0"
+
+      - name: project install
+        run: uv sync --locked --all-extras --dev
+
+      - name: build docs
+        run: uv run pdoc -o docs/pandoc/ -d google --mermaid src/genreguru/main.py
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: docs/pandoc/
+
+  # Deploy the artifact to GitHub pages.
+  # This is a separate job so that only actions/deploy-pages has the necessary permissions.
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
