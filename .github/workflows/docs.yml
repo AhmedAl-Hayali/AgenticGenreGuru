@@ -34,7 +34,7 @@ jobs:
           version: "0.12.0"
 
       - name: project install
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --all-extras --dev
 
       - name: build docs
         run: uv run pdoc -o docs/pandoc/ -d google --mermaid src/genreguru/main.py
