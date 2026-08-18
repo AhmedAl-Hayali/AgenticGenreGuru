@@ -9,6 +9,7 @@ skills-lock.json
 !.specify/*
 
 docs/TODOs/future_ideas.xit
+docs/pandoc/
 
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
