@@ -16,14 +16,20 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Operating System :: Microsoft :: Windows",
 ]
-license = "MIT"
+license = "AGPL-3.0-only"
 license-files = ["LICEN[CS]E*"]
 
 dependencies = [
+    "django>=6.1",
+    "httpx>=0.28.1",
     "hydra-core>=1.4.0.dev8",
     "librosa>=0.11.0",
     "numpy>=2.4.6",
+    "omegaconf>=2.4.0.dev15",
+    "psycopg[binary]>=3.3.4",
+    "rich>=15.0.0",
     "scipy>=1.18.0",
+    "sqlalchemy>=2.0.52",
 ]
 
 [project.urls]
@@ -33,9 +39,15 @@ Issues = "https://github.com/pypa/sampleproject/issues"
 [project.optional-dependencies]
 # uv add [package name] --optional dev
 dev = [
+    "bandit>=1.9.4",
+    "factory-boy>=3.3.3",
     "pdoc>=16.0.0",
     "prek>=0.4.11",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "pytest-django>=4.14.0",
+    "pytest-mock>=3.15.1",
+    "radon>=6.0.1",
     "ruff>=0.16.3",
     "ty>=0.0.65",
 ]
@@ -109,9 +121,16 @@ max-complexity = 10
 include = [
     "src",
     "tests",
+    "frontend",
 ]
 
 [tool.ty.rules]
 possibly-unresolved-reference = "warn"
 division-by-zero = "ignore"
 possibly-missing-import = "warn"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "genreguru_web.settings"
+testpaths = ["tests"]
+pythonpath = ["frontend", "src"]
+addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]

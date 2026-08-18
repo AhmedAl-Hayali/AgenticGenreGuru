@@ -29,9 +29,9 @@
 **Purpose**: Project initialization and basic structure
 
 - [x] T001 Create directory structure per plan.md: `src/core/audio/`, `src/core/deezer/`, `src/core/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` + `config/features/` (Hydra config groups)
-- [ ] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, hydra-core, omegaconf, librosa, numpy, scipy, prek, ruff, ty, pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon)
+- [x] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, hydra-core, omegaconf, librosa, numpy, scipy, prek, ruff, ty, pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon)
 - [ ] T003 Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
-- [ ] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
+- [x] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
 - [ ] T005 Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
 
 ---
