@@ -1,0 +1,13 @@
+- [ ] Capture & add app screenshots (search results + fingerprint result) under `docs/screenshots/`, reference with relative links
+- [ ] Add "Try it" one-liner — single copy-paste bash block to run the whole stack
+- [ ] Add real fingerprint JSON output example (e.g. `spectral_centroid`, `rms`, `mfcc` values)
+- [ ] Add rendered spectrogram image with spectral centroid highlighted (DSP visualization feature)
+- [ ] Add recommendations demo — before/after feature-slider tweak yielding different similar songs
+- [ ] Add 8-features table: feature / what it captures / what a high value sounds like
+- [ ] Add Windows & macOS setup instructions (current `export` blocks are bash-only)
+- [ ] Document known limitations: 30s Deezer preview only, Deezer catalog dependency, no genre classification
+- [ ] Add "Related tools / why not alternatives" positioning (Essentia, acousticDB, Chromaprint)
+- [ ] Add Roadmap section
+- [ ] Add Contributing section
+- [ ] Expand badges: tests, coverage, ruff, uv
+- [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license
