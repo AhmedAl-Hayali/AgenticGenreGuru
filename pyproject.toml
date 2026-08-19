@@ -93,6 +93,7 @@ select = [
     "B",
     "C",
     "C4",       # flake8-comprehensions
+    "D",        # pydocstyle
     "E",
     "F",
     "I",
@@ -106,6 +107,13 @@ select = [
 ignore = [
     "E501",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["D100", "D104"]
+"frontend/genreguru_web/settings/*.py" = ["F401", "F403", "F405"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
 
 [tool.ruff.format]
 # Like Black, use double quotes for strings.
@@ -130,7 +138,7 @@ division-by-zero = "ignore"
 possibly-missing-import = "warn"
 
 [tool.pytest.ini_options]
-DJANGO_SETTINGS_MODULE = "genreguru_web.settings"
+DJANGO_SETTINGS_MODULE = "genreguru_web.settings.test"
 testpaths = ["tests"]
 pythonpath = ["frontend", "src"]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
