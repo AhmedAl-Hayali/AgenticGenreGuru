@@ -3,7 +3,7 @@
 **Purpose**: Authoritative design for configuration management in `genreguru/` using Hydra. Derived from the Hydra docs (https://hydra.cc/docs/intro/) and the CodeCut article "Stop Hard-Coding in a Data Science Project: Use Configuration Files Instead" (https://codecut.ai/stop-hard-coding-in-a-data-science-project-use-configuration-files-instead/). This report is the single source of truth for how `config/` is structured, loaded, overridden, and secured. Logging-specific configuration details are documented in [logging-report.md](logging-report.md).
 **Created**: 2026-08-13
 **Feature**: `001-song-fingerprint-engine`
-**Applicable tasks**: T001 (config tree), T005 (config skeleton + `genreguru/config.py` + `.env.example`), T007 (db group), T010 (`@hydra.main`), T011 (logging group consumer)
+**Applicable tasks**: T001 (config tree), T005a/b (config skeleton + `genreguru/config.py` + `.env.example`), T007 (db group), T010 (`@hydra.main`), T011 (logging group consumer)
 
 ---
 
@@ -77,7 +77,7 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${env:DJANGO_ALLOWED
 
 ## 3. Conventions
 
-1. **Secrets via env interpolation, never committed.** Use OmegaConf `${env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005).
+1. **Secrets via env interpolation, never committed.** Use OmegaConf `${env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005a).
 2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.url`, `cfg.django.debug`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/logging.py`, `FEATURES` in Django `settings/base.py`).
 3. **Override from the CLI, no code edits.** Examples:
    - `python -m genreguru.db.init_db logging.level=DEBUG`
@@ -98,7 +98,7 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${env:DJANGO_ALLOWED
 | Engine + session factory | `genreguru/db/engine.py` (T007)    | `db`                     | Read `cfg.db.url`, pool params from group; log host/db (never password)                                                       |
 | Logging setup            | `genreguru/logging.py` (T011)      | `logging`                | Convert to dict via `OmegaConf.to_container(resolve=True)` → `logging.config.dictConfig`; Rich toggle from `logging.dev.rich` |
 | Table creation CLI       | `genreguru/db/init_db.py` (T010)   | `@hydra.main` → `config` | Entrypoint loads composed config, calls `setup_logging()`                                                                     |
-| Config bootstrap helper  | `genreguru/config.py` (T005)       | compose API              | `hydra.initialize` + `hydra.compose` for the Django path; selects groups from `GENREGURU_ENV`                                 |
+| Config bootstrap helper  | `genreguru/config.py` (T005a)      | compose API              | `hydra.initialize` + `hydra.compose` for the Django path; selects groups from `GENREGURU_ENV`                                 |
 | Django settings          | `frontend/genreguru_web/settings/` | `django`, `db`           | `DEBUG`/hosts/secrets/secure flags from `django` group; `DATABASES` built once from `cfg.db.url` (one connection source)      |
 | Django feature gating    | `settings/base.py` → `FEATURES`    | `features`               | `FEATURES = OmegaConf.to_container(cfg.features)` exposed to Django views                                                     |
 
@@ -115,8 +115,8 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${env:DJANGO_ALLOWED
 
 ## 5. Security & Environment
 
-- Required env vars are documented in `.env.example` (created by T005): `DATABASE_URL`, Django `SECRET_KEY` and `ALLOWED_HOSTS` (prod group), and `GENREGURU_ENV` (dev default). Future: `DEEZER_API_KEY` (none needed for public V1 search).
-- YAML values that reference the environment use `${env:VAR}`; missing variables fail fast at load time rather than silently.
+- Required env vars are documented in `.env.example` (created by T005a): `DATABASE_URL`, Django `SECRET_KEY` and `ALLOWED_HOSTS` (prod group), and `GENREGURU_ENV` (dev default). Future: `DEEZER_API_KEY` (none needed for public V1 search).
+- YAML values that reference the environment use `${oc.env:VAR}`; missing variables fail fast at load time rather than silently.
 - No logging/error message may echo the resolved secret value (see [logging-report.md](logging-report.md) Rule 10).
 
 ---

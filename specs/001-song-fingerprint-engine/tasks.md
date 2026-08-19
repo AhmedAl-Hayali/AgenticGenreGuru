@@ -32,7 +32,8 @@
 - [x] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, hydra-core, omegaconf, librosa, numpy, scipy, prek, ruff, ty, pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon)
 - [ ] T003 Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
 - [x] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
-- [ ] T005 Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `genreguru/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
+- [ ] T005a Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `genreguru/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
+- [ ] T005b \[P\] Add the Hydra `django` config group: `config/django/dev.yaml` + `config/django/prod.yaml` (`debug`, `allowed_hosts`, `secret_key` via `${oc.env:...}` with dev fallback / prod fail-closed, `secure_ssl_redirect`, `session_cookie_secure`, `csrf_cookie_secure`, `x_frame_options`); register the group in `config/config.yaml` defaults; extend `genreguru/config.py` `get_config()` to compose `logging/db/django` groups from `GENREGURU_ENV` (dev default); convert `frontend/genreguru_web/settings.py` to the `settings/` package (`__init__`, `base`, `development`, `production`, `test`) sourcing `DEBUG`/`ALLOWED_HOSTS`/`SECRET_KEY`/`SECURE_*` from `cfg.django`, `DATABASES` once from `cfg.db.url` (single DB source shared with core), and `FEATURES = OmegaConf.to_container(cfg.features)`; point `manage.py`/`wsgi.py`/`asgi.py`/`pyproject.toml` at the proper settings modules; cover with tests that dev/prod module loads reflect the selected groups and prod fails fast on missing env secrets
 
 ---
 
@@ -212,7 +213,7 @@
 
 ### Parallel Opportunities
 
-- All Setup tasks marked \[P\] can run in parallel (T003-T005 are separate files)
+- All Setup tasks marked \[P\] can run in parallel (T003-T005b are separate files)
 - Foundational tests (T012 fixtures → T012a/T012b) MUST be written and confirmed failing before their implementations (T007, T010); T013 can overlap once models (T009) exist
 - Once Foundational completes, all user stories' core/endpoint work can start in parallel (team capacity permitting); UI tasks are serialized
 - All tests within a story marked \[P\] run in parallel (separate test files)
