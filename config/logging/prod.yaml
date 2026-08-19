@@ -1,0 +1,43 @@
+version: 1
+disable_existing_loggers: false
+level: INFO
+rich: false
+formatters:
+  console:
+    format: "%(levelname)s %(name)s %(message)s"
+  json:
+    class: genreguru.gglogging.JsonFormatter
+filters:
+  non_error:
+    (): genreguru.gglogging.NonErrorFilter
+handlers:
+  stdout:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: console
+    stream: ext://sys.stdout
+    filters: [non_error]
+  stderr:
+    class: logging.StreamHandler
+    level: ERROR
+    formatter: console
+    stream: ext://sys.stderr
+  file_all:
+    class: genreguru.gglogging.SafeRotatingFileHandler
+    level: INFO
+    formatter: json
+    filename: logs/genreguru.log.jsonl
+    maxBytes: 20971520
+    backupCount: 5
+    encoding: utf-8
+    delay: true
+root:
+  level: INFO
+  handlers: [stdout, stderr, file_all]
+loggers:
+  httpx:
+    level: WARNING
+    handlers: []
+  urllib3:
+    level: WARNING
+    handlers: []

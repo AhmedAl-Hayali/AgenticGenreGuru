@@ -1,0 +1,4 @@
+visualization:
+  enabled: false
+recommendations:
+  enabled: false

@@ -1,0 +1,4 @@
+url: ${oc.env:DATABASE_URL, postgresql://postgres:postgres@localhost:5432/genreguru}
+pool_size: 5
+max_overflow: 10
+echo: false

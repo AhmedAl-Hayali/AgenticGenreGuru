@@ -1,0 +1,10 @@
+defaults:
+  - logging: dev
+  - db: dev
+  - features: default
+  - django: dev
+  - _self_
+
+hydra:
+  job:
+    chdir: false
