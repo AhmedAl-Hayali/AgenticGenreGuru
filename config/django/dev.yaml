@@ -1,0 +1,7 @@
+debug: true
+allowed_hosts: ${oc.env:DJANGO_ALLOWED_HOSTS, 'localhost,127.0.0.1,0.0.0.0'}
+secret_key: ${oc.env:DJANGO_SECRET_KEY, insecure-dev-key-change-me}
+secure_ssl_redirect: false
+session_cookie_secure: false
+csrf_cookie_secure: false
+x_frame_options: DENY

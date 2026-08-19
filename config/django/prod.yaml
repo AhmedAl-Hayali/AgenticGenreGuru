@@ -1,0 +1,9 @@
+debug: false
+# Comma-separated hostnames via env; missing variable fails fast at load.
+allowed_hosts: ${oc.env:DJANGO_ALLOWED_HOSTS}
+# No default: missing variable fails fast at load (fail-closed).
+secret_key: ${oc.env:DJANGO_SECRET_KEY}
+secure_ssl_redirect: true
+session_cookie_secure: true
+csrf_cookie_secure: true
+x_frame_options: DENY
