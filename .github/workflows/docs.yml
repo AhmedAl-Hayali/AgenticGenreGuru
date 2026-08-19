@@ -42,11 +42,11 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: build docs
-        run: uv run pdoc -o docs/pandoc/ -d google --mermaid src/
+        run: uv run pdoc -o docs/pdoc/ -d google --mermaid src/
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: docs/pandoc/
+          path: docs/pdoc/
 
   # Deploy the artifact to GitHub pages.
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
