@@ -11,7 +11,7 @@
 Configuration is driven by Hydra config groups in `config/` (see [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md)). The dev database group is the default:
 
 ```bash
-# Optional: override the dev DB connection (secrets resolved via ${env:...}, never committed)
+# Optional: override the dev DB connection (secrets resolved via ${oc.env:...}, never committed)
 export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/genreguru"
 
 # Run database migrations / table creation script (Hydra loads config automatically)

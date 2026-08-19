@@ -43,5 +43,5 @@
 ### 6. Configuration Management (Hydra)
 
 - **Decision**: Use Hydra (`hydra-core`) for all non-secret application configuration, stored in hierarchical YAML under `config/` with `defaults` groups (`logging`, `db`). Detailed design: [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
-- **Rationale**: Centralizes settings (levels, connection strings, retry counts, sample rates) outside logic, enables environment switching (dev/prod) via a single defaults/CLI switch, allows any key to be overridden on the command line without code edits, resolves secrets via `${env:...}` interpolation so credentials never enter the repo, and provides `--multirun` for future experimentation.
+- **Rationale**: Centralizes settings (levels, connection strings, retry counts, sample rates) outside logic, enables environment switching (dev/prod) via a single defaults/CLI switch, allows any key to be overridden on the command line without code edits, resolves secrets via `${oc.env:...}` interpolation so credentials never enter the repo, and provides `--multirun` for future experimentation.
 - **Alternatives Considered**: Raw `os.environ` reads (no structure, no defaults composition, no CLI overrides), bare OmegaConf YAML without Hydra (no `defaults`/override machinery), hard-coded defaults behind `argparse`/dataclasses (scattered, no env groups).

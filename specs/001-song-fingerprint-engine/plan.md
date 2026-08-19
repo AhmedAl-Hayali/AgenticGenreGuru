@@ -61,7 +61,7 @@ specs/001-song-fingerprint-engine/
 config/                    # Hydra config tree (config.yaml defaults + config groups)
 ├── config.yaml            # defaults: - logging: dev, - db: dev, - features: default, - django: dev, - _self_
 ├── logging/               # dev.yaml / prod.yaml (logging group; see logging-report.md)
-├── db/                    # dev.yaml / prod.yaml (db group; secrets via ${env:...})
+├── db/                    # dev.yaml / prod.yaml (db group; secrets via ${oc.env:...})
 ├── features/              # default.yaml / all.yaml (visualization + recommendations flags)
 └── django/                # dev.yaml / prod.yaml (web-layer settings; selected via GENREGURU_ENV)
 src/
@@ -88,7 +88,7 @@ tests/
 └── benchmarks/          # SC-002 (<10s extraction) & SC-005 (<500ms ISRC reuse) benchmarks
 ```
 
-> **Configuration management**: all non-secret settings (logging handler config, DB connection) live in the Hydra `config/` tree and are overridable from the CLI; secrets resolve via `${env:...}` interpolation. Standalone scripts use `@hydra.main`; the Django app uses the compose API via `genreguru/config.py`. See [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
+> **Configuration management**: all non-secret settings (logging handler config, DB connection) live in the Hydra `config/` tree and are overridable from the CLI; secrets resolve via `${oc.env:...}` interpolation. Standalone scripts use `@hydra.main`; the Django app uses the compose API via `genreguru/config.py`. See [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
 
 ### Subdirectory Architecture Justification
 

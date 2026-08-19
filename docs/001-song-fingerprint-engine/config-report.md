@@ -14,7 +14,7 @@ Hydra (`hydra-core`) manages all non-secret application configuration for this f
 - Storing settings in hierarchical YAML, separate from logic.
 - Composing configs from `defaults` groups (environment switching is a one-line change).
 - Allowing any value to be overridden from the command line at runtime.
-- Resolving secrets from the environment via `${env:...}` interpolation so credentials never enter the repo.
+- Resolving secrets from the environment via `${oc.env:...}` interpolation so credentials never enter the repo.
 - Supporting `--multirun` for sweeping parameter combinations (future experimentation).
 
 ### Alternatives considered
@@ -44,7 +44,7 @@ config/
 │   └── all.yaml              # both enabled
 └── django/                   # config group: Django web-layer settings (dev/prod)
     ├── dev.yaml              # debug, allowed_hosts, secret_key (dev fallback), secure flags
-    └── prod.yaml             # fail-closed: ${env:DJANGO_SECRET_KEY} / ${env:DJANGO_ALLOWED_HOSTS}
+    └── prod.yaml             # fail-closed: ${oc.env:DJANGO_SECRET_KEY} / ${oc.env:DJANGO_ALLOWED_HOSTS}
 ```
 
 Future groups (added as their tasks land): `audio/` (sample rate, frame parameters), `deezer/` (base URL, `limit=5`, retry count/delay), `retry/` (shared 3x/5s network policy), `recommend/` (top-N=5, distance metric).
@@ -66,18 +66,18 @@ defaults:
 config/logging/dev.yaml      # level: DEBUG, formatters/console + json, handlers, queue on, rich: true
 config/logging/prod.yaml     # level: INFO/WARNING, JSONL-centric, tighter rotation, rich: false
 config/db/dev.yaml           # url: postgresql://postgres:postgres@localhost:5432/genreguru
-config/db/prod.yaml          # url: ${env:DATABASE_URL}  (secret stays out of YAML/repo)
+config/db/prod.yaml          # url: ${oc.env:DATABASE_URL}  (secret stays out of YAML/repo)
 config/features/default.yaml # visualization.enabled: false, recommendations.enabled: false (REQ-018/019 OFF)
 config/features/all.yaml     # visualization.enabled: true, recommendations.enabled: true
 config/django/dev.yaml       # debug: true, allowed_hosts: [localhost, 127.0.0.1, 0.0.0.0], secret_key with dev fallback, secure flags off
-config/django/prod.yaml      # debug: false, allowed_hosts: ${env:DJANGO_ALLOWED_HOSTS} (comma-separated), secret_key: ${env:DJANGO_SECRET_KEY} (fail-closed), secure flags on
+config/django/prod.yaml      # debug: false, allowed_hosts: ${oc.env:DJANGO_ALLOWED_HOSTS} (comma-separated), secret_key: ${oc.env:DJANGO_SECRET_KEY} (fail-closed), secure flags on
 ```
 
 ---
 
 ## 3. Conventions
 
-1. **Secrets via env interpolation, never committed.** Use OmegaConf `${env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005a).
+1. **Secrets via env interpolation, never committed.** Use OmegaConf `${oc.env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005a).
 2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.url`, `cfg.django.debug`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/logging.py`, `FEATURES` in Django `settings/base.py`).
 3. **Override from the CLI, no code edits.** Examples:
    - `python -m genreguru.db.init_db logging.level=DEBUG`
@@ -87,7 +87,7 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${env:DJANGO_ALLOWED
 5. **`@hydra.main` for standalone scripts, compose API for Django.**
    - Standalone CLI (`python -m genreguru.db.init_db`) uses `@hydra.main(config_path="../../../config", config_name="config", version_base=None)`.
    - The Django application MUST NOT use `@hydra.main` (it changes the working directory and hijacks `argv`). It uses the compose API — `hydra.initialize(version_base=None, config_path=...)` + `hydra.compose(config_name="config")` — wrapped in `genreguru/config.py` and invoked once from Django `settings.py`.
-6. **Security hygiene.** Never commit `*.yaml` containing raw credentials; secret-bearing values live behind `${env:...}` in a group file. `config/*.yaml` are plain project files (committed); secrets come from the environment only.
+6. **Security hygiene.** Never commit `*.yaml` containing raw credentials; secret-bearing values live behind `${oc.env:...}` in a group file. `config/*.yaml` are plain project files (committed); secrets come from the environment only.
 
 ---
 
