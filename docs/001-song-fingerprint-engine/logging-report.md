@@ -12,9 +12,9 @@
 | #  | Rule                                                                                                   | Where enforced                                                                                         |
 |----|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
 | 1  | Use stdlib `logging`, never `print()`                                                                  | All `genreguru/` modules                                                                               |
-| 2  | Configure once, centrally, via `dictConfig`                                                            | `genreguru/logging.py` (T011)                                                                          |
+| 2  | Configure once, centrally, via `dictConfig`                                                            | `genreguru/gglogging.py` (T011)                                                                        |
 | 3  | One named logger per module: `logger = logging.getLogger(__name__)`                                    | Every module                                                                                           |
-| 4  | Handlers live on the root logger; child loggers propagate (no duplicate output)                        | `genreguru/logging.py`                                                                                 |
+| 4  | Handlers live on the root logger; child loggers propagate (no duplicate output)                        | `genreguru/gglogging.py`                                                                               |
 | 5  | Multi-destination routing: stdout (non-errors), stderr (errors), JSONL file (all)                      | T011 handlers                                                                                          |
 | 6  | Structured JSON in files, UTC ISO timestamps, `extra` context                                          | `JsonFormatter` (T011)                                                                                 |
 | 7  | Non-blocking I/O via `QueueHandler` + `QueueListener`                                                  | T011                                                                                                   |
@@ -26,17 +26,17 @@
 
 ---
 
-## 2. Configuration Hub — `genreguru/logging.py` (T011)
+## 2. Configuration Hub — `genreguru/gglogging.py` (T011)
 
 ### Layout
 
 ```text
-genreguru/logging.py          # setup_logging() loads Hydra `logging` group → dictConfig, install_queue_handler(), JsonFormatter, NonErrorFilter, RichHandler wiring, logger helpers
+genreguru/gglogging.py        # setup_logging() loads Hydra `logging` group → dictConfig, install_queue_handler(), JsonFormatter, NonErrorFilter, RichHandler wiring, logger helpers
 logs/                        # runtime artifacts (gitignored, created on first run)
 config/logging/*.yaml        # dev/prod logging groups — see config-report.md for the full Hydra config tree
 ```
 
-> **Config management**: the Hydra config tree, `defaults` composition, `@hydra.main` vs compose API, and secrets via `${env:...}` are documented in [config-report.md](config-report.md). This report covers how `genreguru/logging.py` consumes the `logging` group.
+> **Config management**: the Hydra config tree, `defaults` composition, `@hydra.main` vs compose API, and secrets via `${env:...}` are documented in [config-report.md](config-report.md). This report covers how `genreguru/gglogging.py` consumes the `logging` group.
 
 ### `setup_logging()` — build the `dictConfig` dict from the Hydra `logging` group
 

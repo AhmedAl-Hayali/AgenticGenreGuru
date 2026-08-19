@@ -70,7 +70,7 @@ src/
 │   ├── deezer/          # Deezer API client & retry logic
 │   ├── db/              # SQLAlchemy models, engine, & repositories
 │   ├── config.py        # Hydra compose helper (Django path)
-│   ├── logging.py       # dictConfig setup, JsonFormatter, NonErrorFilter, QueueHandler (logging-report.md)
+│   ├── gglogging.py     # dictConfig setup, JsonFormatter, NonErrorFilter, QueueHandler (logging-report.md)
 │   ├── errors.py        # shared exception hierarchy (NetworkDisconnectedError, AudioProcessingError, ...)
 │   ├── fingerprint_service.py  # US1 orchestration (ISRC reuse, fetch → extract → store)
 │   └── recommendations.py      # US4 RecommendationService (cosine similarity over 8-dim vectors)

@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlparse
 from omegaconf import OmegaConf
 
 from genreguru.config import get_config
-from genreguru.logging import setup_logging
+from genreguru.gglogging import setup_logging
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
