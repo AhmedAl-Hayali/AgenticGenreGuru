@@ -1,6 +1,6 @@
 # Logging Design Report: Song Fingerprint Engine
 
-**Purpose**: Concrete logging design for `src/core/` derived from the article "From Print to Production: Best Practices for Python Logging" (Aliakbar Hosseinzadeh) plus project Constitution constraints (SRP per module, strict TDD, library-first architecture). Implementers MUST follow this report when executing `src/core/` tasks in [tasks.md](../../specs/001-song-fingerprint-engine/tasks.md).
+**Purpose**: Concrete logging design for `genreguru/` derived from the article "From Print to Production: Best Practices for Python Logging" (Aliakbar Hosseinzadeh) plus project Constitution constraints (SRP per module, strict TDD, library-first architecture). Implementers MUST follow this report when executing `genreguru/` tasks in [tasks.md](../../specs/001-song-fingerprint-engine/tasks.md).
 **Created**: 2026-08-13
 **Feature**: `001-song-fingerprint-engine`
 **Applicable tasks**: T006, T007, T010, T011, T020-T025, T039, T044 (logging portions; configuration-management aspects live in [config-report.md](config-report.md))
@@ -9,38 +9,38 @@
 
 ## 1. Core Principles (from the article)
 
-| #  | Rule                                                                                                   | Where enforced                                                                                        |
-|----|--------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| 1  | Use stdlib `logging`, never `print()`                                                                  | All `src/core/` modules                                                                               |
-| 2  | Configure once, centrally, via `dictConfig`                                                            | `src/core/logging.py` (T011)                                                                          |
-| 3  | One named logger per module: `logger = logging.getLogger(__name__)`                                    | Every module                                                                                          |
-| 4  | Handlers live on the root logger; child loggers propagate (no duplicate output)                        | `src/core/logging.py`                                                                                 |
-| 5  | Multi-destination routing: stdout (non-errors), stderr (errors), JSONL file (all)                      | T011 handlers                                                                                         |
-| 6  | Structured JSON in files, UTC ISO timestamps, `extra` context                                          | `JsonFormatter` (T011)                                                                                |
-| 7  | Non-blocking I/O via `QueueHandler` + `QueueListener`                                                  | T011                                                                                                  |
-| 8  | Lazy `%s`-style args, never f-strings in log calls                                                     | All modules                                                                                           |
-| 9  | `logger.exception()` inside `except` blocks (full traceback)                                           | All modules                                                                                           |
-| 10 | Log safely: no secrets, no PII, no binary payloads                                                     | All modules                                                                                           |
-| 11 | Library code silent until configured: `NullHandler` on package root                                    | `src/core/__init__.py`                                                                                |
-| 12 | No hard-coded logging constants; all levels/format/handlers come from the Hydra `logging` config group | `src/core/logging.py` + `config/logging/`; tree & conventions in [config-report.md](config-report.md) |
+| #  | Rule                                                                                                   | Where enforced                                                                                         |
+|----|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
+| 1  | Use stdlib `logging`, never `print()`                                                                  | All `genreguru/` modules                                                                               |
+| 2  | Configure once, centrally, via `dictConfig`                                                            | `genreguru/logging.py` (T011)                                                                          |
+| 3  | One named logger per module: `logger = logging.getLogger(__name__)`                                    | Every module                                                                                           |
+| 4  | Handlers live on the root logger; child loggers propagate (no duplicate output)                        | `genreguru/logging.py`                                                                                 |
+| 5  | Multi-destination routing: stdout (non-errors), stderr (errors), JSONL file (all)                      | T011 handlers                                                                                          |
+| 6  | Structured JSON in files, UTC ISO timestamps, `extra` context                                          | `JsonFormatter` (T011)                                                                                 |
+| 7  | Non-blocking I/O via `QueueHandler` + `QueueListener`                                                  | T011                                                                                                   |
+| 8  | Lazy `%s`-style args, never f-strings in log calls                                                     | All modules                                                                                            |
+| 9  | `logger.exception()` inside `except` blocks (full traceback)                                           | All modules                                                                                            |
+| 10 | Log safely: no secrets, no PII, no binary payloads                                                     | All modules                                                                                            |
+| 11 | Library code silent until configured: `NullHandler` on package root                                    | `genreguru/__init__.py`                                                                                |
+| 12 | No hard-coded logging constants; all levels/format/handlers come from the Hydra `logging` config group | `genreguru/logging.py` + `config/logging/`; tree & conventions in [config-report.md](config-report.md) |
 
 ---
 
-## 2. Configuration Hub — `src/core/logging.py` (T011)
+## 2. Configuration Hub — `genreguru/logging.py` (T011)
 
 ### Layout
 
 ```text
-src/core/logging.py          # setup_logging() loads Hydra `logging` group → dictConfig, install_queue_handler(), JsonFormatter, NonErrorFilter, RichHandler wiring, logger helpers
+genreguru/logging.py          # setup_logging() loads Hydra `logging` group → dictConfig, install_queue_handler(), JsonFormatter, NonErrorFilter, RichHandler wiring, logger helpers
 logs/                        # runtime artifacts (gitignored, created on first run)
 config/logging/*.yaml        # dev/prod logging groups — see config-report.md for the full Hydra config tree
 ```
 
-> **Config management**: the Hydra config tree, `defaults` composition, `@hydra.main` vs compose API, and secrets via `${env:...}` are documented in [config-report.md](config-report.md). This report covers how `src/core/logging.py` consumes the `logging` group.
+> **Config management**: the Hydra config tree, `defaults` composition, `@hydra.main` vs compose API, and secrets via `${env:...}` are documented in [config-report.md](config-report.md). This report covers how `genreguru/logging.py` consumes the `logging` group.
 
 ### `setup_logging()` — build the `dictConfig` dict from the Hydra `logging` group
 
-`setup_logging()` does NOT hard-code a Python dict. It loads the active logging configuration from the Hydra tree (`config/logging/dev.yaml` or `prod.yaml`, selected by the `defaults` list in `config/config.yaml`), converts it with `OmegaConf.to_container(cfg.logging, resolve=True)`, and feeds it to `logging.config.dictConfig`. Command-line overrides therefore reach the logging setup without touching code (e.g. `python -m src.core.db.init_db logging.level=DEBUG logging.file.maxBytes=10485760`).
+`setup_logging()` does NOT hard-code a Python dict. It loads the active logging configuration from the Hydra tree (`config/logging/dev.yaml` or `prod.yaml`, selected by the `defaults` list in `config/config.yaml`), converts it with `OmegaConf.to_container(cfg.logging, resolve=True)`, and feeds it to `logging.config.dictConfig`. Command-line overrides therefore reach the logging setup without touching code (e.g. `python -m genreguru.db.init_db logging.level=DEBUG logging.file.maxBytes=10485760`).
 
 Formatters:
 - `console` text: `"%(levelname)s %(name)s %(message)s"`.
@@ -69,7 +69,7 @@ Rich ships a logging handler (`rich.logging.RichHandler`) that colorizes and for
 Two details matter for integration with the rest of this design:
 
 - **Markup is off by default.** Rich does not interpret Console Markup in log messages unless `markup=True` is set on the handler, because most libraries (including ours) are not careful to escape literal square brackets. The safe pattern is to leave `markup=False` globally and opt in per message via `extra={"markup": True}` only where a hand-authored, deliberately formatted message is emitted. The highlighter can likewise be overridden per message with `extra={"highlighter": None}`.
-- **Rich output is ANSI-colored, not structured.** It is a human-facing dev artifact, not a machine/aggregator format. Therefore the Rich console handlers are driven by the `logging.dev.rich` YAML flag (enabled in the `dev` config group, `false` in `prod`; never enabled in `python -m src.core.db.init_db` or CI where plain `console` text is expected), and they operate strictly as the console pair — one RichHandler writing to `sys.stdout` carrying the `non_error` filter, one writing to `sys.stderr` at `ERROR` — preserving the stdout/stderr split while leaving the rotating JSONL `file_all` handler untouched as the canonical structured sink for production observability.
+- **Rich output is ANSI-colored, not structured.** It is a human-facing dev artifact, not a machine/aggregator format. Therefore the Rich console handlers are driven by the `logging.dev.rich` YAML flag (enabled in the `dev` config group, `false` in `prod`; never enabled in `python -m genreguru.db.init_db` or CI where plain `console` text is expected), and they operate strictly as the console pair — one RichHandler writing to `sys.stdout` carrying the `non_error` filter, one writing to `sys.stderr` at `ERROR` — preserving the stdout/stderr split while leaving the rotating JSONL `file_all` handler untouched as the canonical structured sink for production observability.
 
 Because Rule 9 already mandates `logger.exception(...)` in every `except` block, Rich's `rich_tracebacks=True` renders those records with full highlighted frames for free; no additional exception handling is required in application code. Add `rich` to `pyproject.toml` runtime dependencies (task T002) and wire the handler selection inside `setup_logging()` (task T011).
 
@@ -79,7 +79,7 @@ After `dictConfig`, wrap the root handlers behind a named `QueueHandler` (`loggi
 
 ### `NullHandler` for standalone-library safety
 
-Attach `logging.NullHandler()` to the `src.core` package logger in `src/core/__init__.py` so the core library emits nothing until an application configures it (Constitution Principle I — headless CLI / test isolation).
+Attach `logging.NullHandler()` to the `genreguru` package logger in `genreguru/__init__.py` so the core library emits nothing until an application configures it (Constitution Principle I — headless CLI / test isolation).
 
 ### `FingerprintContextAdapter` — the `reused` flag
 
@@ -95,37 +95,37 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 
 ## 3. Per-Module Logging Requirements
 
-### T006 — `src/core/errors.py`
+### T006 — `genreguru/errors.py`
 
 - Exceptions carry machine-readable attrs (e.g. `isrc`, `deezer_id`, `code`, `attempts`) so catch sites populate `extra` via the adapter without string parsing.
 - No `logging` calls inside exception classes (SRP; logged at the raise/catch boundary).
 
-### T007 — `src/core/db/engine.py`
+### T007 — `genreguru/db/engine.py`
 
 - INFO once on engine init: host, database name, pool size, dialect — **never the password** (lazy args).
 - DEBUG on session open/close (created via context/factory).
 - WARNING on pool exhaustion or disconnect/reconnect events.
 - Do not enable `echo=True` logging by default; expose it only via env-gated DEBUG.
 
-### T010 — `src/core/db/init_db.py`
+### T010 — `genreguru/db/init_db.py`
 
-- Standalone `python -m src.core.db.init_db` entrypoint: call `setup_logging()` in `__main__`.
+- Standalone `python -m genreguru.db.init_db` entrypoint: call `setup_logging()` in `__main__`.
 - INFO: table-creation start + completion with created-table count.
 - ERROR: `logger.exception` on migration/DDL failure, re-raise.
 
-### T020 — `src/core/audio/loader.py`
+### T020 — `genreguru/audio/loader.py`
 
 - DEBUG: source reference, `sample_rate`, channel count, duration, detected format, and "downmixed to mono" event.
 - ERROR + `logger.exception` → raises `AudioProcessingError` (`"audio file cannot be processed"`, REQ-015).
 - Lazy formatting only; log the audio path/ref, never the decoded buffer.
 
-### T021 — `src/core/audio/features.py`
+### T021 — `genreguru/audio/features.py`
 
 - DEBUG: input frame shape/sample-rate per feature computation and each collapsed arithmetic-mean scalar.
 - WARNING/INFO: zero/low-energy frames (silent / non-musical input) — still produce a valid vector, do not fail (spec edge case).
 - INFO on extraction completion with elapsed time (supports SC-002 <10 s).
 
-### T022 — `src/core/deezer/client.py`
+### T022 — `genreguru/deezer/client.py`
 
 - INFO: outbound search `query` + `limit=5`, and response `total`.
 - DEBUG: counts only (results returned, fields parsed) — never dump the full JSON payload.
@@ -135,20 +135,20 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
   - missing/empty `preview` → raise `PreviewUnavailableError` (REQ-017); track NOT persisted, no snippet fetch
 - INFO on `DATA_NOT_FOUND`(800) → empty matches (not an error).
 
-### T023 — `src/core/deezer/snippets.py`
+### T023 — `genreguru/deezer/snippets.py`
 
 - INFO: fetch start and success (`bytes`, `elapsed`).
 - WARNING per retry: `attempt=1..3`, `delay=5s`, exception reason (REQ-013).
 - ERROR + `logger.exception` after the 3rd failed attempt → raises `NetworkDisconnectedError` (REQ-014).
 - Never log byte content.
 
-### T024 — `src/core/db/repositories.py`
+### T024 — `genreguru/db/repositories.py`
 
 - INFO: `find_by_isrc` outcome (`hit`/`miss` + `isrc`).
 - INFO: insert of `song_id`/`isrc`/`deezer_id` for a new fingerprint row.
 - WARNING: concurrent same-`isrc` write hitting the DB unique constraint (api_flow §3.2) — surface, do not duplicate.
 
-### T025 — `src/core/fingerprint_service.py`
+### T025 — `genreguru/fingerprint_service.py`
 
 - The orchestration seam: use `FingerprintContextAdapter` (T011).
 - INFO `reused=true`: `"fingerprint reused (isrc=%s song_id=%s)"`.
@@ -156,12 +156,12 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 - `logger.exception` before re-raising `AudioProcessingError` / `NetworkDisconnectedError` (REQ-014/REQ-015 propagation to UI).
 - Always include elapsed time to correlate SC-002 (fresh gen volatile path) vs SC-005 (<500 ms reuse path).
 
-### T039 — `src/core/audio/visualization.py`
+### T039 — `genreguru/audio/visualization.py`
 
 - INFO: visualization data generated for `song_id`.
 - DEBUG: spectrogram parameters (window, hop, FFT size, shape) — never log the spectrogram/matrix array.
 
-### T044 — `src/core/recommendations.py`
+### T044 — `genreguru/recommendations.py`
 
 - INFO: top-N result count + similarity scores.
 - WARNING: fewer candidates than requested N, or degenerate (all-zero) modified query vector.
@@ -170,7 +170,7 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 
 ## 4. Cross-Cutting Conventions
 
-1. `logger = logging.getLogger(__name__)` at module top of every `src/core/` file.
+1. `logger = logging.getLogger(__name__)` at module top of every `genreguru/` file.
 2. Lazy `%s`/`%d` args everywhere — arguments evaluated only if the record is emitted (matters in hot DSP loops).
 3. `logger.exception(...)` inside `except` blocks (stack trace attached); plain `logger.error` without `exc_info` only when no exception is live.
 4. Structured context via `extra` mapped by `JsonFormatter.fmt_keys`; formatter must tolerate records missing optional keys (guard `KeyError`).

@@ -15,14 +15,14 @@ Configuration is driven by Hydra config groups in `config/` (see [config-report.
 export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/genreguru"
 
 # Run database migrations / table creation script (Hydra loads config automatically)
-python -m src.core.db.init_db
+python -m genreguru.db.init_db
 ```
 
 Switch environments or settings from the command line without editing files:
 
 ```bash
-python -m src.core.db.init_db db=prod                 # use config/db/prod.yaml
-python -m src.core.db.init_db logging.level=DEBUG     # any config key is overridable
+python -m genreguru.db.init_db db=prod                 # use config/db/prod.yaml
+python -m genreguru.db.init_db logging.level=DEBUG     # any config key is overridable
 ```
 
 ## Running the Application

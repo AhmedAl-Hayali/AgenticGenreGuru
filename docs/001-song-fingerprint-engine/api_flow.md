@@ -10,15 +10,15 @@
 
 ## 1. Actors & Components
 
-| Component                             | Role                                                                                  |
-|---------------------------------------|---------------------------------------------------------------------------------------|
-| **User**                              | Submits a song title, confirms a match via the web UI                                 |
-| **Django Frontend**                   | Serves UI; hosts internal `/api/search/` and `/api/confirm/` endpoints                |
-| **backend core (`src/core/deezer/`)** | Calls Deezer `/search`; fetches the 30s preview MP3                                   |
-| **backend core (`src/core/audio/`)**  | Runs librosa DSP feature extraction on the preview                                    |
-| **backend core (`src/core/db/`)**     | SQLAlchemy repositories; dedup lookup by ISRC; persists `songs` + `song_fingerprints` |
-| **Deezer API**                        | External catalog + preview source (`api.deezer.com/search`)                           |
-| **PostgreSQL**                        | Local relational store (`songs`, `song_fingerprints`)                                 |
+| Component                              | Role                                                                                  |
+|----------------------------------------|---------------------------------------------------------------------------------------|
+| **User**                               | Submits a song title, confirms a match via the web UI                                 |
+| **Django Frontend**                    | Serves UI; hosts internal `/api/search/` and `/api/confirm/` endpoints                |
+| **backend core (`genreguru/deezer/`)** | Calls Deezer `/search`; fetches the 30s preview MP3                                   |
+| **backend core (`genreguru/audio/`)**  | Runs librosa DSP feature extraction on the preview                                    |
+| **backend core (`genreguru/db/`)**     | SQLAlchemy repositories; dedup lookup by ISRC; persists `songs` + `song_fingerprints` |
+| **Deezer API**                         | External catalog + preview source (`api.deezer.com/search`)                           |
+| **PostgreSQL**                         | Local relational store (`songs`, `song_fingerprints`)                                 |
 
 ---
 
@@ -46,9 +46,9 @@ flowchart TD
 2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
 3. **Search response returns top 5** → UI renders candidates and waits for the user.
 4. **2-click confirmation** → `POST /api/confirm/{match}` with `{match}={deezer_id, title, isrc, duration, preview, artist, album}`.
-5. **Local ISRC lookup** → `core/db/` queries `songs` by `isrc`.
-6. **No local match**  → fetch the 30s preview MP3 from `preview` via `core/deezer/` (3 retries, 5s delay).
-7. **DSP extraction** → `core/audio/` computes 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), mono downmix, arithmetic-mean collapse to one scalar per feature.
+5. **Local ISRC lookup** → `genreguru/db/` queries `songs` by `isrc`.
+6. **No local match**  → fetch the 30s preview MP3 from `preview` via `genreguru/deezer/` (3 retries, 5s delay).
+7. **DSP extraction** → `genreguru/audio/` computes 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), mono downmix, arithmetic-mean collapse to one scalar per feature.
 8. **Persist** → writes `songs` (row: `id`, `deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`) and `song_fingerprints` (row: `id`, FK `song_id`, 8 feature columns, `audio_format`, `sample_rate`, `created_at`) — see [data-model.md](../../specs/001-song-fingerprint-engine/data-model.md).
 9. **Return** → UI displays success + fingerprint metrics with `deezer_id`, `isrc`, and `status` (confirm response shape in [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md)).
 
@@ -142,7 +142,7 @@ sequenceDiagram
 ## 5. Where single fallback to the "reuse" path short-circuits computing
 
 - If the incoming `isrc` already exists locally → **no** Deezer preview fetch, no DSP run, no new row; the stored fingerprint is returned immediately.
-- This is the primary optimized branch and the only one that skips `core/audio`.
+- This is the primary optimized branch and the only one that skips `genreguru/audio`.
 
 ---
 

@@ -16,7 +16,7 @@
 
 ## Path Conventions (from plan.md)
 
-- **core library**: `src/core/audio/`, `src/core/deezer/`, `src/core/db/` at repository root
+- **core library**: `genreguru/audio/`, `genreguru/deezer/`, `genreguru/db/` at repository root
 - **web app**: `frontend/fingerprint_app/`, `frontend/genreguru_web/`
 - **tests**: `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks`
 - **Stack**: Python 3.14, Django, SQLAlchemy + psycopg, librosa/numpy/scipy, httpx, PostgreSQL
@@ -28,11 +28,11 @@
 
 **Purpose**: Project initialization and basic structure
 
-- [x] T001 Create directory structure per plan.md: `src/core/audio/`, `src/core/deezer/`, `src/core/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` + `config/features/` (Hydra config groups)
+- [x] T001 Create directory structure per plan.md: `genreguru/audio/`, `genreguru/deezer/`, `genreguru/db/`, `frontend/genreguru_web/`, `frontend/fingerprint_app/`, `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks/` (with `__init__.py` files), and the Hydra config tree `config/logging/` + `config/db/` + `config/features/` (Hydra config groups)
 - [x] T002 Add runtime + dev dependencies to `pyproject.toml` (Django, SQLAlchemy, psycopg[binary], httpx, rich, hydra-core, omegaconf, librosa, numpy, scipy, prek, ruff, ty, pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon)
 - [ ] T003 Scaffold Django project skeleton in `frontend/` (`manage.py`, `frontend/genreguru_web/__init__.py`, `settings.py`, `urls.py`, `asgi.py`, `wsgi.py` with `fingerprint_app` registered)
 - [x] T004 Configure pytest + pytest-django in `pyproject.toml` (`[tool.pytest.ini_options]` with `DJANGO_SETTINGS_MODULE=genreguru_web.settings` and `testpaths=tests`)
-- [ ] T005 Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `src/core/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
+- [ ] T005 Create Hydra config skeleton per `docs/001-song-fingerprint-engine/config-report.md`: `config/config.yaml` (`defaults: [logging: dev, db: dev, features: default, _self_]`), `config/logging/dev.yaml` + `config/logging/prod.yaml`, `config/db/dev.yaml` + `config/db/prod.yaml` (secrets only via `${env:...}` interpolation, never literal), `config/features/default.yaml` (`visualization.enabled: false`, `recommendations.enabled: false`) + `config/features/all.yaml`; add `genreguru/config.py` compose helper (hydra.initialize + hydra.compose for the Django path); create `.env.example` documenting `DATABASE_URL` (default `postgresql://postgres:postgres@localhost:5432/genreguru`) and Django `SECRET_KEY`
 
 ---
 
@@ -42,15 +42,15 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Implement shared exception hierarchy in `src/core/errors.py` (`NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`); each exception carries structured attrs (`isrc`, `deezer_id`, `code`, `attempts`) for structured log context; no logging inside exception classes
+- [ ] T006 Implement shared exception hierarchy in `genreguru/errors.py` (`NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`); each exception carries structured attrs (`isrc`, `deezer_id`, `code`, `attempts`) for structured log context; no logging inside exception classes
 - [ ] T012 Create shared pytest fixtures in `tests/conftest.py` (test DB session, engine override, Django test client)
-- [ ] T012a \[P\] Unit test for DB engine factory (`src/core/db/engine.py`): hydra `db` group ingestion, psycopg URL construction, engine type; assert failures on missing `${env:DATABASE_URL}` in prod group — in `tests/unit/test_engine.py` (write first, confirm FAIL)
-- [ ] T012b \[P\] Integration test for `init_db` table creation (`python -m src.core.db.init_db`): all tables created idempotently, rerun-safe; assert schema matches data-model.md — in `tests/integration/test_init_db.py` (write first, confirm FAIL)
-- [ ] T007 Implement database engine + session factory in `src/core/db/engine.py` (reads connection config from the Hydra `db` group via `src/core/config.py`, not hard-coded env parsing; creates SQLAlchemy `engine` + `SessionLocal` via psycopg); module logger: INFO on engine init (host/db/pool size, never the password), DEBUG session open/close, WARNING on pool/disconnect events — make T012a pass
-- [ ] T008 Create SQLAlchemy declarative `Base` in `src/core/db/base.py`
-- [ ] T009 Create `Song` and `SongFingerprint` models in `src/core/db/models.py` per data-model.md (`songs`: uuid7 `id`, unique `deezer_id`, unique `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`; `song_fingerprints`: uuid7 `id`, unique FK `song_id`, 8 collapsed float features, `audio_format`, `sample_rate`, `created_at`); keep models logging-free (persistence logging lives in the repository layer T024)
-- [ ] T010 Implement table-creation script in `src/core/db/init_db.py` (runnable as `python -m src.core.db.init_db`); decorate with `@hydra.main(config_path="../../../config", config_name="config")` (or call the compose helper), then `setup_logging()`; INFO table-creation start/completion (count), `logger.exception` on failure
-- [ ] T011 Configure logging infrastructure in `src/core/logging.py` per `docs/001-song-fingerprint-engine/logging-report.md` (loads the active Hydra `logging` config group per `docs/001-song-fingerprint-engine/config-report.md`, converts via `OmegaConf.to_container(resolve=True)`, feeds `logging.config.dictConfig` — no hard-coded dict; `JsonFormatter` + `NonErrorFilter` utils; stdout non-errors / stderr errors / rotating JSONL `logs/` handlers; named `QueueHandler` + `QueueListener`; package-root `NullHandler` for standalone-library safety; `setup_logging()` entrypoint; `LoggerAdapter` injecting `isrc`/`deezer_id`/`song_id`/`reused` context via `extra` for the reused=`true/false` fingerprint flag; dev-only `RichHandler` console pair — `rich_tracebacks=True`, `tracebacks_suppress=[django]`, `markup` off — driven by `logging.dev.rich` from YAML, never replacing the JSONL sink)
+- [ ] T012a \[P\] Unit test for DB engine factory (`genreguru/db/engine.py`): hydra `db` group ingestion, psycopg URL construction, engine type; assert failures on missing `${env:DATABASE_URL}` in prod group — in `tests/unit/test_engine.py` (write first, confirm FAIL)
+- [ ] T012b \[P\] Integration test for `init_db` table creation (`python -m genreguru.db.init_db`): all tables created idempotently, rerun-safe; assert schema matches data-model.md — in `tests/integration/test_init_db.py` (write first, confirm FAIL)
+- [ ] T007 Implement database engine + session factory in `genreguru/db/engine.py` (reads connection config from the Hydra `db` group via `genreguru/config.py`, not hard-coded env parsing; creates SQLAlchemy `engine` + `SessionLocal` via psycopg); module logger: INFO on engine init (host/db/pool size, never the password), DEBUG session open/close, WARNING on pool/disconnect events — make T012a pass
+- [ ] T008 Create SQLAlchemy declarative `Base` in `genreguru/db/base.py`
+- [ ] T009 Create `Song` and `SongFingerprint` models in `genreguru/db/models.py` per data-model.md (`songs`: uuid7 `id`, unique `deezer_id`, unique `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`; `song_fingerprints`: uuid7 `id`, unique FK `song_id`, 8 collapsed float features, `audio_format`, `sample_rate`, `created_at`); keep models logging-free (persistence logging lives in the repository layer T024)
+- [ ] T010 Implement table-creation script in `genreguru/db/init_db.py` (runnable as `python -m genreguru.db.init_db`); decorate with `@hydra.main(config_path="../../../config", config_name="config")` (or call the compose helper), then `setup_logging()`; INFO table-creation start/completion (count), `logger.exception` on failure
+- [ ] T011 Configure logging infrastructure in `genreguru/logging.py` per `docs/001-song-fingerprint-engine/logging-report.md` (loads the active Hydra `logging` config group per `docs/001-song-fingerprint-engine/config-report.md`, converts via `OmegaConf.to_container(resolve=True)`, feeds `logging.config.dictConfig` — no hard-coded dict; `JsonFormatter` + `NonErrorFilter` utils; stdout non-errors / stderr errors / rotating JSONL `logs/` handlers; named `QueueHandler` + `QueueListener`; package-root `NullHandler` for standalone-library safety; `setup_logging()` entrypoint; `LoggerAdapter` injecting `isrc`/`deezer_id`/`song_id`/`reused` context via `extra` for the reused=`true/false` fingerprint flag; dev-only `RichHandler` console pair — `rich_tracebacks=True`, `tracebacks_suppress=[django]`, `markup` off — driven by `logging.dev.rich` from YAML, never replacing the JSONL sink)
 - [ ] T013 Create FactoryBoy factories `SongFactory` + `SongFingerprintFactory` in `tests/factories.py`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
@@ -74,12 +74,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T020 \[P\] \[US1\] Implement audio snippet loader with mono downmix (mean of channels) in `src/core/audio/loader.py`; module logger: DEBUG source/sample_rate/channels/duration/format + mono-downmix, ERROR `logger.exception` → `AudioProcessingError` (REQ-015 message), lazy `%s` args, never log binary buffer; validate format (MP3/WAV/FLAC accepted per REQ-004, unsupported format → error before DSP processing)
-- [ ] T021 \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) with arithmetic-mean collapse to scalars in `src/core/audio/features.py`; module logger: DEBUG frame shape + per-feature collapse mean, WARNING/INFO on zero/low-energy frames (silent-non-musical edge case), INFO extraction complete + elapsed (SC-002)
-- [ ] T022 \[P\] \[US1\] Implement Deezer search client in `src/core/deezer/client.py` (`GET https://api.deezer.com/search?q={query}&limit=5`, Track field mapping, fail-loud on missing `isrc`/`preview`, error-code mapping per `contracts/deezer-api.md`); module logger: INFO request query+limit=5 and response `total`, DEBUG counts only (no payload dumps), WARNING on `QUOTA`(4)/`SERVICE_BUSY`(700) before retry, ERROR `logger.exception` on missing `isrc` → `MissingISRCError` and empty `preview` → `PreviewUnavailableError` with `extra={isrc, deezer_id}`
-- [ ] T023 \[P\] \[US1\] Implement audio snippet fetcher with 3x retry / 5s delay (`NetworkDisconnectedError` on all-fail) in `src/core/deezer/snippets.py`; module logger: INFO fetch start/success (bytes, elapsed), WARNING per retry (`attempt=%d delay=%ds`), ERROR+`logger.exception` → `NetworkDisconnectedError` after 3rd fail (REQ-013/014), never log bytes
-- [ ] T024 \[P\] \[US1\] Implement `SongRepository` with `find_by_isrc()` + `create_song_and_fingerprint()` in `src/core/db/repositories.py`; module logger: INFO `isrc` lookup hit/miss, INFO insert (`song_id`/`isrc`/`deezer_id`), WARNING on concurrent same-`isrc` unique violation (api_flow §3.2)
-- [ ] T025 \[US1\] Implement `FingerprintService` orchestration in `src/core/fingerprint_service.py` (ISRC reuse path short-circuits; else fetch → extract → store; logs `reused=true/false` via the T011 `LoggerAdapter` — `extra={isrc, deezer_id, song_id, reused}`; INFO `"fingerprint reused (isrc=...)"` vs `"fresh fingerprint generated (isrc=..., elapsed=...s)"`; `logger.exception` on catch before re-raise)
+- [ ] T020 \[P\] \[US1\] Implement audio snippet loader with mono downmix (mean of channels) in `genreguru/audio/loader.py`; module logger: DEBUG source/sample_rate/channels/duration/format + mono-downmix, ERROR `logger.exception` → `AudioProcessingError` (REQ-015 message), lazy `%s` args, never log binary buffer; validate format (MP3/WAV/FLAC accepted per REQ-004, unsupported format → error before DSP processing)
+- [ ] T021 \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) with arithmetic-mean collapse to scalars in `genreguru/audio/features.py`; module logger: DEBUG frame shape + per-feature collapse mean, WARNING/INFO on zero/low-energy frames (silent-non-musical edge case), INFO extraction complete + elapsed (SC-002)
+- [ ] T022 \[P\] \[US1\] Implement Deezer search client in `genreguru/deezer/client.py` (`GET https://api.deezer.com/search?q={query}&limit=5`, Track field mapping, fail-loud on missing `isrc`/`preview`, error-code mapping per `contracts/deezer-api.md`); module logger: INFO request query+limit=5 and response `total`, DEBUG counts only (no payload dumps), WARNING on `QUOTA`(4)/`SERVICE_BUSY`(700) before retry, ERROR `logger.exception` on missing `isrc` → `MissingISRCError` and empty `preview` → `PreviewUnavailableError` with `extra={isrc, deezer_id}`
+- [ ] T023 \[P\] \[US1\] Implement audio snippet fetcher with 3x retry / 5s delay (`NetworkDisconnectedError` on all-fail) in `genreguru/deezer/snippets.py`; module logger: INFO fetch start/success (bytes, elapsed), WARNING per retry (`attempt=%d delay=%ds`), ERROR+`logger.exception` → `NetworkDisconnectedError` after 3rd fail (REQ-013/014), never log bytes
+- [ ] T024 \[P\] \[US1\] Implement `SongRepository` with `find_by_isrc()` + `create_song_and_fingerprint()` in `genreguru/db/repositories.py`; module logger: INFO `isrc` lookup hit/miss, INFO insert (`song_id`/`isrc`/`deezer_id`), WARNING on concurrent same-`isrc` unique violation (api_flow §3.2)
+- [ ] T025 \[US1\] Implement `FingerprintService` orchestration in `genreguru/fingerprint_service.py` (ISRC reuse path short-circuits; else fetch → extract → store; logs `reused=true/false` via the T011 `LoggerAdapter` — `extra={isrc, deezer_id, song_id, reused}`; INFO `"fingerprint reused (isrc=...)"` vs `"fresh fingerprint generated (isrc=..., elapsed=...s)"`; `logger.exception` on catch before re-raise)
 - [ ] T026 \[US1\] Implement search view `GET /api/search/` in `frontend/fingerprint_app/views.py` (404 `TrackNotFoundError`, 503 `NetworkDisconnectedError` per `contracts/search-api.md`)
 - [ ] T027 \[US1\] Implement confirm view `POST /api/confirm/{match}` in `frontend/fingerprint_app/views.py` (400 `AudioProcessingError`, 503 `NetworkDisconnectedError`, response payload incl. `song_id`, `deezer_id`, `isrc`, `fingerprint` with `vector_length: 8`)
 - [ ] T028 \[US1\] Register `/api/search/` and `/api/confirm/` routes in `frontend/fingerprint_app/urls.py` and include them in `frontend/genreguru_web/urls.py`
@@ -105,7 +105,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T033 \[P\] \[US2\] Add `list_songs()` + `get_fingerprint_by_isrc()` methods in `src/core/db/repositories.py`
+- [ ] T033 \[P\] \[US2\] Add `list_songs()` + `get_fingerprint_by_isrc()` methods in `genreguru/db/repositories.py`
 - [ ] T034 \[US2\] Implement catalog list view `GET /api/songs/` in `frontend/fingerprint_app/views.py` (summary of songs + fingerprint metadata)
 - [ ] T035 \[US2\] Implement song detail view `GET /api/songs/{isrc}/` in `frontend/fingerprint_app/views.py` (structured full fingerprint + song metadata)
 - [ ] T036 \[US2\] Add catalog listing + song detail render sections in `frontend/fingerprint_app/templates/fingerprint_app/index.html`
@@ -131,7 +131,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top 3 feature factors by normalized contribution magnitude via librosa matplotlib/numpy) in `src/core/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
+- [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top 3 feature factors by normalized contribution magnitude via librosa matplotlib/numpy) in `genreguru/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
 - [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
 - [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
 - [ ] T042 \[US3\] Register visualization route in `frontend/fingerprint_app/urls.py`
@@ -156,7 +156,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T044 \[P\] \[US4\] Implement `RecommendationService` (cosine similarity over the 8-dimensional fingerprint vectors, returns top-N=5 matches) in `src/core/recommendations.py`; module logger: INFO result size + top-N=5 similarity scores, WARNING on fewer candidates than N=5 or degenerate (all-zero) query vector
+- [ ] T044 \[P\] \[US4\] Implement `RecommendationService` (cosine similarity over the 8-dimensional fingerprint vectors, returns top-N=5 matches) in `genreguru/recommendations.py`; module logger: INFO result size + top-N=5 similarity scores, WARNING on fewer candidates than N=5 or degenerate (all-zero) query vector
 - [ ] T045 \[US4\] Implement `POST /api/recommend/` endpoint (accepts modified vector, returns top matches; only active when `features.recommendations.enabled=true`, else 404) in `frontend/fingerprint_app/views.py`
 - [ ] T046 \[US4\] Add acoustic feature slider controls + recommendation list render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
 - [ ] T047 \[US4\] Register `/api/recommend/` route in `frontend/fingerprint_app/urls.py`
@@ -175,7 +175,7 @@
 
 - [ ] T048 \[P\] Validate `.prek.toml` (ruff, bandit, ty hooks) and run it on the full tree as the final sweep
 - [ ] T049 \[P\] Run bandit security audit over `src/` and `frontend/`; fix findings
-- [ ] T050 \[P\] Run radon complexity analysis on `src/core/`; refactor any module exceeding cyclomatic complexity 10
+- [ ] T050 \[P\] Run radon complexity analysis on `genreguru/`; refactor any module exceeding cyclomatic complexity 10
 - [ ] T051 \[P\] Run coverage report over `tests/`; add missing tests to satisfy Constitution III coverage expectations
 - [ ] T052 \[P\] Benchmark performance: confirm SC-002 (<10s extraction per snippet) and SC-005 (<500ms ISRC reuse lookup) in `tests/benchmarks/`. Standard consumer hardware can be comparable to a GitHub Actions [`ubuntu-slim` private repository CI runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for--private-repositories), i.e., Ubuntu 24.04.4 LTS x64, 1 CPU, 5GB RAM, and 14GB storage
 - [ ] T053 \[P\] Validate quickstart.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus — captured as a versioned snapshot fixture rather than live network calls), SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors), and SC-004 (users can initiate a run and confirm a top-5 match)
@@ -233,11 +233,11 @@ Task: "Contract test for GET /api/search/ in tests/contract/test_search_api.py"
 Task: "Contract test for POST /api/confirm/ in tests/contract/test_confirm_api.py"
 
 # Launch all core-library implementations together:
-Task: "Implement audio loader mono downmix in src/core/audio/loader.py"
-Task: "Implement 8-feature extractor in src/core/audio/features.py"
-Task: "Implement Deezer search client in src/core/deezer/client.py"
-Task: "Implement snippet fetcher with retry in src/core/deezer/snippets.py"
-Task: "Implement SongRepository in src/core/db/repositories.py"
+Task: "Implement audio loader mono downmix in genreguru/audio/loader.py"
+Task: "Implement 8-feature extractor in genreguru/audio/features.py"
+Task: "Implement Deezer search client in genreguru/deezer/client.py"
+Task: "Implement snippet fetcher with retry in genreguru/deezer/snippets.py"
+Task: "Implement SongRepository in genreguru/db/repositories.py"
 ```
 
 ## Parallel Example: User Story 2
@@ -246,21 +246,21 @@ Task: "Implement SongRepository in src/core/db/repositories.py"
 # Launch US2 tasks together (tests first, then implementation):
 Task: "Integration tests for repository queries in tests/integration/test_repository_queries.py"
 Task: "Contract tests for songs API in tests/contract/test_songs_api.py"
-Task: "Add list_songs + get_by_isrc in src/core/db/repositories.py"
+Task: "Add list_songs + get_by_isrc in genreguru/db/repositories.py"
 ```
 
 ## Parallel Example: User Story 3
 
 ```bash
 Task: "Unit tests for visualization builder in tests/unit/test_visualization.py"
-Task: "Implement visualization data generation in src/core/audio/visualization.py"
+Task: "Implement visualization data generation in genreguru/audio/visualization.py"
 ```
 
 ## Parallel Example: User Story 4
 
 ```bash
 Task: "Integration test for recommendations in tests/integration/test_recommendations.py"
-Task: "Implement RecommendationService in src/core/recommendations.py"
+Task: "Implement RecommendationService in genreguru/recommendations.py"
 ```
 
 ---

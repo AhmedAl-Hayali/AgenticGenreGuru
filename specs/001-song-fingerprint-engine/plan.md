@@ -59,12 +59,13 @@ specs/001-song-fingerprint-engine/
 
 ```text
 config/                    # Hydra config tree (config.yaml defaults + config groups)
-├── config.yaml            # defaults: - logging: dev, - db: dev, - _self_
+├── config.yaml            # defaults: - logging: dev, - db: dev, - features: default, - django: dev, - _self_
 ├── logging/               # dev.yaml / prod.yaml (logging group; see logging-report.md)
 ├── db/                    # dev.yaml / prod.yaml (db group; secrets via ${env:...})
-└── features/              # default.yaml / all.yaml (visualization + recommendations flags)
+├── features/              # default.yaml / all.yaml (visualization + recommendations flags)
+└── django/                # dev.yaml / prod.yaml (web-layer settings; selected via GENREGURU_ENV)
 src/
-├── core/
+├── genreguru/
 │   ├── audio/           # librosa/numpy/scipy DSP feature engineering
 │   ├── deezer/          # Deezer API client & retry logic
 │   ├── db/              # SQLAlchemy models, engine, & repositories
@@ -87,14 +88,14 @@ tests/
 └── benchmarks/          # SC-002 (<10s extraction) & SC-005 (<500ms ISRC reuse) benchmarks
 ```
 
-> **Configuration management**: all non-secret settings (logging handler config, DB connection) live in the Hydra `config/` tree and are overridable from the CLI; secrets resolve via `${env:...}` interpolation. Standalone scripts use `@hydra.main`; the Django app uses the compose API via `src/core/config.py`. See [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
+> **Configuration management**: all non-secret settings (logging handler config, DB connection) live in the Hydra `config/` tree and are overridable from the CLI; secrets resolve via `${env:...}` interpolation. Standalone scripts use `@hydra.main`; the Django app uses the compose API via `genreguru/config.py`. See [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md).
 
 ### Subdirectory Architecture Justification
 
-#### 1. Why `src/` is subdivided into `core/audio/`, `core/deezer/`, and `core/db/`:
-- **`src/core/audio/` (DSP Feature Extraction)**: Encapsulates pure mathematical signal processing code (librosa, numpy, scipy). Isolating signal processing into its own subpackage ensures DSP algorithms can be developed, optimized, and unit-tested in isolation without dependencies on database connections or HTTP networking.
-- **`src/core/deezer/` (External API Client & Retry)**: Encapsulates network operations, HTTP transport, and Deezer-specific API error handling (`NetworkDisconnectedError`). Keeping external network clients separate from local DSP code isolates network volatility and simplifies mocking network responses during testing.
-- **`src/core/db/` (SQLAlchemy ORM & Persistence)**: Houses PostgreSQL database schemas, SQLAlchemy engine initialization, and repository pattern access functions. Repository functions persist both the track ISRC and the platform track ID (Deezer track ID) for every processed song and implement deduplication lookups that match existing songs by ISRC; if no local record matches the ISRC, they generate and store a new fingerprint. Separating persistence from DSP logic guarantees that audio features can be computed without mandating database writes (e.g. for transient preview testing).
+#### 1. Why `src/` is subdivided into `genreguru/audio/`, `genreguru/deezer/`, and `genreguru/db/`:
+- **`genreguru/audio/` (DSP Feature Extraction)**: Encapsulates pure mathematical signal processing code (librosa, numpy, scipy). Isolating signal processing into its own subpackage ensures DSP algorithms can be developed, optimized, and unit-tested in isolation without dependencies on database connections or HTTP networking.
+- **`genreguru/deezer/` (External API Client & Retry)**: Encapsulates network operations, HTTP transport, and Deezer-specific API error handling (`NetworkDisconnectedError`). Keeping external network clients separate from local DSP code isolates network volatility and simplifies mocking network responses during testing.
+- **`genreguru/db/` (SQLAlchemy ORM & Persistence)**: Houses PostgreSQL database schemas, SQLAlchemy engine initialization, and repository pattern access functions. Repository functions persist both the track ISRC and the platform track ID (Deezer track ID) for every processed song and implement deduplication lookups that match existing songs by ISRC; if no local record matches the ISRC, they generate and store a new fingerprint. Separating persistence from DSP logic guarantees that audio features can be computed without mandating database writes (e.g. for transient preview testing).
 
 #### 2. Why `frontend/` is subdivided into `genreguru_web/` and `fingerprint_app/`:
 - **`frontend/genreguru_web/` (Django Project Root)**: Follows standard Django framework conventions by isolating project-level configurations (`settings.py`), root URL dispatchers (`urls.py`), and WSGI/ASGI entrypoints (`wsgi.py`, `asgi.py`). This manages application-wide middleware and global setup.

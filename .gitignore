@@ -201,7 +201,7 @@ pyrightconfig.json
 outputs
 multirun
 
-# Runtime application logs (src/core/logging.py rotating JSONL sink)
+# Runtime application logs (genreguru/logging.py rotating JSONL sink)
 logs/
 
 # Data
