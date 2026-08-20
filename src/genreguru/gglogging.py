@@ -1,8 +1,26 @@
 """Configure centralized logging for `genreguru`.
 
 Design authority: docs/001-song-fingerprint-engine/logging-report.md.
-Consumes the Hydra `logging` config group via `genreguru.config`; no
-hard-coded handler dict lives here.
+Callers pass in the logging config (from Hydra or otherwise); this module
+owns `dictConfig`, the queue handler, and lifecycle — no config
+composition happens here.
+
+Public API::
+
+    # Long-lived process (Django boot, standalone CLI)
+    manager = LoggingManager()
+    manager.setup(log_cfg)
+
+    # Short-lived scripts / test fixtures (teardown automatic on exit)
+    with LoggingManager() as manager:
+        manager.setup(log_cfg)
+        ...
+
+    # Full control (tests, serialized lifecycle)
+    manager = LoggingManager()
+    manager.setup(log_cfg)
+    ...
+    manager.teardown()
 """
 
 import json
@@ -12,18 +30,16 @@ import queue
 from datetime import UTC, datetime
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
-from typing import Any, cast
+from threading import Lock
+from typing import IO, Any, cast
 
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from rich.console import Console
 from rich.logging import RichHandler
 
-from genreguru.config import get_config
-
-logger = logging.getLogger(__name__)
-
-_listener: QueueListener | None = None
-_configured = False
+_QUEUE_HANDLER_NAME = "queue_handler"
+_owner: LoggingManager | None = None
+_owner_lock = Lock()
 
 
 class JsonFormatter(logging.Formatter):
@@ -93,7 +109,7 @@ class NonErrorFilter(logging.Filter):
 
 
 class SafeRotatingFileHandler(RotatingFileHandler):
-    """Create a rotating JSONL handler that creates its parent directory on demand."""
+    """Create a rotating log handler that creates its parent directory on demand."""
 
     def __init__(self, filename: str | Path, *args, **kwargs) -> None:
         """Initialize the handler, creating the parent directory if needed.
@@ -110,7 +126,7 @@ class SafeRotatingFileHandler(RotatingFileHandler):
 class RichStreamHandler(RichHandler):
     """Bind a RichHandler to an explicit stream (stdout/stderr)."""
 
-    def __init__(self, stream: Any = None, **kwargs) -> None:
+    def __init__(self, stream: IO | None = None, **kwargs) -> None:
         """Initialize the handler with an explicit output stream.
 
         Args:
@@ -121,36 +137,107 @@ class RichStreamHandler(RichHandler):
         super().__init__(console=console, **kwargs)
 
 
-def install_queue_handler() -> None:
-    """Fan root handlers out behind a named QueueHandler + QueueListener."""
-    global _listener
-    root = logging.getLogger()
-    if logging.getHandlerByName("queue_handler") is not None:
-        return
-    sink_queue: queue.Queue[Any] = queue.Queue()
-    existing = list(root.handlers)
-    handler = QueueHandler(sink_queue)
-    handler.name = "queue_handler"
-    root.handlers = [handler]
-    _listener = QueueListener(sink_queue, *existing, respect_handler_level=True)
-    _listener.start()
+class LoggingManager:
+    """Own the `QueueListener` lifecycle and root-handler fan-out.
 
-
-def setup_logging() -> None:
-    """Build the `dictConfig` from the active Hydra `logging` group.
-
-    Idempotent: subsequent calls are no-ops, preventing a second
-    `QueueListener` thread from being spawned after a re-config.
+    One active manager per process — `logging` root state is global, so
+    instances are serialized owners; late starters defer and `teardown()`
+    removes only this instance's handler. Takes no constructor args; a
+    fresh instance activates on its first `setup()` call. Application
+    code uses `logging.getLogger` directly.
     """
-    global _configured
-    if _configured:
-        return
-    cfg = get_config()
-    log_cfg = cfg.logging
-    config_dict = cast(dict[str, Any], OmegaConf.to_container(log_cfg, resolve=True))
-    logging.config.dictConfig(config_dict)
-    install_queue_handler()
-    _configured = True
+
+    def __init__(self) -> None:
+        self._listener: QueueListener | None = None
+        self._handler: QueueHandler | None = None
+
+    def setup(self, log_cfg: dict | DictConfig) -> None:
+        """Claim the process root; no-op if a manager already owns it.
+
+        Args:
+            log_cfg: Logging config dict or OmegaConf DictConfig (e.g. the
+                `logging` group from the Hydra config tree).  Resolved and
+                converted to a plain dict internally.
+
+        Ownership is claimed under `_owner_lock`; the winner installs the
+        queue fan-out, losers return silently. On install failure the root
+        is rolled back to its prior handlers and ownership is released.
+        """
+        global _owner
+        with _owner_lock:
+            if _owner is not None:
+                return
+            _owner = self
+            snapshot = list(logging.getLogger().handlers)
+            try:
+                config_dict = cast(
+                    dict[str, Any], OmegaConf.to_container(log_cfg, resolve=True)
+                )
+                logging.config.dictConfig(config_dict)
+                self._install_queue_handler()
+            except BaseException:
+                self._rollback_install(snapshot)
+                _owner = None
+                raise
+
+    def _install_queue_handler(self) -> None:
+        """Fan root handlers out behind a named QueueHandler + QueueListener."""
+        root = logging.getLogger()
+        if logging.getHandlerByName(_QUEUE_HANDLER_NAME) is not None:
+            return
+        sink_queue: queue.Queue[Any] = queue.Queue()
+        existing = list(root.handlers)
+        handler = QueueHandler(sink_queue)
+        handler.name = _QUEUE_HANDLER_NAME
+        root.handlers = [handler]
+        self._handler = handler
+        self._listener = QueueListener(
+            sink_queue, *existing, respect_handler_level=True
+        )
+        self._listener.start()
+
+    def _rollback_install(self, snapshot: list[logging.Handler]) -> None:
+        """Undo a partial install, restoring the previous root handlers."""
+        if self._listener is not None:
+            self._listener.stop()
+            self._listener = None
+        if self._handler is not None:
+            logging.getLogger().removeHandler(self._handler)
+            self._handler = None
+        logging.getLogger().handlers = snapshot
+
+    def teardown(self) -> None:
+        """Release the root only if this instance owns it.
+
+        Safe to call multiple times or on a manager that never claimed
+        ownership. After teardown the root logger has **no handlers**; any
+        log emission before the next `setup()` call is silently dropped.
+        This is intentional — callers that need continuous logging should
+        not tear down (e.g. long-running Django processes).
+        """
+        global _owner
+        with _owner_lock:
+            if _owner is not self:
+                return
+            if self._listener is not None:
+                self._listener.stop()
+                self._listener = None
+            if self._handler is not None:
+                logging.getLogger().removeHandler(self._handler)
+                self._handler = None
+            _owner = None
+
+    def __enter__(self) -> LoggingManager:
+        """Enter the context manager.
+
+        Returns:
+            This manager instance, ready for `setup()` calls.
+        """
+        return self
+
+    def __exit__(self, *_: Any) -> None:
+        """Exit the context manager, releasing ownership via `teardown()`."""
+        self.teardown()
 
 
 class FingerprintContextAdapter(logging.LoggerAdapter):
@@ -178,7 +265,7 @@ def log_fingerprint_outcome(
     elapsed: float,
     target: logging.Logger | None = None,
 ) -> None:
-    """Emit the reused/fresh fingerprint INFO record through the adapter.
+    """Emit the reused/fresh fingerprint INFO record with context fields.
 
     Args:
         isrc: International Standard Recording Code.
@@ -189,16 +276,21 @@ def log_fingerprint_outcome(
         target: Logger to emit through. Defaults to fingerprint_service logger.
     """
     source = target or logging.getLogger("genreguru.fingerprint_service")
-    adapter = FingerprintContextAdapter(
-        source,
-        {"isrc": isrc, "deezer_id": deezer_id, "song_id": song_id, "reused": reused},
-    )
+    extra = {
+        "isrc": isrc,
+        "deezer_id": deezer_id,
+        "song_id": song_id,
+        "reused": reused,
+    }
     if reused:
-        adapter.info("fingerprint reused (isrc=%s song_id=%s)", isrc, song_id)
+        source.info(
+            "fingerprint reused (isrc=%s song_id=%s)", isrc, song_id, extra=extra
+        )
     else:
-        adapter.info(
+        source.info(
             "fresh fingerprint generated (isrc=%s elapsed=%.2fs song_id=%s)",
             isrc,
             elapsed,
             song_id,
+            extra=extra,
         )

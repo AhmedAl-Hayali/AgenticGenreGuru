@@ -13,7 +13,7 @@ from urllib.parse import unquote, urlparse
 from omegaconf import OmegaConf
 
 from genreguru.config import get_config
-from genreguru.gglogging import setup_logging
+from genreguru.gglogging import LoggingManager
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -83,4 +83,5 @@ STATICFILES_DIRS = [BASE_DIR / "fingerprint_app" / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-setup_logging()
+_logging_manager = LoggingManager()
+_logging_manager.setup(cfg.logging)

@@ -134,7 +134,7 @@ genreguru/
 |                   | `genreguru/recommendations.py`     | US4 `RecommendationService`: cosine similarity over 8-dim vectors, top-N=5                                                                                                                             | T044       |
 | **Cross-cutting** | `genreguru/errors.py`              | Shared hierarchy: `NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`; structured attrs                                            | T006       |
 |                   | `genreguru/config.py`              | `get_config()` compose helper (cached), cwd-independent via `initialize_config_dir`                                                                                                                    | T005a      |
-|                   | `genreguru/gglogging.py`           | `setup_logging()`, `JsonFormatter`, `NonErrorFilter`, `QueueHandler`/`QueueListener`, `FingerprintContextAdapter`, dev `RichHandler`                                                                   | T011       |
+|                   | `genreguru/gglogging.py`           | `LoggingManager` (one active owner per process; `setup()`/`teardown()`), `JsonFormatter`, `NonErrorFilter`, `QueueHandler`/`QueueListener`, `FingerprintContextAdapter`, dev `RichHandler`             | T011       |
 
 ### 3.3 Frontend (`frontend/`) — Django presentation layer
 
@@ -278,7 +278,7 @@ Confirm path MUST log `reused=true` (fingerprint replayed from DB) or `reused=fa
 
 ### 7.2 Logging (stdlib `logging`)
 
-- Configured once via `setup_logging()` → `dictConfig` built from Hydra `logging` group (`OmegaConf.to_container(resolve=True)`). No `basicConfig()` anywhere else.
+- Configured once via a `LoggingManager` → `dictConfig` built from Hydra `logging` group (`OmegaConf.to_container(resolve=True)`). No `basicConfig()` anywhere else.
 - Handlers: stdout (non-errors, `NonErrorFilter`), stderr (errors), rotating JSONL `logs/genreguru.log.jsonl` (10 MB × 10, UTC ISO, `JsonFormatter` with `fmt_keys`). Dev-only `RichHandler` pair driven by `logging.dev.rich` flag.
 - Non-blocking: named `QueueHandler` + `QueueListener`.
 - Library-safety: `NullHandler` on `genreguru` package root so core stays silent until configured.
