@@ -20,7 +20,7 @@ Represents a track retrieved from Deezer search results.
 
 *Deduplication Strategy*: Every processed song stores both `deezer_id` and `isrc`. When checking whether a track was already processed, look up by `isrc`; if no local record matches, generate a new feature vector and store it.
 
-*UUIDv7 Generation*: All `UUID` columns are PostgreSQL `uuid` type storing UUIDv7 values. On PostgreSQL 18+, use the native `uuidv7()` function as the column default; on older versions, generate values in the application layer (e.g., Python `uuid.uuid7()` via SQLAlchemy default).
+*UUIDv7 Generation*: All `UUID` columns are PostgreSQL `uuid` type storing UUIDv7 values. **Requires PostgreSQL 18+** — uses native `uuidv7()` function as column default. No application-layer fallback.
 
 ### Entity: `SongFingerprint` (`song_fingerprints` table)
 

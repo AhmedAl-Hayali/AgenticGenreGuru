@@ -6,6 +6,8 @@
 
 **GenreGuru** turns a song title into a machine-readable acoustic fingerprint. Type a title → it pulls a 30-second Deezer preview → runs a DSP pipeline extracting 8 acoustic features → stores the vector in PostgreSQL. Query stored fingerprints by cosine similarity to find sonically similar tracks.
 
+> **Project status:** Pre-implementation. The project structure, Hydra configuration, and feature specs are in place. Core library modules (`audio/`, `deezer/`, `db/`) and the Django UI are scaffolded but not yet implemented. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
+
 ## What GenreGuru Does
 
 GenreGuru takes a song title as input and produces a compact acoustic fingerprint — a numerical signature that captures the sonic character of a track. It searches the Deezer catalog, fetches a 30-second audio preview, runs it through a DSP pipeline that extracts 8 key acoustic features, and stores the result locally for later analysis.
@@ -18,7 +20,7 @@ GenreGuru takes a song title as input and produces a compact acoustic fingerprin
 - **Hobbyist musicians** — Discover songs with similar sonic fingerprints
 - **Casual listeners** — Explore music through its acoustic properties
 
-## How It Works
+## How It Works *(planned)*
 
 ```mermaid
 flowchart TD
@@ -40,7 +42,7 @@ flowchart TD
 4. **Fetch & fingerprint** — If it's new, the 30-second audio preview is fetched, converted to mono, and processed through the DSP pipeline. Eight acoustic features are extracted and collapsed into a single scalar each.
 5. **Store** — The fingerprint and song metadata are persisted to PostgreSQL. Re-submitting the same song reuses the stored data.
 
-## Features
+## Features *(planned)*
 
 - **Song search** — Search by title, select from top 5 candidates with a 2-click confirmation UX.
 - **Acoustic fingerprinting** — Extracts 8 features capturing brightness (spectral centroid), energy (RMS), bandwidth, contrast, noisiness (spectral flatness), rolloff, timbre (MFCC), and harmonic content (zero crossing rate).
@@ -55,25 +57,36 @@ flowchart TD
 ### Prerequisites
 
 - Python 3.14+
-- PostgreSQL running locally
+- PostgreSQL 18+ running locally
 - [uv](https://docs.astral.sh/uv/) package manager
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone https://github.com/AhmedAlHayali/genreguru.git
-cd genreguru
+git clone https://github.com/AhmedAlHayali/AgenticGenreGuru.git
+cd AgenticGenreGuru
 
 # Install dependencies
 uv sync
 
+## Linux / macOS
+
 # Set environment variables
-export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/genreguru"
-export SECRET_KEY="your-django-secret-key"
+export DATABASE_URL="postgresql://user:pass@host:port/db"
+export SECRET_KEY="django-secret-key"
 
 # Initialize the database
 python -m genreguru.db.init_db
+
+## Windows (PowerShell)
+
+# Set environment variables
+$env:DATABASE_URL="postgresql://user:pass@host:port/db"
+$env:SECRET_KEY="django-secret-key"
+
+# Initialize the database
+py -m genreguru.db.init_db
 ```
 
 ### Run
@@ -84,9 +97,9 @@ python frontend/manage.py runserver 0.0.0.0:8000
 
 Open [http://localhost:8000](http://localhost:8000) in your browser.
 
-### Validate
+### Validate *(planned)*
 
-1. Type a song title (e.g. `Harder, Better, Faster, Stronger` from Daft Punk) and click **Search**.
+1. Type a song title (e.g. `Harder, Better, Faster, Stronger` by Daft Punk) and click **Search**.
 2. Verify the top 5 candidate matches appear.
 3. Click a match once to select it, click again to confirm.
 4. The system fetches the audio snippet, extracts the fingerprint, and stores it.
@@ -95,10 +108,14 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 ### Tests
 
 ```bash
-pytest tests/
+# Fullstack test suite
+uv run pytest
+
+# Core (no Django) test suite
+uv run pytest tests/unit tests/integration
 ```
 
-## Architecture
+## Architecture *(target design)*
 
 GenreGuru follows a **standalone library-first** architecture. Core components are decoupled from the Django UI and can run independently.
 
@@ -127,7 +144,7 @@ flowchart LR
 - **`genreguru/db/`** — PostgreSQL schemas, SQLAlchemy engine, repository pattern.
 - **`frontend/`** — Django views, templates, and static assets. Thin UI layer.
 
-### Data Model
+### Data Model *(target design)*
 
 ```mermaid
 erDiagram
@@ -162,7 +179,7 @@ erDiagram
     }
 ```
 
-### API Endpoints
+### API Endpoints *(target design)*
 
 | Method | Endpoint                     | Description                                      |
 |--------|------------------------------|--------------------------------------------------|
@@ -204,10 +221,10 @@ docs/                      # API flow diagrams, config reports
 
 ## Configuration
 
-All non-secret settings live in the Hydra `config/` tree and are overridable from the CLI. Secrets resolve via `${oc.env:...}` interpolation. Django settings (in `genreguru_web/settings/`) contain no environment-specific values — they read the Hydra `django` and `db` groups through `genreguru/config.py`, selected by the `GENREGURU_ENV` variable (`dev` default; `prod` for production). Django and the core library share one DB connection source (`cfg.db.url`), so run `init_db` and the web app against the same database.
+All non-secret settings live in the Hydra `config/` tree and are overridable from the CLI. Secrets resolve via `${oc.env:...}` interpolation. Django settings (in `genreguru_web/settings/`) contain no environment-specific values — they read the Hydra `django` and `db` groups through `genreguru/config.py`, selected by the `GENREGURU_ENV` variable (`dev` default; `prod` for production). Django and the core library share one DB connection source (`cfg.db.url`).
 
 ```bash
-# Override any config key from the command line
+# Override any config key from the CLI
 python -m genreguru.db.init_db db=prod
 python -m genreguru.db.init_db logging.level=DEBUG
 ```
@@ -228,6 +245,12 @@ recommendations:
 - [`specs/`](specs/) — Feature specifications, requirements, and design docs
 - [`docs/`](docs/) — API flow diagrams, contract references, and configuration reports
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc
+
+## Known Limitations
+
+- **30-second previews only** — Deezer API provides 30-second audio snippets, not full tracks. Fingerprints are based on this limited window.
+- **Deezer catalog dependency** — Song search and audio previews depend on Deezer's API availability and catalog coverage.
+- **No genre classification** — GenreGuru extracts acoustic features, not genre labels. It finds sonically similar tracks, not genre-matched ones.
 
 ## License
 
