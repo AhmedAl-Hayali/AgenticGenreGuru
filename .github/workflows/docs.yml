@@ -6,12 +6,12 @@ on:
     branches:
       - main
     paths:
-      - "*.py"
+      - "**.py"
   pull_request:
     branches:
       - main
     paths:
-        - "*.py"
+        - "**.py"
   workflow_dispatch:
 
 permissions:
@@ -41,8 +41,11 @@ jobs:
       - name: project install
         run: uv sync --all-extras --dev
 
+      - name: Append to PYTHONPATH
+        run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/frontend" >> $GITHUB_ENV
+
       - name: build docs
-        run: uv run pdoc -o docs/pdoc/ -d google --mermaid src/
+        run: uv run pdoc -o docs/pdoc/ -d google --mermaid src/ genreguru_web/ fingerprint_app/
 
       - uses: actions/upload-pages-artifact@v4
         with:
