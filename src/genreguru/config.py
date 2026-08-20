@@ -19,11 +19,11 @@ def get_config(overrides: tuple[str, ...] | None = None) -> DictConfig:
     accepts an absolute config path so behavior is cwd-independent.
 
     The active environment (`GENREGURU_ENV`, default `dev`) selects the
-    ``logging``, ``db``, and ``django`` config groups; the Django settings
+    `logging`, `db`, and `django` config groups; the Django settings
     entry point (`development.py`/`production.py`/`test.py`) sets
-    `GENREGURU_ENV` before importing the shared ``base`` settings. Extra
+    `GENREGURU_ENV` before importing the shared `base` settings. Extra
     overrides (e.g. `features=all`) can be passed per caller. Secrets in the
-    YAML resolve via OmegaConf's native ``${oc.env:...}`` resolver.
+    YAML resolve via OmegaConf's native `${oc.env:...}` resolver.
 
     Args:
         overrides: Optional additional Hydra override strings.

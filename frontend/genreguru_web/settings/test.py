@@ -1,7 +1,7 @@
 """Test environment settings, used by pytest-django.
 
 Tests run against an in-memory SQLite database, independent of the
-environment-selected ``cfg.db.url`` connection.
+environment-selected `cfg.db.url` connection.
 """
 
 import os
