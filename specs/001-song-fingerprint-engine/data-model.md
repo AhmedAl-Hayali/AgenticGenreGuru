@@ -6,17 +6,17 @@
 
 Represents a track retrieved from Deezer search results.
 
-| Column        | Type           | Constraints               | Description                                                                                           |
-|---------------|----------------|---------------------------|-------------------------------------------------------------------------------------------------------|
-| `id`          | UUID           | Primary Key               | Internal song record ID (UUIDv7)                                                                      |
-| `deezer_id`   | Integer        | Unique, Indexed, Not Null | Deezer track ID (platform track ID)                                                                   |
-| `isrc`        | String         | Unique, Indexed, Not Null | International Standard Recording Code (ISO 39075); mandatory when interfacing with external platforms |
-| `title`       | String(255)    | Not Null                  | Track title                                                                                           |
-| `artist`      | String(255)    | Not Null                  | Artist name                                                                                           |
-| `album`       | String(255)    | Nullable                  | Album name                                                                                            |
-| `preview_url` | Text           | Not Null                  | Deezer 30s preview MP3 URL                                                                            |
-| `duration`    | Integer        | Not Null                  | Track duration in seconds                                                                             |
-| `created_at`  | DateTime (UTC) | Default: now()            | Record creation timestamp                                                                             |
+| Column        | Type           | Constraints               | Description                                                                                          |
+|---------------|----------------|---------------------------|------------------------------------------------------------------------------------------------------|
+| `id`          | UUID           | Primary Key               | Internal song record ID (UUIDv7)                                                                     |
+| `deezer_id`   | Integer        | Unique, Indexed, Not Null | Deezer track ID (platform track ID)                                                                  |
+| `isrc`        | String         | Unique, Indexed, Not Null | International Standard Recording Code (ISO 3901); mandatory when interfacing with external platforms |
+| `title`       | String(255)    | Not Null                  | Track title                                                                                          |
+| `artist`      | String(255)    | Not Null                  | Artist name                                                                                          |
+| `album`       | String(255)    | Nullable                  | Album name                                                                                           |
+| `preview_url` | Text           | Not Null                  | Deezer 30s preview MP3 URL                                                                           |
+| `duration`    | Integer        | Not Null                  | Track duration in seconds                                                                            |
+| `created_at`  | DateTime (UTC) | Default: now()            | Record creation timestamp                                                                            |
 
 *Deduplication Strategy*: Every processed song stores both `deezer_id` and `isrc`. When checking whether a track was already processed, look up by `isrc`; if no local record matches, generate a new feature vector and store it.
 

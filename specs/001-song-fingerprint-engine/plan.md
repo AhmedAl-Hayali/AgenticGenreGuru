@@ -26,7 +26,7 @@ Build GenreGuru Song Fingerprint Engine using a modular Python architecture. Dja
 
 **Performance Goals**: Audio feature extraction completion <10s per snippet; DB feature lookup <500ms.
 
-**Constraints**: Network retry (3x, 5s delay) on snippet fetch failures; error handling for unprocessable audio; support MP3, WAV, FLAC. Current Deezer integration is user-independent (30s previews only); future scope plans `deezer-python` and multi-provider auth (Spotify, YouTube Music, Apple Music, Amazon Music) for user library access. V1 downsamples temporal feature vectors into single scalar values per feature.
+**Constraints**: Network retry (3x, 5s delay) on snippet fetch failures; error handling for unprocessable audio; support MP3, WAV, FLAC. PostgreSQL 18+ required — all `UUID` columns rely on the native `uuidv7()` function as the column default with no application-layer fallback (data-model.md). Current Deezer integration is user-independent (30s previews only); future scope plans `deezer-python` and multi-provider auth (Spotify, YouTube Music, Apple Music, Amazon Music) for user library access. V1 downsamples temporal feature vectors into single scalar values per feature.
 
 **Scale/Scope**: Top 5 match candidates display, 2-click selection UI, 19 EARS-compliant functional requirements.
 
