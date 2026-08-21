@@ -43,7 +43,14 @@ _owner_lock = Lock()
 
 
 class JsonFormatter(logging.Formatter):
-    """Render each record as a single JSON line (JSONL)."""
+    """Render each record as a single JSON line (JSONL).
+
+    Args:
+        fmt_keys: Mapping of JSON field names to log record attributes.
+            Defaults to tracking isrc, deezer_id, song_id, and reused.
+        *args: Positional arguments passed to the parent Formatter.
+        **kwargs: Keyword arguments passed to the parent Formatter.
+    """
 
     _DEFAULT_FMT_KEYS = {
         "isrc": "isrc",
@@ -53,14 +60,7 @@ class JsonFormatter(logging.Formatter):
     }
 
     def __init__(self, fmt_keys: dict | None = None, *args, **kwargs) -> None:
-        """Initialize the formatter.
-
-        Args:
-            fmt_keys: Mapping of JSON field names to log record attributes.
-                Defaults to tracking isrc, deezer_id, song_id, and reused.
-            *args: Positional arguments passed to the parent Formatter.
-            **kwargs: Keyword arguments passed to the parent Formatter.
-        """
+        """Initialize the formatter."""
         super().__init__(*args, **kwargs)
         self.fmt_keys = fmt_keys if fmt_keys is not None else self._DEFAULT_FMT_KEYS
 
@@ -109,30 +109,30 @@ class NonErrorFilter(logging.Filter):
 
 
 class SafeRotatingFileHandler(RotatingFileHandler):
-    """Create a rotating log handler that creates its parent directory on demand."""
+    """Create a rotating log handler that creates its parent directory on demand.
+
+    Args:
+        filename: Path to the log file.
+        *args: Positional arguments passed to the parent RotatingFileHandler.
+        **kwargs: Keyword arguments passed to the parent RotatingFileHandler.
+    """
 
     def __init__(self, filename: str | Path, *args, **kwargs) -> None:
-        """Initialize the handler, creating the parent directory if needed.
-
-        Args:
-            filename: Path to the log file.
-            *args: Positional arguments passed to the parent RotatingFileHandler.
-            **kwargs: Keyword arguments passed to the parent RotatingFileHandler.
-        """
+        """Initialize the handler, creating the parent directory if needed."""
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         super().__init__(filename, *args, **kwargs)
 
 
 class RichStreamHandler(RichHandler):
-    """Bind a RichHandler to an explicit stream (stdout/stderr)."""
+    """Bind a RichHandler to an explicit stream (stdout/stderr).
+
+    Args:
+        stream: Output stream for the Rich console. If None, uses default.
+        **kwargs: Keyword arguments passed to the parent RichHandler.
+    """
 
     def __init__(self, stream: IO | None = None, **kwargs) -> None:
-        """Initialize the handler with an explicit output stream.
-
-        Args:
-            stream: Output stream for the Rich console. If None, uses default.
-            **kwargs: Keyword arguments passed to the parent RichHandler.
-        """
+        """Initialize the handler with an explicit output stream."""
         console = Console(file=stream) if stream is not None else None
         super().__init__(console=console, **kwargs)
 
@@ -148,6 +148,7 @@ class LoggingManager:
     """
 
     def __init__(self) -> None:
+        """Initialize the LoggingManager."""
         self._listener: QueueListener | None = None
         self._handler: QueueHandler | None = None
 
