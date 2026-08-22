@@ -38,7 +38,7 @@ GenreGuru uses a **modular layered architecture**: a standalone, framework-agnos
 
 **Key consequence**: `genreguru/` must run and test without Django; `frontend/` only shells into the core library through repository/service boundaries.
 
-**Dual ORM Connection Strategy**: Both SQLAlchemy (core) and Django ORM (frontend) share a **single PostgreSQL connection pool** via `psycopg`. SQLAlchemy `engine` created in `genreguru/db/engine.py` from Hydra `db` group; Django `DATABASES['default']` configured from same `cfg.db.url` (single source, `plan.md` line 89). Migrations: **Django owns schema** (`makemigrations`/`migrate`); SQLAlchemy models are **read-only reflections** of Django-managed tables (no `create_all` in production). Core library uses `SessionLocal` for transactions; Django uses its ORM within request scope. Connection pool sizing via Hydra `db.pool_size`/`max_overflow` shared by both.
+**Dual ORM Connection Strategy**: Both SQLAlchemy (core) and Django ORM (frontend) share a **single PostgreSQL connection pool** via `psycopg`. SQLAlchemy `engine` created in `genreguru/db/engine.py` from Hydra `db` group using programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`); Django `DATABASES['default']` configured from the same components via `frontend/genreguru_web/settings/base.py` (single source, `plan.md` line 89). Migrations: **Django owns schema** (`makemigrations`/`migrate`); SQLAlchemy models are **read-only reflections** of Django-managed tables (no `create_all` in production). Core library uses `SessionLocal` for transactions; Django uses its ORM within request scope. Connection pool sizing via Hydra `db.pool_size`/`max_overflow` shared by both.
 
 ---
 

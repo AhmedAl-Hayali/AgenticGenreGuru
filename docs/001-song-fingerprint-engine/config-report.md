@@ -78,7 +78,7 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${oc.env:DJANGO_ALLO
 ## 3. Conventions
 
 1. **Secrets via env interpolation, never committed.** Use OmegaConf `${oc.env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005a).
-2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.url`, `cfg.django.debug`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/logging.py`, `FEATURES` in Django `settings/base.py`).
+2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.password`, `cfg.django.secret_key`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/logging.py`, `FEATURES` in Django `settings/base.py`).
 3. **Override from the CLI, no code edits.** Examples:
    - `python -m genreguru.db.init_db logging.level=DEBUG`
    - `python -m genreguru.db.init_db db=prod`
@@ -93,14 +93,14 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${oc.env:DJANGO_ALLO
 
 ## 4. Per-Module Usage
 
-| Consumer                 | Module / task                      | Config group             | Notes                                                                                                                         |
-|--------------------------|------------------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Engine + session factory | `genreguru/db/engine.py` (T007)    | `db`                     | Read `cfg.db.url`, pool params from group; log host/db (never password)                                                       |
-| Logging setup            | `genreguru/gglogging.py` (T011)    | `logging`                | Convert to dict via `OmegaConf.to_container(resolve=True)` → `logging.config.dictConfig`; Rich toggle from `logging.dev.rich` |
-| Table creation CLI       | `genreguru/db/init_db.py` (T010)   | `@hydra.main` → `config` | Entrypoint loads composed config, claims logging via `LoggingManager`                                                         |
-| Config bootstrap helper  | `genreguru/config.py` (T005a)      | compose API              | `hydra.initialize` + `hydra.compose` for the Django path; selects groups from `GENREGURU_ENV`                                 |
-| Django settings          | `frontend/genreguru_web/settings/` | `django`, `db`           | `DEBUG`/hosts/secrets/secure flags from `django` group; `DATABASES` built once from `cfg.db.url` (one connection source)      |
-| Django feature gating    | `settings/base.py` → `FEATURES`    | `features`               | `FEATURES = OmegaConf.to_container(cfg.features)` exposed to Django views                                                     |
+| Consumer                 | Module / task                      | Config group             | Notes                                                                                                                                                             |
+|--------------------------|------------------------------------|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Engine + session factory | `genreguru/db/engine.py` (T007)    | `db`                     | Read individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`), pool params from Hydra `db` group; log host/db (never password) |
+| Logging setup            | `genreguru/gglogging.py` (T011)    | `logging`                | Convert to dict via `OmegaConf.to_container(resolve=True)` → `logging.config.dictConfig`; Rich toggle from `logging.dev.rich`                                     |
+| Table creation CLI       | `genreguru/db/init_db.py` (T010)   | `@hydra.main` → `config` | Entrypoint loads composed config, claims logging via `LoggingManager`                                                                                             |
+| Config bootstrap helper  | `genreguru/config.py` (T005a)      | compose API              | `hydra.initialize` + `hydra.compose` for the Django path; selects groups from `GENREGURU_ENV`                                                                     |
+| Django settings          | `frontend/genreguru_web/settings/` | `django`, `db`           | `DEBUG`/hosts/secrets/secure flags from `django` group; `DATABASES` built from individual db components shared with core `genreguru/db/engine.py`                 |
+| Django feature gating    | `settings/base.py` → `FEATURES`    | `features`               | `FEATURES = OmegaConf.to_container(cfg.features)` exposed to Django views                                                                                         |
 
 > **Features vs `GENREGURU_ENV`**: the `features` group is **not** mapped to `GENREGURU_ENV` — it stays `default` (both flags OFF) unless overridden explicitly (e.g. `get_config(("features=all",))` or a runtime CLI override). Testing that exercises visualization/recommendations must therefore load **both** `default` and `all` variants; a test passing under only one flag payload does not validate the other.
 

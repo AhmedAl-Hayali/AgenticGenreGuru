@@ -8,7 +8,6 @@ and `test.py` import these and override only what differs.
 """
 
 from pathlib import Path
-from urllib.parse import unquote, urlparse
 
 from omegaconf import OmegaConf
 
@@ -31,22 +30,34 @@ CSRF_COOKIE_SECURE = bool(cfg.django.csrf_cookie_secure)
 X_FRAME_OPTIONS = cfg.django.x_frame_options
 
 
-def _databases_from_url(url: str) -> dict:
-    """Build the Django `DATABASES` dict from a connection URL."""
-    component = urlparse(url)
+def _databases_from_components(
+    dialect: str, database: str, user: str, password: str, host: str, port: int
+) -> dict[str, dict[str, str | int]]:
+    """Build the Django `DATABASES` dict from individual db config components.
+
+    Reads `dialect`, `driver`, `user`, `password`, `host`, `port`,
+    `database` from ``cfg.db``.
+    """
     return {
         "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": component.path.lstrip("/"),
-            "USER": unquote(component.username or ""),
-            "PASSWORD": unquote(component.password or ""),
-            "HOST": component.hostname or "localhost",
-            "PORT": component.port or "5432",
+            "ENGINE": f"django.db.backends.{dialect}",
+            "NAME": database,
+            "USER": user,
+            "PASSWORD": password,
+            "HOST": host,
+            "PORT": port,
         }
     }
 
 
-DATABASES = _databases_from_url(cfg.db.url)
+DATABASES = _databases_from_components(
+    cfg.db.dialect,
+    cfg.db.database,
+    cfg.db.user,
+    cfg.db.password,
+    cfg.db.host,
+    cfg.db.port,
+)
 
 FEATURES = OmegaConf.to_container(cfg.features)
 

@@ -1,4 +1,11 @@
-url: ${oc.env:DATABASE_URL, postgresql://postgres:postgres@localhost:5432/genreguru}
+# Programmatic DB connection from individual components.
+dialect: ${oc.env:DB_DIALECT, postgresql}
+driver: ${oc.env:DB_DRIVER, psycopg}
+user: ${oc.env:DB_USER, postgres}
+password: ${oc.env:DB_PASSWORD, postgres}
+host: ${oc.env:DB_HOST, localhost}
+port: ${oc.env:DB_PORT, 5432}
+database: ${oc.env:DB_NAME, genreguru}
 pool_size: 5
 max_overflow: 10
 echo: false
