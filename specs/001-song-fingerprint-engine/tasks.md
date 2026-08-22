@@ -44,7 +44,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [x] T006 Implement shared exception hierarchy in `genreguru/errors.py` (`NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`); each exception carries structured attrs (`isrc`, `deezer_id`, `code`, `attempts`) for structured log context; no logging inside exception classes
-- [ ] T012 Create shared pytest fixtures in `tests/conftest.py` (test DB session, engine override, Django test client)
+- [x] T012 Create shared pytest fixtures in `tests/conftest.py` (test DB session, engine override, Django test client)
 - [ ] T012a \[P\] Unit test for DB engine factory (`genreguru/db/engine.py`): hydra `db` group ingestion, psycopg URL construction, engine type; assert failures on missing `${oc.env:DATABASE_URL}` in prod group — in `tests/unit/test_engine.py` (write first, confirm FAIL)
 - [ ] T012b \[P\] Integration test for `init_db` table creation (`python -m genreguru.db.init_db`): all tables created idempotently, rerun-safe; assert schema matches data-model.md — in `tests/integration/test_init_db.py` (write first, confirm FAIL)
 - [ ] T007 Implement database engine + session factory in `genreguru/db/engine.py` (reads connection config from the Hydra `db` group via `genreguru/config.py`, not hard-coded env parsing; creates SQLAlchemy `engine` + `SessionLocal` via psycopg); module logger: INFO on engine init (host/db/pool size, never the password), DEBUG session open/close, WARNING on pool/disconnect events — make T012a pass
