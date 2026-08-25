@@ -26,23 +26,25 @@ Represents a track retrieved from Deezer search results.
 
 Represents extracted DSP acoustic feature vectors linked to a song.
 
-| Column               | Type           | Constraints                                | Description                             |
-|----------------------|----------------|--------------------------------------------|-----------------------------------------|
-| `id`                 | UUID           | Primary Key                                | Internal fingerprint ID (UUIDv7)        |
-| `song_id`            | UUID           | Foreign Key (`songs.id`), Unique, Not Null | Linked song ID (UUIDv7)                 |
-| `spectral_centroid`  | Float          | Not Null                                   | Collapsed Spectral Centroid value (Hz)  |
-| `rms`                | Float          | Not Null                                   | Collapsed Root Mean Square Energy value |
-| `spectral_bandwidth` | Float          | Not Null                                   | Collapsed Spectral Bandwidth value (Hz) |
-| `spectral_contrast`  | Float          | Not Null                                   | Collapsed Spectral Contrast value (dB)  |
-| `spectral_flatness`  | Float          | Not Null                                   | Collapsed Spectral Flatness value       |
-| `spectral_rolloff`   | Float          | Not Null                                   | Collapsed Spectral Roll-off value (Hz)  |
-| `zero_crossing_rate` | Float          | Not Null                                   | Collapsed Zero Crossing Rate value      |
-| `mfcc`               | Float          | Not Null                                   | Collapsed Mean MFCC summary value       |
-| `audio_format`       | String(10)     | Not Null                                   | Audio snippet format (e.g. mp3)         |
-| `sample_rate`        | Integer        | Default: 22050                             | Sampling rate in Hz                     |
-| `created_at`         | DateTime (UTC) | Default: now()                             | Fingerprint extraction timestamp        |
+| Column               | Type           | Constraints                                | Description                                 |
+|----------------------|----------------|--------------------------------------------|---------------------------------------------|
+| `id`                 | UUID           | Primary Key                                | Internal fingerprint ID (UUIDv7)            |
+| `song_id`            | UUID           | Foreign Key (`songs.id`), Unique, Not Null | Linked song ID (UUIDv7)                     |
+| `spectral_centroid`  | Float          | Not Null                                   | Collapsed Spectral Centroid value (Hz)      |
+| `rms`                | Float          | Not Null                                   | Collapsed Root Mean Square Energy value     |
+| `spectral_bandwidth` | Float          | Not Null                                   | Collapsed Spectral Bandwidth value (Hz)     |
+| `spectral_contrast`  | Float          | Not Null                                   | Collapsed Spectral Contrast value (dB)      |
+| `spectral_flatness`  | Float          | Not Null                                   | Collapsed Spectral Flatness value           |
+| `spectral_rolloff`   | Float          | Not Null                                   | Collapsed Spectral Roll-off value (Hz)      |
+| `zero_crossing_rate` | Float          | Not Null                                   | Collapsed Zero Crossing Rate value          |
+| `mfcc`               | Float          | Not Null                                   | Collapsed Mean MFCC summary value           |
+| `audio_format`       | ENUM           | Not Null                                   | Audio snippet format (mp3/wav/flac/ogg/m4a) |
+| `sample_rate`        | Integer        | Default: 22050                             | Sampling rate in Hz                         |
+| `created_at`         | DateTime (UTC) | Default: now()                             | Fingerprint extraction timestamp            |
 
 *Downsampling Strategy*: For Version 1, each acoustic feature's temporal vector is collapsed (downsampled) to a single scalar feature value to maintain a compact feature space. Future versions will support lower downsampling rates to retain temporal dynamics.
+
+*Audio Format Storage*: The `audio_format` column is implemented as a PostgreSQL ENUM type (`mp3`, `wav`, `flac`, `ogg`, `m4a`) rather than a VARCHAR. This enforces valid format values at the database level and provides marginal storage/query benefits over a string check constraint. The SQLAlchemy model uses `sqlalchemy.dialects.postgresql.ENUM` mapped to a Python `enum.Enum` (`genreguru.db.models.AudioFormat`).
 
 ## Entity Relationship Diagram
 
@@ -73,7 +75,7 @@ erDiagram
         float spectral_rolloff  "NN"
         float zero_crossing_rate  "NN"
         float mfcc  "NN"
-        string audio_format  "NN"
+        string audio_format  "NN, ENUM(mp3|wav|flac|ogg|m4a)"
         int sample_rate  "NN"
         datetime created_at  "NN"
     }

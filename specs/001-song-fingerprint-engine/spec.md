@@ -42,7 +42,7 @@ As a user (music producer, hobbyist musician, audio engineer, music educator, mu
 2. **Given** a song search query that returns no online matches, **When** processing is attempted, **Then** the system provides a clear error notification and does not create incomplete database records.
 3. **Given** a song title that has already been fingerprinted and stored in the database, **When** the user submits the same song name again, **Then** the system detects the existing stored fingerprint by matching ISRC and reuses stored data without duplicating entries.
 4. **Given** a network interruption during audio snippet fetching, **When** fetching fails, **Then** the system retries fetching up to 3 times with a 5-second delay between attempts. If all 3 attempts fail, the system displays a "network disconnected" error.
-5. **Given** a fetched audio snippet in MP3, WAV, or FLAC format, **When** digital signal processing cannot process the audio data, **Then** the system displays an "audio file cannot be processed" error.
+5. **Given** a fetched audio snippet in MP3, WAV, FLAC, OGG, or M4A format, **When** digital signal processing cannot process the audio data, **Then** the system displays an "audio file cannot be processed" error.
 
 ---
 
@@ -94,7 +94,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **Ambiguous Match Selection**: When user inputs a song title, system returns top 5 candidate matches and requires explicit user confirmation before fetching audio.
 - **Duplicate Processing Detection**: When a track is processed again, the system matches existing records by track ISRC. If no local record matches, the system generates and stores a new feature vector.
 - **Network Interruption**: Temporary network failure during online audio snippet fetching triggers up to 3 retries spaced 5 seconds apart. If all fail, "network disconnected" error is displayed.
-- **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, or FLAC are supported. Multichannel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
+- **Audio File Reliability & Format Handling**: Audio snippets in MP3, WAV, FLAC, OGG, or M4A are supported. Multichannel (stereo/surround) audio snippets are automatically downmixed to single-channel (mono) by averaging channels prior to processing. Truncation and corruption are assumed minimal from reliable sources, but if audio data cannot be processed by DSP algorithms, "audio file cannot be processed" error is displayed.
 - **Silent or Non-Musical Content**: Non-musical or silent tracks produce valid feature vectors with zero/low energy metrics without failing DSP pipeline.
 
 ## Requirements *(mandatory)*
@@ -106,7 +106,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 - **REQ-001**: When a user inputs a song title, the system shall search online catalog sources.
 - **REQ-002**: When the search for a song title completes, the system shall return the top 5 matching candidates.
 - **REQ-003**: When top 5 matching candidates are returned, the system shall await user confirmation before initiating snippet fetching.
-- **REQ-004**: When a user confirms a song match, the system shall fetch an online audio snippet in MP3, WAV, or FLAC format prior to feature extraction.
+- **REQ-004**: When a user confirms a song match, the system shall fetch an online audio snippet in MP3, WAV, FLAC, OGG, or M4A format prior to feature extraction.
 - **REQ-005**: When an online audio snippet is fetched, the system shall execute a composite feature engineering pipeline computing the acoustic features `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, and `mfcc`.
 - **REQ-006**: When a song fingerprint feature vector is generated, the system shall store it in the local relational database.
 - **REQ-007**: When storing a fingerprint record, the system shall associate the record with song metadata including song title, artist, track ISRC, `deezer_id`, audio source reference (`preview_url`), album (nullable), duration in seconds, and processing timestamp.
