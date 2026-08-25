@@ -1,0 +1,159 @@
+{# Custom index template for genreguru. #}
+{% extends "default/frame.html.jinja2" %}
+{% block title %}GenreGuru — API Documentation{% endblock %}
+{% block style %}
+    {{ super() | safe }}
+    <style>
+        header.pdoc {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        header.pdoc img {
+            max-width: 200px;
+            max-height: 75px;
+            padding-right: 2rem;
+        }
+        header.pdoc input[type=search] {
+            outline-offset: 0;
+            font-size: 1.5rem;
+            min-width: 60%;
+            flex-grow: 1;
+            padding-left: .5rem;
+            margin: 1.75rem 0;
+        }
+    </style>
+{% endblock %}
+{% block nav %}
+    <h2>Available Modules</h2>
+    <ul>
+        {% for submodule in all_modules if "._" not in submodule and not submodule.startswith("_") %}
+            <li><a href="{{ submodule.replace(".","/") }}.html">{{ submodule }}</a></li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+{% block content %}
+    <header class="pdoc">
+        {% block logo %}
+            {% if logo %}
+                {% if logo_link %}<a href="{{ logo_link }}">{% endif %}
+                <img src="{{ logo }}" alt="project logo"/>
+                {% if logo_link %}</a>{% endif %}
+            {% endif %}
+        {% endblock %}
+        {% if search %}
+            <input type="search" placeholder="Search API Documentation..." aria-label="search box">
+        {% endif %}
+    </header>
+    <main class="pdoc">
+        <section class="module-info">
+            <h1>GenreGuru</h1>
+
+            <div class="docstring">
+                <p><strong>GenreGuru</strong> turns a song title into a machine-readable acoustic fingerprint.
+                Pulls a 30-second Deezer preview, runs a DSP pipeline extracting 8 acoustic features,
+                and stores the fingerprint vector in PostgreSQL. Query stored fingerprints by cosine
+                similarity to find sonically similar tracks.</p>
+            </div>
+
+            <h2>Architecture</h2>
+
+            <div class="mermaid-pre">
+                <pre class="mermaid">
+                    flowchart TD
+                        U[/"Search: song title"/] --> SEARCH["Search Deezer API"]
+                        SEARCH --> RESULTS["Top 5 matches"]
+                        RESULTS --> CONFIRM["User confirms selection"]
+                        CONFIRM --> LOOKUP{"ISRC exists locally?"}
+                        LOOKUP -->|"Yes"| REUSE["Return stored fingerprint"]
+                        LOOKUP -->|"No"| FETCH["Fetch 30s audio preview"]
+                        FETCH --> DSP["Extract 8 acoustic features"]
+                        DSP --> STORE["Store fingerprint + metadata"]
+                        STORE --> DONE[/"Fingerprint returned"/]
+                        REUSE --> DONE
+                </pre>
+            </div>
+
+            <h2>How It Works</h2>
+
+            <ol>
+                <li><strong>Search</strong> &mdash; Query the Deezer API, show top 5 matches.</li>
+                <li><strong>Confirm</strong> &mdash; Two-click selection (select + confirm).</li>
+                <li><strong>Dedup check</strong> &mdash; ISRC-based deduplication returns stored fingerprints instantly.</li>
+                <li><strong>Fetch &amp; DSP</strong> &mdash; 30-second preview &rarr; mono conversion &rarr; 8-feature extraction.</li>
+                <li><strong>Store</strong> &mdash; Fingerprint + metadata persisted to PostgreSQL.</li>
+            </ol>
+
+            <h2>Packages</h2>
+
+            <table>
+                <thead>
+                    <tr><th>Package</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="genreguru.html"><code>genreguru</code></a></td>
+                        <td>Core library: logging, errors, config, database, audio processing, Deezer integration.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru_web.html"><code>genreguru_web</code></a></td>
+                        <td>Django project root: settings, URL routing, WSGI/ASGI entry points.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="fingerprint_app.html"><code>fingerprint_app</code></a></td>
+                        <td>Django app: fingerprint search views, URL routes, admin integration.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h2>Core Library Modules</h2>
+
+            <table>
+                <thead>
+                    <tr><th>Module</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="genreguru/gglogging.html"><code>genreguru.gglogging</code></a></td>
+                        <td>Centralized logging: <code>QueueListener</code>, JSON formatter, lifecycle manager.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/errors.html"><code>genreguru.errors</code></a></td>
+                        <td>Domain exception hierarchy with structured <code>context()</code> for log enrichment.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/config.html"><code>genreguru.config</code></a></td>
+                        <td>Hydra config composition (Django-safe, cwd-independent).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/engine.html"><code>genreguru.db.engine</code></a></td>
+                        <td>SQLAlchemy engine creation and session-factory lifecycle.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/models.html"><code>genreguru.db.models</code></a></td>
+                        <td><code>Song</code> and <code>SongFingerprint</code> ORM models (PostgreSQL 18 <code>uuidv7()</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/base.html"><code>genreguru.db.base</code></a></td>
+                        <td>Declarative base, <code>TimestampedMixin</code>, <code>UuidMixin</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/init_db.html"><code>genreguru.db.init_db</code></a></td>
+                        <td>Idempotent table-creation entrypoint (<code>python -m genreguru.db.init_db</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/audio.html"><code>genreguru.audio</code></a></td>
+                        <td>Audio processing and feature extraction (planned).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/deezer.html"><code>genreguru.deezer</code></a></td>
+                        <td>Deezer API integration (planned).</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+    {% if search %}
+        {% include "search.html.jinja2" %}
+    {% endif %}
+{% endblock %}
