@@ -10,6 +10,15 @@ at the raise/catch boundary. Design authority:
 docs/001-song-fingerprint-engine/logging-report.md §T006 / §3.
 """
 
+__all__ = [
+    "GenreguruError",
+    "NetworkDisconnectedError",
+    "AudioProcessingError",
+    "TrackNotFoundError",
+    "MissingISRCError",
+    "PreviewUnavailableError",
+]
+
 
 class GenreguruError(Exception):
     """Base class for all GenreGuru domain errors.
