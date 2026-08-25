@@ -42,7 +42,7 @@ def engine(db_cfg):
     eng = create_engine(db_cfg)
 
     with eng.begin() as conn:
-        conn.execute(text(f"SET SEARCH_PATH TO {TEST_SCHEMA}, public"))
+        conn.execute(text(f"SET SEARCH_PATH TO {TEST_SCHEMA}"))
         conn.execute(DropSchema(TEST_SCHEMA, cascade=True, if_exists=True))
         conn.execute(CreateSchema(TEST_SCHEMA))
     try:

@@ -9,3 +9,4 @@ database: ${oc.env:DB_NAME, genreguru}
 pool_size: 5
 max_overflow: 10
 echo: false
+dry_run: false
