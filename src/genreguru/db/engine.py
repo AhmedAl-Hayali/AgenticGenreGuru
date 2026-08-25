@@ -21,6 +21,7 @@ __all__ = [
     "get_session_factory",
     "create_engine",
     "make_session_factory",
+    "make_scoped_session",
 ]
 
 import logging
@@ -31,7 +32,7 @@ from psycopg import Connection
 from sqlalchemy import URL, event
 from sqlalchemy import create_engine as _sa_create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.orm import Session, scoped_session, sessionmaker
 
 logger = logging.getLogger(__name__)
 
@@ -171,3 +172,17 @@ def make_session_factory(engine: Engine) -> sessionmaker[Session]:
         A configured `sessionmaker` bound to the engine.
     """
     return sessionmaker(bind=engine, expire_on_commit=False, autoflush=True)
+
+
+def make_scoped_session() -> scoped_session[Session]:
+    """Build an unbound scoped session with production-ready defaults.
+
+    Returns a `scoped_session` whose underlying `sessionmaker` shares
+    the same settings as `make_session_factory` (`expire_on_commit=False`,
+    `autoflush=True`) but is not yet bound to an engine.  Call
+    returned `scoped_session.configure(bind=engine)` before use.
+
+    Returns:
+        A `scoped_session` ready to be configured with an engine.
+    """
+    return scoped_session(sessionmaker(expire_on_commit=False, autoflush=True))

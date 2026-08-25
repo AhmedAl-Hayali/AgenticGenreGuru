@@ -1,8 +1,11 @@
 """Shared pytest fixtures.
 
-Provides session-scoped `db_cfg`, `engine`, `db_session`, and `django_client`.
+Provides session-scoped `db_cfg` and `engine`, and function-scoped
+`db_session`, `factory_session`, and `django_client`.
 Fixtures share module-level `get_config()` (lru-cached, env-frozen at first call).
 `db_session` uses SAVEPOINT isolation; no test data persists.
+`factory_session` configures the shared scoped session for FactoryBoy
+factories and removes it on teardown.
 """
 
 from collections.abc import Generator
@@ -12,7 +15,8 @@ from omegaconf import DictConfig
 from sqlalchemy import Engine
 
 from genreguru.config import get_config
-from genreguru.db.engine import SessionLocal, create_engine
+from genreguru.db.engine import create_engine, get_session_factory
+from tests.factories import sc_session
 
 
 @pytest.fixture(scope="session")
@@ -37,12 +41,32 @@ def db_session(engine):
     """Yield a SAVEPOINT-isolated session; commits never reach the database."""
     with engine.connect() as conn:
         transaction = conn.begin()
-        session = SessionLocal(bind=conn, join_transaction_mode="create_savepoint")
+        session_factory = get_session_factory()
+        session = session_factory(bind=conn, join_transaction_mode="create_savepoint")
         try:
             yield session
         finally:
-            session.close()
             transaction.rollback()
+            session.close()
+
+
+@pytest.fixture()
+def factory_session(engine):
+    """Configure the shared scoped session for this test; remove on teardown.
+
+    Request this fixture in any test that uses FactoryBoy factories:
+
+        def test_create_song(factory_session):
+            song = SongFactory.create()
+            assert song.id is not None
+
+    Not needed for tests that only use `db_session` directly.
+    """
+    sc_session.configure(bind=engine)
+
+    yield sc_session
+
+    sc_session.remove()
 
 
 @pytest.fixture()
