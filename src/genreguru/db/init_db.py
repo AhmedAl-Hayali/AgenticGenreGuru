@@ -28,6 +28,15 @@ Exit codes
 - 1: unrecoverable error (PG version, connection failure, DDL error).
 """
 
+__all__ = [
+    "MIN_PG_MAJOR",
+    "dry_run_ddl_gen",
+    "health_check",
+    "verify_pg_version",
+    "create_all_tables",
+    "main",
+]
+
 import logging
 import sys
 
@@ -48,7 +57,7 @@ MIN_PG_MAJOR = 18
 """Minimum PostgreSQL major version required (native `uuidv7()`)."""
 
 
-def _dry_run():
+def dry_run_ddl_gen():
     """Log the generated DDL without executing against the database.
 
     Useful for CI/CD pipelines that want to verify the schema before
@@ -144,7 +153,7 @@ def main(cfg: DictConfig) -> None:
             manager.setup(cfg.logging)
 
             if cfg.db.dry_run:
-                _dry_run()
+                dry_run_ddl_gen()
                 return
 
             engine = create_engine(cfg.db)

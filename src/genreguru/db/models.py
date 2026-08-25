@@ -9,6 +9,8 @@ logging-free (SRP): persistence logging lives in the repository layer
 and UUID primary keys.
 """
 
+__all__ = ["AudioFormat", "Song", "SongFingerprint"]
+
 import enum
 import uuid
 

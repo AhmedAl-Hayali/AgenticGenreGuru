@@ -1,5 +1,11 @@
 """SQLAlchemy declarative base for the GenreGuru core library."""
 
+__all__ = [
+    "Base",
+    "TimestampedMixin",
+    "UuidMixin",
+]
+
 import uuid
 from datetime import datetime
 
@@ -7,7 +13,7 @@ from sqlalchemy import DateTime, MetaData, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-constraint_naming_conventions = {
+_constraint_naming_conventions = {
     "ix": "ix_%(column_0_label)s",
     "uq": "uq_%(table_name)s_%(column_0_name)s",
     "ck": "ck_%(table_name)s_%(constraint_name)s",
@@ -24,7 +30,7 @@ class Base(DeclarativeBase):
     - Opt-in mixins: `TimestampedMixin` and `UuidMixin`.
     """
 
-    metadata = MetaData(naming_convention=constraint_naming_conventions)
+    metadata = MetaData(naming_convention=_constraint_naming_conventions)
 
 
 class TimestampedMixin:
