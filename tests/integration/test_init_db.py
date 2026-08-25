@@ -126,7 +126,7 @@ def test_schema_matches_data_model(engine, eng_inspector) -> None:
         assert fp_cols[metric].type == "double precision"
         assert fp_cols[metric].nullable is False
 
-    assert fp_cols["audio_format"].type == "varchar(10)"
+    assert fp_cols["audio_format"].type == "varchar(4)"
     assert fp_cols["sample_rate"].type == "integer"
 
     assert song_cols["id"].type == "uuid"
