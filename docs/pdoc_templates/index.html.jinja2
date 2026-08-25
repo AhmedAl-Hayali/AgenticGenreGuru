@@ -106,51 +106,6 @@
                 </tbody>
             </table>
 
-            <h2>Core Library Modules</h2>
-
-            <table>
-                <thead>
-                    <tr><th>Module</th><th>Purpose</th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><a href="genreguru/gglogging.html"><code>genreguru.gglogging</code></a></td>
-                        <td>Centralized logging: <code>QueueListener</code>, JSON formatter, lifecycle manager.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/errors.html"><code>genreguru.errors</code></a></td>
-                        <td>Domain exception hierarchy with structured <code>context()</code> for log enrichment.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/config.html"><code>genreguru.config</code></a></td>
-                        <td>Hydra config composition (Django-safe, cwd-independent).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/engine.html"><code>genreguru.db.engine</code></a></td>
-                        <td>SQLAlchemy engine creation and session-factory lifecycle.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/models.html"><code>genreguru.db.models</code></a></td>
-                        <td><code>Song</code> and <code>SongFingerprint</code> ORM models (PostgreSQL 18 <code>uuidv7()</code>).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/base.html"><code>genreguru.db.base</code></a></td>
-                        <td>Declarative base, <code>TimestampedMixin</code>, <code>UuidMixin</code>.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/init_db.html"><code>genreguru.db.init_db</code></a></td>
-                        <td>Idempotent table-creation entrypoint (<code>python -m genreguru.db.init_db</code>).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/audio.html"><code>genreguru.audio</code></a></td>
-                        <td>Audio processing and feature extraction (planned).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/deezer.html"><code>genreguru.deezer</code></a></td>
-                        <td>Deezer API integration (planned).</td>
-                    </tr>
-                </tbody>
-            </table>
         </section>
     </main>
     {% if search %}
