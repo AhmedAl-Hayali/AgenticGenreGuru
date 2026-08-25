@@ -52,7 +52,7 @@ def _dry_run():
     """Log the generated DDL without executing against the database.
 
     Useful for CI/CD pipelines that want to verify the schema before
-    applying it. Returns early after logging; does not create tables.
+    applying it.
     """
     logger.info("dry-run mode: logging generated DDL only")
 
@@ -62,6 +62,9 @@ def _dry_run():
 
 def health_check(engine: Engine):
     """Confirm the database connection is alive before any DDL.
+
+    Args:
+        engine: SQLAlchemy engine to probe.
 
     Raises via logger.exception if the connection cannot be established
     or the SELECT 1 query fails.
@@ -81,6 +84,9 @@ def _server_major(engine: Engine) -> int:
 
 def verify_pg_version(engine: Engine):
     """Fail-fast: verify the server is PostgreSQL 18+.
+
+    Args:
+        engine: SQLAlchemy engine whose server version to inspect.
 
     Raises RuntimeError if the server major version is older than PGSQL18.
     """
@@ -120,7 +126,7 @@ def main(cfg: DictConfig) -> None:
     """Compose config, claim logging, and create all tables.
 
     Workflow:
-    1. Initialise the :class:`LoggingManager` per the `logging` config group.
+    1. Initialise the `LoggingManager` per the `logging` config group.
     2. Log the generated DDL if `cfg.db.dry_run` is set, then exit
        successfully (exit code 0) without touching the database.
     3. Build the SQLAlchemy engine from the composed Hydra `db` group.

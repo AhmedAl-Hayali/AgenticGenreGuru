@@ -1,12 +1,9 @@
 """Database engine + session factory for the GenreGuru core library.
 
-Reads connection config from the Hydra `db` group via
-`genreguru/config.py`; the URL string is resolved from the composed config
-and may carry `${oc.env:...}` secrets.
-
-Programmatic URL generation is preferred: individual components (`dialect`,
-`driver`, `user`, `password`, `host`, `port`, `database`) are resolved from
-env vars with sensible defaults in `dev`.
+Accepts a `DictConfig` with individual components (`dialect`, `driver`,
+`user`, `password`, `host`, `port`, `database`) resolved from env vars
+by the Hydra config layer (config/db/*.yaml). May carry `${oc.env:...}`
+secrets in the composed config.
 
 Logging contract (docs/001-song-fingerprint-engine/logging-report.md §T007):
 - INFO once on engine init: host, database name, pool size, dialect —
@@ -54,7 +51,8 @@ def get_session_factory() -> sessionmaker[Session]:
 def _build_url(db_cfg: DictConfig) -> URL:
     """Build a SQLAlchemy URL from individual db config components.
 
-    Each component is resolved from environment variables with sensible defaults.
+    Each component is read from the composed config (resolved from env vars
+    in config/db/*.yaml).
 
     Args:
         db_cfg: The `db` group of the composed config.
@@ -93,9 +91,9 @@ def create_engine(db_cfg: DictConfig, **engine_kwargs) -> Engine:
     """Create a SQLAlchemy engine from the composed Hydra `db` group.
 
     Individual components (`dialect`, `driver`, `user`, `password`, `host`,
-    `port`, `database`, `pool_size`, `max_overflow`, `echo`) are resolved from
-    env vars with sensible defaults (see config/db/*.yaml). Rebinds the module-level
-    `SessionLocal` to the new engine.
+    `port`, `database`, `pool_size`, `max_overflow`, `echo`) are read from
+    the composed config (resolved from env vars in config/db/*.yaml).
+    Rebinds the module-level `SessionLocal` to the new engine.
 
     Args:
         db_cfg: The `db` group of the composed config (e.g. `cfg.db` from
