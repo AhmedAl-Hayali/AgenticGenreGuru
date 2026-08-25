@@ -5,7 +5,8 @@ Callers pass in the logging config (from Hydra or otherwise); this module
 owns `dictConfig`, the queue handler, and lifecycle — no config
 composition happens here.
 
-Public API::
+Public API
+----------
 
     # Long-lived process (Django boot, standalone CLI)
     manager = LoggingManager()
@@ -60,7 +61,6 @@ class JsonFormatter(logging.Formatter):
     }
 
     def __init__(self, fmt_keys: dict | None = None, *args, **kwargs) -> None:
-        """Initialize the formatter."""
         super().__init__(*args, **kwargs)
         self.fmt_keys = fmt_keys if fmt_keys is not None else self._DEFAULT_FMT_KEYS
 
@@ -118,7 +118,6 @@ class SafeRotatingFileHandler(RotatingFileHandler):
     """
 
     def __init__(self, filename: str | Path, *args, **kwargs) -> None:
-        """Initialize the handler, creating the parent directory if needed."""
         Path(filename).parent.mkdir(parents=True, exist_ok=True)
         super().__init__(filename, *args, **kwargs)
 
@@ -132,7 +131,6 @@ class RichStreamHandler(RichHandler):
     """
 
     def __init__(self, stream: IO | None = None, **kwargs) -> None:
-        """Initialize the handler with an explicit output stream."""
         console = Console(file=stream) if stream is not None else None
         super().__init__(console=console, **kwargs)
 
@@ -142,13 +140,12 @@ class LoggingManager:
 
     One active manager per process — `logging` root state is global, so
     instances are serialized owners; late starters defer and `teardown()`
-    removes only this instance's handler. Takes no constructor args; a
-    fresh instance activates on its first `setup()` call. Application
-    code uses `logging.getLogger` directly.
+    removes only this instance's handler. The constructor takes no
+    arguments; a fresh instance activates on its first `setup()` call.
+    Application code uses `logging.getLogger` directly.
     """
 
     def __init__(self) -> None:
-        """Initialize the LoggingManager."""
         self._listener: QueueListener | None = None
         self._handler: QueueHandler | None = None
 
@@ -161,7 +158,7 @@ class LoggingManager:
                 converted to a plain dict internally.
 
         Ownership is claimed under `_owner_lock`; the winner installs the
-        queue fan-out, losers return silently. On install failure the root
+        queue fan-out; queue losers return silently. On install failure the root
         is rolled back to its prior handlers and ownership is released.
         """
         global _owner
