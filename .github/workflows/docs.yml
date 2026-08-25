@@ -45,7 +45,7 @@ jobs:
         run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/frontend" >> $GITHUB_ENV
 
       - name: build docs
-        run: uv run pdoc -o docs/pdoc/ -d google --mermaid ./frontend/fingerprint_app/ ./frontend/genreguru_web/ ./src/genreguru/
+        run: uv run pdoc -o docs/pdoc/ -d google --mermaid ./src/genreguru/ ./frontend/genreguru_web/ ./frontend/fingerprint_app/
 
       - uses: actions/upload-pages-artifact@v4
         with:
