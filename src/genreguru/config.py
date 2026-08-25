@@ -1,5 +1,7 @@
 """Hydra configuration compose helper for the Django path."""
 
+__all__ = ["CONFIG_DIR", "get_config"]
+
 import os
 from functools import lru_cache
 from pathlib import Path
