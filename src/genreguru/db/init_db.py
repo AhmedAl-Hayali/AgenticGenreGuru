@@ -1,9 +1,10 @@
 """Table-creation entrypoint: `python -m genreguru.db.init_db`.
 
-Creates all tables declared on the SQLAlchemy `Base` against the active
-Hydra `db` group. Safe to rerun without error (idempotent). Fail-fast on
-servers older than PostgreSQL 18, whose native `uuidv7()` the data model
-depends on (data-model.md — IDs are generated server-side by `uuidv7()`).
+Creates all tables declared on the SQLAlchemy [`DeclarativeBase`](https://docs.sqlalchemy.org/en/20/orm/mapping_api.html#sqlalchemy.orm.DeclarativeBase)
+against the active Hydra `db` group. Safe to rerun without error (idempotent).
+Fail-fast on servers older than PostgreSQL 18, whose native [`uuidv7()`](https://www.postgresql.org/docs/current/functions-uuid.html)
+the data model depends on ([`data-model.md`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/specs/001-song-fingerprint-engine/data-model.md)
+— IDs are generated server-side by `uuidv7()`).
 
 Prerequisites
 -------------
@@ -14,7 +15,7 @@ Prerequisites
 Usage
 -----
 - `python -m genreguru.db.init_db` — create tables (idempotent).
-- `create_all_tables(engine)` — programmatic entry point.
+- `.create_all_tables(engine)` — programmatic entry point.
 
 Logging contract (docs/001-song-fingerprint-engine/logging-report.md §T010):
 - INFO: table-creation start, completion (with table count),
@@ -112,7 +113,7 @@ def verify_pg_version(engine: Engine):
 
 
 def create_all_tables(engine: Engine):
-    """Create every table on `Base` if they do not already exist.
+    """Create every table on `.base.Base` if they do not already exist.
 
     Idempotent: `Base.metadata.create_all` does not raise if tables
     already exist; it is a no-op for those tables.
@@ -135,10 +136,11 @@ def main(cfg: DictConfig) -> None:
     """Compose config, claim logging, and create all tables.
 
     Workflow:
-    1. Initialise the `LoggingManager` per the `logging` config group.
+    1. Initialise the `..gglogging.LoggingManager` per the `logging` config group.
     2. Log the generated DDL if `cfg.db.dry_run` is set, then exit
        successfully (exit code 0) without touching the database.
-    3. Build the SQLAlchemy engine from the composed Hydra `db` group.
+    3. Build the SQLAlchemy engine from the composed Hydra `db` group
+       via `.engine.create_engine`.
     4. Run a connection health‑check.
     5. Fail‑fast if the PostgreSQL server major version is < 18.
     6. Idempotently create any missing tables.

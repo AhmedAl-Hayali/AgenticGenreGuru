@@ -6,10 +6,12 @@ fingerprint vector in PostgreSQL. Query stored fingerprints by cosine
 similarity to find sonically similar tracks.
 
 This package provides the standalone core library. It is **silent by
-default** — a `NullHandler` is attached at import time. Logging is
-activated by the application (Django or CLI) via `LoggingManager.setup()`.
+default** — a [`NullHandler`](https://docs.python.org/3/library/logging.handlers.html#logging.NullHandler)
+is attached at import time. Logging is
+activated by the application (Django or CLI) via
+`genreguru.gglogging.LoggingManager.setup()`.
 
-Design authority: `docs/001-song-fingerprint-engine/logging-report.md`.
+Design authority: [`docs/001-song-fingerprint-engine/logging-report.md`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/docs/001-song-fingerprint-engine/logging-report.md).
 """
 
 __docformat__ = "google"

@@ -1,10 +1,11 @@
 """Shared, environment-agnostic Django settings.
 
 Values that vary between environments come from the Hydra `django` config
-group (`config/django/{dev,prod}.yaml`) via `genreguru.config`. The DB
-connection comes from the Hydra `db` group (`cfg.db.url`) so Django and the
-core library share one connection source. `development.py`, `production.py`,
-and `test.py` import these and override only what differs.
+group ([`config/django/*.yaml`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/tree/main/config/django))
+via `genreguru.config`. The DB connection comes from the Hydra `db` group
+(`cfg.db.*`) so Django and the core library share one connection source.
+`.development`, `.production`, and `.test` import these and override
+only what differs.
 """
 
 from pathlib import Path

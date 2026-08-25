@@ -16,16 +16,18 @@ CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "config"
 def get_config(overrides: tuple[str, ...] | None = None) -> DictConfig:
     """Compose the active Hydra config via the compose API (Django-safe).
 
-    `@hydra.main` is unsuitable for the Django path because it hijacks
-    `argv` and changes the working directory; `initialize_config_dir`
+    [`@hydra.main`](https://hydra.cc/docs/intro/#basic-example)
+    is unsuitable for the Django path because it hijacks
+    `argv` and changes the working directory; [`initialize_config_dir`](https://hydra.cc/docs/advanced/compose_api/#initialization-methods)
     accepts an absolute config path so behavior is cwd-independent.
 
     The active environment (`GENREGURU_ENV`, default `dev`) selects the
     `logging`, `db`, and `django` config groups; the Django settings
-    entry point (`development.py`/`production.py`/`test.py`) sets
-    `GENREGURU_ENV` before importing the shared `base` settings. Extra
-    overrides (e.g. `features=all`) can be passed per caller. Secrets in the
-    YAML resolve via OmegaConf's native `${oc.env:...}` resolver.
+    entry point (`genreguru_web.settings.development`/
+    `genreguru_web.settings.production`/`genreguru_web.settings.test`) sets
+    `GENREGURU_ENV` before importing the shared `genreguru_web.settings.base`
+    settings. Extra overrides (e.g. `features=all`) can be passed per caller.
+    Secrets in the YAML resolve via [OmegaConf's native `${oc.env:...}` resolver](https://omegaconf.readthedocs.io/en/latest/custom_resolvers.html#oc-env).
 
     Args:
         overrides: Optional additional Hydra override strings.

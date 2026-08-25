@@ -2,12 +2,13 @@
 
 Each exception carries machine-readable attributes (`isrc`, `deezer_id`,
 `code`, `attempts`) so catch sites can populate structured log context via
-the fingerprint adapter (see `genreguru/gglogging.py`) without string
+the fingerprint adapter (see `genreguru.gglogging`) without string
 parsing.
 
 No `logging` calls are made inside exception classes (SRP); logging happens
 at the raise/catch boundary. Design authority:
-docs/001-song-fingerprint-engine/logging-report.md §T006 / §3.
+[`docs/001-song-fingerprint-engine/logging-report.md`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/docs/001-song-fingerprint-engine/logging-report.md)
+§3.
 """
 
 __all__ = [
@@ -21,13 +22,20 @@ __all__ = [
 
 
 class GenreguruError(Exception):
-    """Base class for all GenreGuru domain errors.
+    """Base class for all domain errors.
 
     Args:
         isrc: International Standard Recording Code, when known.
         deezer_id: Deezer track ID, when known.
         code: Machine-readable error code (e.g. a Deezer API error code).
         attempts: Number of attempts made (network retry paths).
+
+    Subclasses:
+        - `NetworkDisconnectedError`;
+        - `AudioProcessingError`;
+        - `TrackNotFoundError`;
+        - `MissingISRCError`;
+        - `PreviewUnavailableError`.
     """
 
     def __init__(

@@ -1,0 +1,128 @@
+{% extends "default/module.html.jinja2" %}
+
+{% block module_info %}
+    <section class="module-info">
+        {% block edit_button %}
+            {{ super() }}
+        {% endblock %}
+        {{ module_name() }}
+        {{ docstring(module) }}
+
+        {% if module.modulename == "genreguru" %}
+            <h2>Modules</h2>
+            <table>
+                <thead>
+                    <tr><th>Module</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="genreguru/audio.html"><code>genreguru.audio</code></a></td>
+                        <td>Audio processing and feature extraction (planned).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/config.html"><code>genreguru.config</code></a></td>
+                        <td>Hydra config composition (Django-safe, cwd-independent).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/base.html"><code>genreguru.db.base</code></a></td>
+                        <td>Declarative base, <code>TimestampedMixin</code>, <code>UuidMixin</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/engine.html"><code>genreguru.db.engine</code></a></td>
+                        <td>SQLAlchemy engine creation and session-factory lifecycle.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/init_db.html"><code>genreguru.db.init_db</code></a></td>
+                        <td>Idempotent table-creation entrypoint (<code>python -m genreguru.db.init_db</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/db/models.html"><code>genreguru.db.models</code></a></td>
+                        <td><code>Song</code> and <code>SongFingerprint</code> ORM models (PostgreSQL 18 <code>uuidv7()</code>).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/deezer.html"><code>genreguru.deezer</code></a></td>
+                        <td>Deezer API integration (planned).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/errors.html"><code>genreguru.errors</code></a></td>
+                        <td>Domain exception hierarchy with structured <code>context()</code> for log enrichment.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru/gglogging.html"><code>genreguru.gglogging</code></a></td>
+                        <td>Centralized logging: <code>LoggingManager</code>, <code>JsonFormatter</code>, <code>FingerprintContextAdapter</code>.</td>
+                    </tr>
+                </tbody>
+            </table>
+        {% elif module.modulename == "genreguru_web" %}
+            <h2>Modules</h2>
+            <table>
+                <thead>
+                    <tr><th>Module</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="genreguru_web/asgi.html"><code>genreguru_web.asgi</code></a></td>
+                        <td>ASGI entry point for async server deployment.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru_web/settings/development.html"><code>genreguru_web.settings.development</code></a></td>
+                        <td>Local development settings (default).</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru_web/settings/production.html"><code>genreguru_web.settings.production</code></a></td>
+                        <td>Deployed environment settings.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru_web/settings/test.html"><code>genreguru_web.settings.test</code></a></td>
+                        <td>CI and test runner settings.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru_web/urls.html"><code>genreguru_web.urls</code></a></td>
+                        <td>Root URL configuration.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="genreguru_web/wsgi.html"><code>genreguru_web.wsgi</code></a></td>
+                        <td>WSGI entry point for sync server deployment.</td>
+                    </tr>
+                </tbody>
+            </table>
+        {% elif module.modulename == "fingerprint_app" %}
+            <h2>Modules</h2>
+            <table>
+                <thead>
+                    <tr><th>Module</th><th>Purpose</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><a href="fingerprint_app/admin.html"><code>fingerprint_app.admin</code></a></td>
+                        <td>Django admin configuration for fingerprint models.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="fingerprint_app/apps.html"><code>fingerprint_app.apps</code></a></td>
+                        <td>Django app configuration.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="fingerprint_app/migrations.html"><code>fingerprint_app.migrations</code></a></td>
+                        <td>Database migration history.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="fingerprint_app/models.html"><code>fingerprint_app.models</code></a></td>
+                        <td>Fingerprint models for Django ORM integration.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="fingerprint_app/urls.html"><code>fingerprint_app.urls</code></a></td>
+                        <td>App-level URL routing.</td>
+                    </tr>
+                    <tr>
+                        <td><a href="fingerprint_app/views.html"><code>fingerprint_app.views</code></a></td>
+                        <td>Fingerprint search views and API endpoints.</td>
+                    </tr>
+                </tbody>
+            </table>
+        {% endif %}
+
+        {{ view_source_state(module) }}
+        {{ view_source_button(module) }}
+        {{ view_source_code(module) }}
+    </section>
+{% endblock %}

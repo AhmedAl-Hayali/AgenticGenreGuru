@@ -1,12 +1,11 @@
 """SQLAlchemy models for Song and SongFingerprint.
 
-Schema authority: specs/001-song-fingerprint-engine/data-model.md.
+Schema authority: [`data-model.md`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/specs/001-song-fingerprint-engine/data-model.md).
 
 Both tables use native PostgreSQL `uuidv7()` as the column default
 (PostgreSQL 18+), with no application-layer fallback. Models are kept
-logging-free (SRP): persistence logging lives in the repository layer
-(task T024). Mixins from `genreguru.db.base` provide audit columns
-and UUID primary keys.
+logging-free (SRP): persistence logging lives in the repository layer.
+Mixins from `..db.base` provide audit columns and UUID primary keys.
 """
 
 __all__ = ["AudioFormat", "Song", "SongFingerprint"]

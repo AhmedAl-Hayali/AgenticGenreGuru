@@ -1,11 +1,13 @@
 """Database engine + session factory for the GenreGuru core library.
 
-Accepts a `DictConfig` with individual components (`dialect`, `driver`,
-`user`, `password`, `host`, `port`, `database`) resolved from env vars
-by the Hydra config layer (config/db/*.yaml). May carry `${oc.env:...}`
-secrets in the composed config.
+Accepts a [`DictConfig`](https://github.com/omry/omegaconf/blob/main/omegaconf/dictconfig.py)
+with individual components (`dialect`, `driver`, `user`, `password`,
+`host`, `port`, `database`) resolved from env vars by the Hydra config
+layer [`config/db/*.yaml`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/tree/main/config/db).
+May carry `${oc.env:...}` secrets in the composed config.
 
-Logging contract (docs/001-song-fingerprint-engine/logging-report.md §T007):
+Logging contract ([`docs/001-song-fingerprint-engine/logging-report.md`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/docs/001-song-fingerprint-engine/logging-report.md)
+§3):
 - INFO once on engine init: host, database name, pool size, dialect —
   never the password.
 - DEBUG on pool connect/checkout/checkin events (DBAPI connection
@@ -36,7 +38,7 @@ logger = logging.getLogger(__name__)
 SessionLocal: sessionmaker[Session] = sessionmaker()
 """Default session factory; rebound by `create_engine`.
 
-Access as a module attribute (`genreguru.db.engine.SessionLocal`) or via
+Access as a module attribute, `SessionLocal`, or via
 `get_session_factory()`. A direct `from genreguru.db.engine import
 SessionLocal` executed before `create_engine()` captures the unbound
 factory and never sees the rebind.
@@ -99,7 +101,8 @@ def create_engine(db_cfg: DictConfig, **engine_kwargs) -> Engine:
         db_cfg: The `db` group of the composed config (e.g. `cfg.db` from
             `genreguru.config.get_config()`).
         **engine_kwargs: Extra kwargs forwarded verbatim to
-            `sqlalchemy.create_engine` (e.g. `connect_args`).
+            [`sqlalchemy.create_engine`](https://docs.sqlalchemy.org/en/20/core/engines.html#sqlalchemy%2Ecreate_engine)
+            (e.g. `connect_args`).
 
     Returns:
         A configured SQLAlchemy engine backed by the configured driver.
@@ -167,7 +170,8 @@ def make_session_factory(engine: Engine) -> sessionmaker[Session]:
         engine: Engine produced by `create_engine`.
 
     Returns:
-        A configured `sessionmaker` bound to the engine.
+        A configured [`sessionmaker`](https://docs.sqlalchemy.org/en/20/orm/session_api.html#sqlalchemy.orm.sessionmaker)
+        bound to the engine.
     """
     return sessionmaker(bind=engine, expire_on_commit=False, autoflush=True)
 
@@ -175,10 +179,11 @@ def make_session_factory(engine: Engine) -> sessionmaker[Session]:
 def make_scoped_session() -> scoped_session[Session]:
     """Build an unbound scoped session with production-ready defaults.
 
-    Returns a `scoped_session` whose underlying `sessionmaker` shares
-    the same settings as `make_session_factory` (`expire_on_commit=False`,
-    `autoflush=True`) but is not yet bound to an engine.  Call
-    returned `scoped_session.configure(bind=engine)` before use.
+    Returns a [`scoped_session`](https://docs.sqlalchemy.org/en/20/orm/contextual.html#sqlalchemy.orm.scoped_session)
+    whose underlying `sessionmaker` shares the same settings as
+    `make_session_factory` (`expire_on_commit=False`, `autoflush=True`) but is not yet bound to
+    an engine.  Call [`scoped_session.configure(bind=engine)`](https://docs.sqlalchemy.org/en/20/orm/contextual.html#sqlalchemy.orm.scoped_session.configure)
+    before use.
 
     Returns:
         A `scoped_session` ready to be configured with an engine.

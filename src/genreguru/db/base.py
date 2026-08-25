@@ -23,7 +23,7 @@ _constraint_naming_conventions = {
 
 
 class Base(DeclarativeBase):
-    """Shared declarative base for all `genreguru` ORM models.
+    """Shared declarative base for all ORM models.
 
     Provides:
     - Consistent naming conventions for constraints (ix, uq, fk, pk).
@@ -36,7 +36,7 @@ class Base(DeclarativeBase):
 class TimestampedMixin:
     """Mixin that adds `created_at` / `updated_at` audit columns.
 
-    Models that inherit this will automatically get:
+    Models that inherit this (e.g. `.models.Song`) will automatically get:
     - `created_at`: server_default=func.now() on insert.
     - `updated_at`: server_default=func.now() on insert & update.
     """
@@ -56,7 +56,7 @@ class UuidMixin:
     """Mixin that provides a UUID primary key.
 
     Sets `id` to a UUID column with server-side `uuidv7()`. Models
-    that use this mixin should NOT define their own `id` column.
+    that use this (e.g. `.models.Song`) should NOT define their own `id` column.
     """
 
     id: Mapped[uuid.UUID] = mapped_column(

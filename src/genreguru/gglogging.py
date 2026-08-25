@@ -1,27 +1,28 @@
 """Configure centralized logging for `genreguru`.
 
-Design authority: docs/001-song-fingerprint-engine/logging-report.md.
+Design authority: [`docs/001-song-fingerprint-engine/logging-report.md`](https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/docs/001-song-fingerprint-engine/logging-report.md).
 Callers pass in the logging config (from Hydra or otherwise); this module
 owns `dictConfig`, the queue handler, and lifecycle — no config
 composition happens here.
 
 Public API
 ----------
+```py
+# Long-lived process (Django boot, standalone CLI)
+manager = LoggingManager()
+manager.setup(log_cfg)
 
-    # Long-lived process (Django boot, standalone CLI)
-    manager = LoggingManager()
-    manager.setup(log_cfg)
-
-    # Short-lived scripts / test fixtures (teardown automatic on exit)
-    with LoggingManager() as manager:
-        manager.setup(log_cfg)
-        ...
-
-    # Full control (tests, serialized lifecycle)
-    manager = LoggingManager()
+# Short-lived scripts / test fixtures (teardown automatic on exit)
+with LoggingManager() as manager:
     manager.setup(log_cfg)
     ...
-    manager.teardown()
+
+# Full control (tests, serialized lifecycle)
+manager = LoggingManager()
+manager.setup(log_cfg)
+...
+manager.teardown()
+```
 """
 
 __all__ = [
@@ -146,13 +147,13 @@ class RichStreamHandler(RichHandler):
 
 
 class LoggingManager:
-    """Own the `QueueListener` lifecycle and root-handler fan-out.
+    """Own the QueueListener lifecycle and root-handler fan-out.
 
     One active manager per process — `logging` root state is global, so
-    instances are serialized owners; late starters defer and `teardown()`
-    removes only this instance's handler. The constructor takes no
-    arguments; a fresh instance activates on its first `setup()` call.
-    Application code uses `logging.getLogger` directly.
+    instances are serialized owners; late starters defer and
+    `teardown()` removes only this instance's handler. The constructor
+    takes no arguments; a fresh instance activates on its first
+    `setup()` call. Application code uses `logging.getLogger` directly.
     """
 
     def __init__(self) -> None:
@@ -249,7 +250,12 @@ class LoggingManager:
 
 
 class FingerprintContextAdapter(logging.LoggerAdapter):
-    """Inject isrc/deezer_id/song_id/reused context via `extra`."""
+    """Inject isrc/deezer_id/song_id/reused context via `extra`.
+
+    See Also:
+        `log_fingerprint_outcome()` for the convenience function that
+        uses this adapter.
+    """
 
     def process(self, msg: str, kwargs: dict[str, Any]) -> tuple[str, dict[str, Any]]:  # ty: ignore[invalid-method-override]
         """Inject context fields into the log record extra dict.
@@ -274,6 +280,9 @@ def log_fingerprint_outcome(
     target: logging.Logger | None = None,
 ) -> None:
     """Emit the reused/fresh fingerprint INFO record with context fields.
+
+    Convenience wrapper that emits a structured log line consumable by
+    `FingerprintContextAdapter` and `JsonFormatter`.
 
     Args:
         isrc: International Standard Recording Code.
