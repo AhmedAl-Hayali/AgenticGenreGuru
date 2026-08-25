@@ -42,10 +42,10 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Append to PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/frontend" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src:$GITHUB_WORKSPACE/frontend" >> $GITHUB_ENV
 
       - name: build docs
-        run: uv run pdoc -o docs/pdoc/ -d google --mermaid ./src/genreguru/ ./frontend/genreguru_web/ ./frontend/fingerprint_app/
+        run: uv run pdoc -o docs/pdoc/ -d google --mermaid -t docs/pdoc_templates genreguru genreguru_web fingerprint_app
 
       - uses: actions/upload-pages-artifact@v4
         with:
