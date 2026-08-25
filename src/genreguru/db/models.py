@@ -13,17 +13,10 @@ __all__ = ["AudioFormat", "Song", "SongFingerprint"]
 import enum
 import uuid
 
-from sqlalchemy import (
-    Float,
-    ForeignKey,
-    Integer,
-    String,
-    Text,
-    UniqueConstraint,
-    text,
-)
+from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm.session import Session
 
 from genreguru.db.base import Base, TimestampedMixin, UuidMixin
 
@@ -67,6 +60,11 @@ class Song(Base, TimestampedMixin, UuidMixin):
         back_populates="song", uselist=False, cascade="all, delete-orphan"
     )
 
+    @classmethod
+    def find_by_isrc(cls, session: Session, isrc: str) -> Song | None:
+        """Return the Song matching *isrc*, or `None`."""
+        return session.query(cls).filter(cls.isrc == isrc).first()
+
     def __repr__(self) -> str:
         """Return a string representation of the Song instance."""
         return f"<Song id={self.id} title={self.title!r} artist={self.artist!r}>"
@@ -97,6 +95,18 @@ class SongFingerprint(Base, TimestampedMixin, UuidMixin):
     )
 
     song: Mapped[Song] = relationship(back_populates="fingerprint")
+
+    @classmethod
+    def latest_for_song(
+        cls, session: Session, song_id: uuid.UUID
+    ) -> SongFingerprint | None:
+        """Return the most recent fingerprint for *song_id*, or `None`."""
+        return (
+            session.query(cls)
+            .filter(cls.song_id == song_id)
+            .order_by(cls.updated_at.desc())
+            .first()
+        )
 
     def __repr__(self) -> str:
         """Return a string representation of the SongFingerprint instance."""
