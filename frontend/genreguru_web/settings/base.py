@@ -36,7 +36,7 @@ def _databases_from_components(
     """Build the Django `DATABASES` dict from individual db config components.
 
     Reads `dialect`, `driver`, `user`, `password`, `host`, `port`,
-    `database` from ``cfg.db``.
+    `database` from `cfg.db`.
     """
     return {
         "default": {
