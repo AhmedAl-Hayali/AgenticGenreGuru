@@ -1,7 +1,7 @@
-"""FactoryBoy factories for the database models (T013).
+"""FactoryBoy factories for the database models.
 
 Provide realistic `Song` and `SongFingerprint` instances for tests without
-hard-coding fixture data; used by repository/service tests (T024 onward).
+hard-coding fixture data; used by repository/service tests.
 UUIDv7 ids are generated server-side by the `uuidv7()` default, so
 factories leave `id` unset unless a caller overrides it. Audit columns
 `created_at` / `updated_at` are also server-defaulted (`func.now()`)

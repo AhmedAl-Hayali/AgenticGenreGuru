@@ -1,4 +1,4 @@
-"""Unit tests for mono downmix loader + 8-feature extraction (T014).
+"""Unit tests for mono downmix loader + 8-feature extraction.
 
 Covers all 8 DSP feature extraction functions plus their arithmetic-mean
 collapse to scalars, with a silent/nonmusical input edge case (REQ-016).
@@ -7,7 +7,7 @@ collapse to scalars, with a silent/nonmusical input edge case (REQ-016).
 scalar layer (the current production consumption point); raw-array tests are
 outlined in phase_3_notes.md.
 
-Tests import from `genreguru.audio.feature_extract` (T021) and use numpy arrays
+Tests import from `genreguru.audio.feature_extract` and use numpy arrays
 as synthetic audio — no real audio files required (unit scope).
 """
 
