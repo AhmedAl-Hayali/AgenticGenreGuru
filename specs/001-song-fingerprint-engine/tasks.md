@@ -67,7 +67,7 @@
 
 ### Tests for User Story 1 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
 
-- [ ] T014 \[P\] \[US1\] Unit tests for mono downmix loader + 8-feature extraction with arithmetic-mean collapse in `tests/unit/test_audio_features.py`; include a silent/non-musical input case asserting a valid zero/low-energy feature vector is produced without pipeline failure (spec edge case "Silent or Non-Musical Content")
+- [x] T014 \[P\] \[US1\] Unit tests for mono downmix loader + 8-feature extraction with arithmetic-mean collapse in `tests/unit/test_audio_features.py`; include a silent/nonmusical input case asserting a valid zero/low-energy feature vector is produced without pipeline failure (spec edge case "Silent or Non-Musical Content")
 - [ ] T015 \[P\] \[US1\] Unit tests for Deezer search client (field mapping, missing `isrc` → `MissingISRCError`, empty `preview` → `PreviewUnavailableError`, error-code mapping per `contracts/deezer-api.md` incl. QUOTA(4)/SERVICE_BUSY(700) retry classification) in `tests/unit/test_deezer_client.py`
 - [ ] T016 \[P\] \[US1\] Integration test for snippet-fetch retry (3 attempts, 5s delay, `NetworkDisconnectedError`) in `tests/integration/test_deezer_retry.py`
 - [ ] T017 \[P\] \[US1\] Integration test for `SongRepository` dedup-by-ISRC persistence (fresh insert vs reuse) in `tests/integration/test_repositories.py`
