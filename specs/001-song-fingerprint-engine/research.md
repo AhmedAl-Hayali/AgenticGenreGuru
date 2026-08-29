@@ -15,8 +15,10 @@
 
 - **Target Runtime**: Python 3.14 (in accordance with `pyproject.toml`).
 - **Decision**: Extract `spectral_centroid` (`librosa.feature.spectral_centroid`), `rms` (`librosa.feature.rms`), `spectral_bandwidth` (`librosa.feature.spectral_bandwidth`), `spectral_contrast` (`librosa.feature.spectral_contrast`), `spectral_flatness` (`librosa.feature.spectral_flatness`), `spectral_rolloff` (`librosa.feature.spectral_rolloff`), `zero_crossing_rate` (`librosa.feature.zero_crossing_rate`), and `mfcc` (`librosa.feature.mfcc`) using `librosa`, array operations in `numpy`, and signal filtering in `scipy`.
-- **Downsampling & Temporal Strategy**: For V1, collapse each feature's temporal frame vector into a single scalar summary value (downsampling the feature space to manageable scalar dimensions). Future program editions may retain temporal frame sequences (less downsampling) for time-series analysis.
+- **Downsampling & Temporal Strategy**: For V1, collapse each feature's temporal frame vector into a single scalar summary value (downsampling the feature space to manageable scalar dimensions). Future program editions may retain temporal frame sequences (less downsampling) for time-series analysis (e.g., MFCC frames as many `n_mfcc` scalars).
 - **Rationale**: `librosa` is the standard Python audio analysis library built on `numpy` and `scipy`, supporting MP3, WAV, and FLAC decoding via `soundfile` / `audioread` (`librosa` dependencies).
+- **Flatness rationale**: `spectral_flatness` (geometric/arithmetic-mean ratio of magnitude spectrum, [0,1]: ~0 tonal, ~1 noise) captures the noise-vs-tonality axis, not cleanly separated by other features. Partially overlaps `spectral_contrast`; kept for V1 as cheap/discriminating. Follow-up: T056 (collinearity check).
+- **Rolloff note**: `spectral_rolloff` = frequency below which `roll_percent` (default 0.85) of frame energy lies. High percents → near-upper energy cutoff; low percents → lower-edge/brightness. V1 persists a single 0.85 scalar. Follow-up: T057 (multi-percent sensitivity).
 - **Alternatives Considered**: `pyAudioAnalysis` (less active maintenance), raw `scipy.io.wavfile` (lacks MP3/FLAC out-of-the-box support).
 
 ### 3. Database Interfacing & Storage (SQLAlchemy + PostgreSQL)

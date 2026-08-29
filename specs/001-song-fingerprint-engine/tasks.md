@@ -68,7 +68,7 @@
 ### Tests for User Story 1 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
 
 - [x] T014 \[P\] \[US1\] Unit tests for mono downmix loader + 8-feature extraction with arithmetic-mean collapse in `tests/unit/test_audio_features.py`; include a silent/nonmusical input case asserting a valid zero/low-energy feature vector is produced without pipeline failure (spec edge case "Silent or Non-Musical Content")
-- [ ] T015 \[P\] \[US1\] Unit tests for Deezer search client (field mapping, missing `isrc` → `MissingISRCError`, empty `preview` → `PreviewUnavailableError`, error-code mapping per `contracts/deezer-api.md` incl. QUOTA(4)/SERVICE_BUSY(700) retry classification) in `tests/unit/test_deezer_client.py`
+- [x] T015 \[P\] \[US1\] Unit tests for Deezer search client (field mapping, missing `isrc` → `MissingISRCError`, empty `preview` → `PreviewUnavailableError`, error-code mapping per `contracts/deezer-api.md` incl. QUOTA(4)/SERVICE_BUSY(700) retry classification) in `tests/unit/test_deezer_client.py`
 - [ ] T016 \[P\] \[US1\] Integration test for snippet-fetch retry (3 attempts, 5s delay, `NetworkDisconnectedError`) in `tests/integration/test_deezer_retry.py`
 - [ ] T017 \[P\] \[US1\] Integration test for `SongRepository` dedup-by-ISRC persistence (fresh insert vs reuse) in `tests/integration/test_repositories.py`
 - [ ] T018 \[P\] \[US1\] Contract test for `GET /api/search/` (top-5, 404 `TrackNotFoundError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_search_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
@@ -77,7 +77,7 @@
 ### Implementation for User Story 1
 
 - [ ] T020 \[P\] \[US1\] Implement audio snippet loader with mono downmix (mean of channels) in `genreguru/audio/loader.py`; module logger: DEBUG source/sample_rate/channels/duration/format + mono-downmix, ERROR `logger.exception` → `AudioProcessingError` (REQ-015 message), lazy `%s` args, never log binary buffer; validate format (MP3/WAV/FLAC accepted per REQ-004, unsupported format → error before DSP processing)
-- [ ] T021 \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) with arithmetic-mean collapse to scalars in `genreguru/audio/features.py`; module logger: DEBUG frame shape + per-feature collapse mean, WARNING/INFO on zero/low-energy frames (silent-non-musical edge case), INFO extraction complete + elapsed (SC-002)
+- [ ] T021 \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) returning raw per-frame ndarrays in `genreguru/audio/feature_extract.py` + arithmetic-mean collapse to scalars in `genreguru/audio/feature_collapse.py`; module logging: feature_extract WARNING/INFO on zero/low-energy frames (silent-non-musical edge case) + INFO extraction complete + elapsed (SC-002), feature_collapse DEBUG per-feature collapse mean
 - [ ] T022 \[P\] \[US1\] Implement Deezer search client in `genreguru/deezer/client.py` (`GET https://api.deezer.com/search?q={query}&limit=5`, Track field mapping, fail-loud on missing `isrc`/`preview`, error-code mapping per `contracts/deezer-api.md`); module logger: INFO request query+limit=5 and response `total`, DEBUG counts only (no payload dumps), WARNING on `QUOTA`(4)/`SERVICE_BUSY`(700) before retry, ERROR `logger.exception` on missing `isrc` → `MissingISRCError` and empty `preview` → `PreviewUnavailableError` with `extra={isrc, deezer_id}`
 - [ ] T023 \[P\] \[US1\] Implement audio snippet fetcher with 3x retry / 5s delay (`NetworkDisconnectedError` on all-fail) in `genreguru/deezer/snippets.py`; module logger: INFO fetch start/success (bytes, elapsed), WARNING per retry (`attempt=%d delay=%ds`), ERROR+`logger.exception` → `NetworkDisconnectedError` after 3rd fail (REQ-013/014), never log bytes
 - [ ] T024 \[P\] \[US1\] Implement `SongRepository` with `find_by_isrc()` + `create_song_and_fingerprint()` in `genreguru/db/repositories.py`; module logger: INFO `isrc` lookup hit/miss, INFO insert (`song_id`/`isrc`/`deezer_id`), WARNING on concurrent same-`isrc` unique violation (api_flow §3.2)
@@ -183,6 +183,8 @@
 - [ ] T053 \[P\] Validate quickstart.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus — captured as a versioned snapshot fixture rather than live network calls), SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors), and SC-004 (users can initiate a run and confirm a top-5 match)
 - [ ] T054 \[P\] Update `docs/001-song-fingerprint-engine/` with implementation notes and any contract deviations
 - [ ] T055 \[P\] Add soft-delete flag (`deleted_at`) to `TimestampedMixin` in `genreguru/db/base.py`; add `deleted_at` index to both models; add `active` query property on `Song`/`SongFingerprint` that filters `WHERE deleted_at IS NULL`; update repository methods (T024, T033) to use the active scope by default
+- [ ] T056 \[P\] Review `spectral_flatness` / `spectral_contrast` collinearity across a music corpus (cross-ref: `research.md` §2 flatness rationale). Both summarize spectral peakedness; if fingerprint dimensionality/precision becomes a concern (e.g. US4 recommendation cosine similarity), confirm whether to keep both or fold one out. No change expected for V1 8-feature fingerprint — documentation/analysis task only
+- [ ] T057 \[P\] Investigate `spectral_rolloff` sensitivity to the `roll_percent` parameter (cross-ref: `research.md` §2 rolloff note). V1 uses librosa's default 0.85 (85%); on a music corpus, analyze how the collapsed rolloff scalar changes at higher percents (0.9, 0.95, 0.99) and lower percents (0.01, 0.05, 0.1). Confirm whether a single 0.85 scalar suffices for fingerprint discrimination or whether a multi-percent rolloff set adds signal (e.g. US4 recommendation cosine similarity). No change expected for V1 8-feature fingerprint — documentation/analysis task only
 
 ---
 
@@ -237,7 +239,7 @@ Task: "Contract test for POST /api/confirm/ in tests/contract/test_confirm_api.p
 
 # Launch all core-library implementations together:
 Task: "Implement audio loader mono downmix in genreguru/audio/loader.py"
-Task: "Implement 8-feature extractor in genreguru/audio/features.py"
+Task: "Implement 8-feature extractor in genreguru/audio/feature_extract.py + feature_collapse.py"
 Task: "Implement Deezer search client in genreguru/deezer/client.py"
 Task: "Implement snippet fetcher with retry in genreguru/deezer/snippets.py"
 Task: "Implement SongRepository in genreguru/db/repositories.py"

@@ -85,7 +85,7 @@ genreguru/
 │   └── django/              # dev.yaml, prod.yaml      (web-layer settings; GENREGURU_ENV selects)
 ├── src/                     # standalone core library (Constitution I)
 │   └── genreguru/
-│       ├── audio/           # DSP: loader, features, visualization
+│       ├── audio/           # DSP: loader, features (Feature enum), feature_extract, feature_collapse, visualization
 │       ├── deezer/          # external client + snippet fetch w/ retry
 │       ├── db/              # engine, base, models, repositories, init_db
 │       ├── config.py        # Hydra compose helper (Django-safe path)
@@ -118,33 +118,35 @@ genreguru/
 
 ### 3.2 Core library (`genreguru/`) — layers
 
-| Layer             | Module(s)                          | Responsibility                                                                                                                                                                                         | Tasks      |
-|-------------------|------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
-| **Audio / DSP**   | `genreguru/audio/loader.py`        | Load snippet bytes, mono downmix (channel mean), validate MP3/WAV/FLAC, detect format                                                                                                                  | T020       |
-|                   | `genreguru/audio/features.py`      | Compute 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`); arithmetic-mean collapse to scalars | T021       |
-|                   | `genreguru/audio/visualization.py` | Spectrogram + centroid overlay + top-3 factors by normalized contribution (feature-gated, US3)                                                                                                         | T039       |
-| **Deezer**        | `genreguru/deezer/client.py`       | `GET /search?q=..&limit=5`, Track field mapping, ISRC/preview fail-loud, error-code mapping (QUOTA 4, SERVICE_BUSY 700 → retry; DATA_NOT_FOUND 800 → empty)                                            | T022       |
-|                   | `genreguru/deezer/snippets.py`     | Preview MP3 fetch with 3 retries / 5 s delay → `NetworkDisconnectedError`                                                                                                                              | T023       |
-| **DB**            | `genreguru/db/engine.py`           | SQLAlchemy engine + `SessionLocal` from Hydra `db` group; pool logging                                                                                                                                 | T007       |
-|                   | `genreguru/db/base.py`             | Declarative `Base`                                                                                                                                                                                     | T008       |
-|                   | `genreguru/db/models.py`           | `Song`, `SongFingerprint` per `data-model.md`                                                                                                                                                          | T009       |
-|                   | `genreguru/db/repositories.py`     | `find_by_isrc`, `create_song_and_fingerprint`, `list_songs`, `get_fingerprint_by_isrc`                                                                                                                 | T024, T033 |
-|                   | `genreguru/db/init_db.py`          | `python -m genreguru.db.init_db` table-creation entrypoint                                                                                                                                             | T010       |
-| **Application**   | `genreguru/fingerprint_service.py` | US1 orchestration: ISRC reuse short-circuit; else fetch → extract → store; `reused=true/false` log flag                                                                                                | T025       |
-|                   | `genreguru/recommendations.py`     | US4 `RecommendationService`: cosine similarity over 8-dim vectors, top-N=5                                                                                                                             | T044       |
-| **Cross-cutting** | `genreguru/errors.py`              | Shared hierarchy: `NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`; structured attrs                                            | T006       |
-|                   | `genreguru/config.py`              | `get_config()` compose helper (cached), cwd-independent via `initialize_config_dir`                                                                                                                    | T005a      |
-|                   | `genreguru/gglogging.py`           | `LoggingManager` (one active owner per process; `setup()`/`teardown()`), `JsonFormatter`, `NonErrorFilter`, `QueueHandler`/`QueueListener`, `FingerprintContextAdapter`, dev `RichHandler`             | T011       |
+| Layer             | Module(s)                             | Responsibility                                                                                                                                                                                                                                              | Tasks      |
+|-------------------|---------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------|
+| **Audio / DSP**   | `genreguru/audio/loader.py`           | Load snippet bytes, mono downmix (channel mean), validate MP3/WAV/FLAC, detect format                                                                                                                                                                       | T020       |
+|                   | `genreguru/audio/features.py`         | `Feature` enum — single source of the 8 acoustic feature names shared across extract, collapse, fingerprint service, repository, and tests (StrEnum; members coerce to snake_case wire/DB names)                                                            | T021       |
+|                   | `genreguru/audio/feature_extract.py`  | Compute 8 raw per-frame feature ndarrays keyed by `Feature` (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`); shares one STFT + reuses centroid for bandwidth | T021       |
+|                   | `genreguru/audio/feature_collapse.py` | Arithmetic-mean collapse of each raw feature ndarray to a single scalar (generic `collapse_feature(arr, Feature.X)` + `collapse_features`)                                                                                                                  | T021       |
+|                   | `genreguru/audio/visualization.py`    | Spectrogram + centroid overlay + top-3 factors by normalized contribution (feature-gated, US3)                                                                                                                                                              | T039       |
+| **Deezer**        | `genreguru/deezer/client.py`          | `GET /search?q=..&limit=5`, Track field mapping, ISRC/preview fail-loud, error-code mapping (QUOTA 4, SERVICE_BUSY 700 → retry; DATA_NOT_FOUND 800 → empty)                                                                                                 | T022       |
+|                   | `genreguru/deezer/snippets.py`        | Preview MP3 fetch with 3 retries / 5 s delay → `NetworkDisconnectedError`                                                                                                                                                                                   | T023       |
+| **DB**            | `genreguru/db/engine.py`              | SQLAlchemy engine + `SessionLocal` from Hydra `db` group; pool logging                                                                                                                                                                                      | T007       |
+|                   | `genreguru/db/base.py`                | Declarative `Base`                                                                                                                                                                                                                                          | T008       |
+|                   | `genreguru/db/models.py`              | `Song`, `SongFingerprint` per `data-model.md`                                                                                                                                                                                                               | T009       |
+|                   | `genreguru/db/repositories.py`        | `find_by_isrc`, `create_song_and_fingerprint`, `list_songs`, `get_fingerprint_by_isrc`                                                                                                                                                                      | T024, T033 |
+|                   | `genreguru/db/init_db.py`             | `python -m genreguru.db.init_db` table-creation entrypoint                                                                                                                                                                                                  | T010       |
+| **Application**   | `genreguru/fingerprint_service.py`    | US1 orchestration: ISRC reuse short-circuit; else fetch → extract → store; `reused=true/false` log flag                                                                                                                                                     | T025       |
+|                   | `genreguru/recommendations.py`        | US4 `RecommendationService`: cosine similarity over 8-dim vectors, top-N=5                                                                                                                                                                                  | T044       |
+| **Cross-cutting** | `genreguru/errors.py`                 | Shared hierarchy: `NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`; structured attrs                                                                                                 | T006       |
+|                   | `genreguru/config.py`                 | `get_config()` compose helper (cached), cwd-independent via `initialize_config_dir`                                                                                                                                                                         | T005a      |
+|                   | `genreguru/gglogging.py`              | `LoggingManager` (one active owner per process; `setup()`/`teardown()`), `JsonFormatter`, `NonErrorFilter`, `QueueHandler`/`QueueListener`, `FingerprintContextAdapter`, dev `RichHandler`                                                                  | T011       |
 
 ### 3.3 Frontend (`frontend/`) — Django presentation layer
 
-| Component                                           | Responsibility                                                                                                                           | Tasks                          |
-|-----------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
-| `genreguru_web/`                                    | Project settings (Hydra compose, pdoc docformat), root URL router, WSGI/ASGI entrypoints, middleware                                     | T003                           |
-| `fingerprint_app/` views                            | `GET /api/search/`, `POST /api/confirm/`, `GET /api/songs/`, `GET /api/songs/{isrc}/`, feature-gated visualization + recommend endpoints | T026-027, T034-035, T040, T045 |
-| `fingerprint_app/urls.py` + `genreguru_web/urls.py` | Route registration                                                                                                                       | T028, T037, T042, T047         |
-| `index.html` template                               | Search bar, top-5 candidates, result/catalog/detail/visualization sections                                                               | T029, T036, T041, T046         |
-| `static/fingerprint_app/app.js`                     | AJAX, 2-click selection state machine (Click 1 "Selected", Click 2 confirm), feature UI                                                  | T030, T041, T046               |
+| Component                                           | Responsibility                                                                                                                                      | Tasks                          |
+|-----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
+| `genreguru_web/`                                    | Project settings (Hydra compose, pdoc docformat), root URL router, WSGI/ASGI entrypoints, middleware                                                | T003                           |
+| `fingerprint_app/` views                            | `GET /api/search/`, `POST /api/confirm/{match_id}/`, `GET /api/songs/`, `GET /api/songs/{isrc}/`, feature-gated visualization + recommend endpoints | T026-027, T034-035, T040, T045 |
+| `fingerprint_app/urls.py` + `genreguru_web/urls.py` | Route registration                                                                                                                                  | T028, T037, T042, T047         |
+| `index.html` template                               | Search bar, top-5 candidates, result/catalog/detail/visualization sections                                                                          | T029, T036, T041, T046         |
+| `static/fingerprint_app/app.js`                     | AJAX, 2-click selection state machine (Click 1 "Selected", Click 2 confirm), feature UI                                                             | T030, T041, T046               |
 
 UI files `index.html` + `app.js` are the serial bottleneck shared by all stories; tasks touching them must run on one workstream (hard constraint from `tasks.md`).
 
@@ -205,7 +207,7 @@ sequenceDiagram
     SVC-->>UI: top-5 matches (status: success)
     UI-->>U: render candidates
     U->>UI: Click 1 select, Click 2 confirm
-    UI->>SVC: confirm(match) -> POST /api/confirm/
+    UI->>SVC: confirm(match_id) -> POST /api/confirm/{match_id}/
     SVC->>DB: find by isrc
     alt isrc match found
         DB-->>SVC: stored song + fingerprint
@@ -243,14 +245,14 @@ sequenceDiagram
 
 ### 6.1 Internal REST API (`contracts/search-api.md`)
 
-| Endpoint                           | Method | Purpose                                                          | Key errors                      |
-|------------------------------------|--------|------------------------------------------------------------------|---------------------------------|
-| `/api/search/?query=`              | GET    | Top-5 matches (mirrors Deezer Track schema)                      | 404 `TrackNotFoundError`, 503   |
-| `/api/confirm/`                    | POST   | ISRC dedup → reuse or fetch→extract→store (match object in body) | 400 `AudioProcessingError`, 503 |
-| `/api/songs/`                      | GET    | Catalog summary (US2)                                            | -                               |
-| `/api/songs/{isrc}/`               | GET    | Full fingerprint detail (US2)                                    | 404                             |
-| `/api/songs/{isrc}/visualization/` | GET    | Spectrogram + top-3 factors (US3, feature-gated)                 | 404 when disabled               |
-| `/api/recommend/`                  | POST   | Cosine-similarity top-5 vs modified vector (US4, feature-gated)  | 404 when disabled               |
+| Endpoint                           | Method | Purpose                                                         | Key errors                      |
+|------------------------------------|--------|-----------------------------------------------------------------|---------------------------------|
+| `/api/search/?query=`              | GET    | Top-5 matches (mirrors Deezer Track schema)                     | 404 `TrackNotFoundError`, 503   |
+| `/api/confirm/{match_id}/`         | POST   | ISRC dedup → reuse or fetch→extract→store (match id in path)    | 400 `AudioProcessingError`, 503 |
+| `/api/songs/`                      | GET    | Catalog summary (US2)                                           | -                               |
+| `/api/songs/{isrc}/`               | GET    | Full fingerprint detail (US2)                                   | 404                             |
+| `/api/songs/{isrc}/visualization/` | GET    | Spectrogram + top-3 factors (US3, feature-gated)                | 404 when disabled               |
+| `/api/recommend/`                  | POST   | Cosine-similarity top-5 vs modified vector (US4, feature-gated) | 404 when disabled               |
 
 Response fingerprint object carries all 8 collapsed scalars + `vector_length: 8`.
 

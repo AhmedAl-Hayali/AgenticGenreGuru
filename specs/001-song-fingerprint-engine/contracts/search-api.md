@@ -116,7 +116,7 @@ Raised when the search flow cannot return matches:
 
 > **V1 Notes**
 > - All audio snippets are processed as single-channel (mono) audio, downmixing multichannel audio by averaging channels. 
-> - Each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling.*
+> - Each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling (e.g., MFCC frames as many `n_mfcc` scalars).*
 
 > **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
 

@@ -39,7 +39,7 @@ flowchart TD
 1. **Search** — You type a song title. GenreGuru queries the Deezer API and shows the top 5 matches.
 2. **Confirm** — Click once to select, click again to confirm. Two clicks, no mistakes.
 3. **Dedup check** — GenreGuru checks if this song already exists in your local database (matched by ISRC). If it does, the stored fingerprint is returned instantly.
-4. **Fetch & fingerprint** — If it's new, the 30-second audio preview is fetched, converted to mono, and processed through the DSP pipeline. Eight acoustic features are extracted and collapsed into a single scalar each.
+4. **Fetch & fingerprint** — If it's new, the 30-second audio preview is fetched, converted to mono, and processed through the DSP pipeline. Eight acoustic features are extracted and collapsed into a single scalar each (future versions may keep MFCC frames as more scalars).
 5. **Store** — The fingerprint and song metadata are persisted to PostgreSQL. Re-submitting the same song reuses the stored data.
 
 ## Features *(planned)*
@@ -64,7 +64,7 @@ flowchart TD
 
 ```bash
 # Clone the repository
-git clone https://github.com/AhmedAlHayali/AgenticGenreGuru.git
+git clone https://github.com/AhmedAl-Hayali/AgenticGenreGuru.git
 cd AgenticGenreGuru
 
 # Install dependencies
@@ -205,7 +205,7 @@ erDiagram
 
 ```text
 src/genreguru/              # Standalone core library (import root `genreguru`)
-├── audio/                 # DSP feature engineering (librosa, numpy, scipy)
+├── audio/                 # DSP: loader, features (Feature enum), feature_extract, feature_collapse
 ├── deezer/                # Deezer API client & retry logic
 └── db/                    # SQLAlchemy models, engine & repositories
 

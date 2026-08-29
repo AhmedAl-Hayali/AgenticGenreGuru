@@ -60,19 +60,20 @@ def get_config() -> DictConfig:
 def extract_features(
     audio: np.ndarray,
     sample_rate: int,
-) -> dict[str, float]:
-    """Extract 8 acoustic features from audio and collapse to scalars.
+) -> dict[Feature, np.ndarray]:
+    """Extract 8 acoustic features, returning raw per-frame ndarrays.
 
     Computes spectral_centroid, rms, spectral_bandwidth, spectral_contrast,
     spectral_flatness, spectral_rolloff, zero_crossing_rate, and mfcc.
-    Each feature's time-vector is downsampled via arithmetic mean.
+    Collapse each raw array to a scalar with ``collapse_features``.
 
     Args:
         audio: Mono audio signal array.
         sample_rate: Audio sampling rate in Hz.
 
     Returns:
-        Dictionary mapping feature names to collapsed scalar values.
+        Dictionary mapping each ``Feature`` member to its raw per-frame
+        ndarray.
 
     Raises:
         AudioProcessingError: If DSP extraction fails on the input audio.
@@ -145,9 +146,11 @@ Returns:
 Omit the Raises section if the function does not raise exceptions.
 
 ```python
+"""
 Raises:
     AudioProcessingError: If DSP extraction fails on the input audio.
     NetworkDisconnectedError: If all retry attempts fail.
+"""
 ```
 
 ### 9. Code references
