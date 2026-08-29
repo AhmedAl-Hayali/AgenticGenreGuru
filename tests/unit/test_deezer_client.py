@@ -10,9 +10,9 @@ Covers:
 - error-code mapping per contracts/deezer-api.md incl. QUOTA(4)/SERVICE_BUSY(700)
   retry classification.
 
-Tests import from `genreguru.deezer.client` and mock all httpx
-calls via pytest's function-scoped `monkeypatch`; cases are collapsed with
-`@pytest.mark.parametrize`.
+Tests import from `genreguru.deezer.client` and fake its `httpx.get` with
+the shared `tests.http_stubs` helpers via pytest's function-scoped
+`monkeypatch`; cases are collapsed with `@pytest.mark.parametrize`.
 """
 
 import re
@@ -22,6 +22,7 @@ import pytest
 
 from genreguru.deezer import client
 from genreguru.errors import GenreguruError, MissingISRCError, PreviewUnavailableError
+from tests.http_stubs import capture_get, ok_json, response, stub_get
 
 _QUERY = "Daft Punk"
 
@@ -38,43 +39,17 @@ _SAMPLE_TRACK = {
 _SEARCH_URL = "https://api.deezer.com/search"
 _SECOND_TRACK_ID = 999
 
-
-def _response(status_code: int, json: dict | None = None) -> httpx.Response:
-    return httpx.Response(
-        status_code=status_code,
-        json=json,
-        request=httpx.Request("GET", _SEARCH_URL),
-    )
+_CLIENT_HTTP_GET = "genreguru.deezer.client.httpx.get"
 
 
-def _ok_response(data: list[dict]) -> httpx.Response:
-    return _response(200, json={"data": data, "total": len(data)})
-
-
-def _error_response(status: int) -> httpx.Response:
-    return _response(status)
-
-
-def _stub_http(monkeypatch, response: httpx.Response) -> None:
-    """Point the client's `httpx.get` at *response*; `monkeypatch` reverts it."""
-    monkeypatch.setattr("genreguru.deezer.client.httpx.get", lambda *a, **kw: response)
-
-
-def _capture_http(monkeypatch, response: httpx.Response) -> list[tuple[tuple, dict]]:
-    """Record `httpx.get` calls for *response*, returning `(args, kwargs)` pairs."""
-    calls: list[tuple[tuple, dict]] = []
-
-    def fake_get(*args, **kwargs):
-        calls.append((args, kwargs))
-        return response
-
-    monkeypatch.setattr("genreguru.deezer.client.httpx.get", fake_get)
-    return calls
+def _ok_search(data: list[dict]) -> httpx.Response:
+    """200 search envelope with *data* and a matching `total`."""
+    return ok_json({"data": data, "total": len(data)}, _SEARCH_URL)
 
 
 def _search(monkeypatch, data: list[dict]) -> list[dict]:
-    """Stub `httpx.get` with a 200 envelope for *data* and dispatch `client.search`."""
-    _stub_http(monkeypatch, _ok_response(data))
+    """Stub `httpx.get` with a 200 search envelope and dispatch `client.search`."""
+    stub_get(monkeypatch, _CLIENT_HTTP_GET, _ok_search(data))
     return client.search(_QUERY)
 
 
@@ -127,18 +102,21 @@ class TestFieldMapping:
 class TestRequestShape:
     """Verify request construction per contracts/deezer-api.md §1."""
 
-    def test_search_calls_search_endpoint(self, monkeypatch):
-        """`search` must hit the documented Deezer search URL."""
-        calls = _capture_http(monkeypatch, _ok_response([]))
+    @pytest.fixture
+    def search_calls(self, monkeypatch):
+        """Stub an empty search response, dispatch `client.search`, capture calls."""
+        calls = capture_get(monkeypatch, _CLIENT_HTTP_GET, _ok_search([]))
         client.search(_QUERY)
-        (args, _kwargs) = calls[0]
+        return calls
+
+    def test_search_calls_search_endpoint(self, search_calls):
+        """`search` must hit the documented Deezer search URL."""
+        (args, _kwargs) = search_calls[0]
         assert args[0] == _SEARCH_URL
 
-    def test_search_sends_query_and_limit(self, monkeypatch):
+    def test_search_sends_query_and_limit(self, search_calls):
         """`search` must send `q` and `limit=5` as query params."""
-        calls = _capture_http(monkeypatch, _ok_response([]))
-        client.search(_QUERY)
-        (_args, kwargs) = calls[0]
+        (_args, kwargs) = search_calls[0]
         assert kwargs["params"] == {"q": _QUERY, "limit": 5}
 
 
@@ -152,7 +130,7 @@ class TestEmptyResults:
     )
     def test_empty_results_returns_empty_list(self, monkeypatch, body):
         """A response without tracks must yield an empty result, not an error."""
-        _stub_http(monkeypatch, _response(200, json=body))
+        stub_get(monkeypatch, _CLIENT_HTTP_GET, ok_json(body, _SEARCH_URL))
         assert client.search(_QUERY) == []
 
 
@@ -162,7 +140,7 @@ class TestHTTPError:
     @pytest.mark.parametrize("status", [400, 404, 500])
     def test_non_2xx_raises(self, monkeypatch, status):
         """A non-success HTTP status must raise HTTPStatusError."""
-        _stub_http(monkeypatch, _error_response(status))
+        stub_get(monkeypatch, _CLIENT_HTTP_GET, response(status, url=_SEARCH_URL))
         with pytest.raises(httpx.HTTPStatusError):
             client.search(_QUERY)
 

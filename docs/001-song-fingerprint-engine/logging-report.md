@@ -125,9 +125,12 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 
 ### T021 — `genreguru/audio/feature_extract.py` + `genreguru/audio/feature_collapse.py`
 
-- DEBUG: input frame shape/sample-rate per feature computation and each collapsed arithmetic-mean scalar.
-- WARNING/INFO: zero/low-energy frames (silent / non-musical input) — still produce a valid vector, do not fail (spec edge case).
-- INFO on extraction completion with elapsed time (supports SC-002 <10 s).
+- `feature_extract.py`: WARNING/INFO on zero/low-energy frames (silent /
+  nonmusical input) — still produce a valid vector, do not fail (spec edge
+  case).
+- `feature_extract.py`: INFO on extraction completion with elapsed time
+  (supports SC-002 <10 s).
+- `feature_collapse.py`: DEBUG per-feature arithmetic-mean collapse scalar.
 
 ### T022 — `genreguru/deezer/client.py`
 
