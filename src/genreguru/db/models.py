@@ -100,7 +100,13 @@ class SongFingerprint(Base, TimestampedMixin, UuidMixin):
     def latest_for_song(
         cls, session: Session, song_id: uuid.UUID
     ) -> SongFingerprint | None:
-        """Return the most recent fingerprint for *song_id*, or `None`."""
+        """Return the most recent fingerprint for *song_id*, or `None`.
+
+        `song_fingerprints.song_id` is UNIQUE (data-model.md §4), so a song has
+        at most one fingerprint — "latest" is that single row and the
+        `updated_at` ordering is retained only for a future V2 where multiple
+        fingerprints per song are allowed.
+        """
         return (
             session.query(cls)
             .filter(cls.song_id == song_id)

@@ -1,7 +1,7 @@
 """Shared pytest fixtures.
 
-Provides session-scoped `db_cfg` and `engine`, and function-scoped
-`db_session`, `factory_session`, and `django_client`.
+Provides session-scoped `db_cfg`, `engine`, and `db_schema`, and
+function-scoped `db_session`, `factory_session`, and `django_client`.
 Fixtures share module-level `get_config()` (lru-cached, env-frozen at first call).
 `db_session` uses SAVEPOINT isolation; no test data persists.
 `factory_session` configures the shared scoped session for FactoryBoy
@@ -16,6 +16,7 @@ from sqlalchemy import Engine
 
 from genreguru.config import get_config
 from genreguru.db.engine import create_engine, get_session_factory
+from genreguru.db.repositories import SongRepository
 from tests.factories import sc_session
 
 
@@ -48,6 +49,12 @@ def db_session(engine):
         finally:
             transaction.rollback()
             session.close()
+
+
+@pytest.fixture()
+def repo(db_session) -> SongRepository:
+    """Return a `SongRepository` bound to the SAVEPOINT-isolated test session."""
+    return SongRepository(db_session)
 
 
 @pytest.fixture()
