@@ -115,6 +115,20 @@ class TestRetryableFailures:
         assert result == _FAKE_AUDIO
         assert len(calls) == _MAX_RETRIES
 
+    @pytest.mark.parametrize(
+        "timeout",
+        [
+            httpx.ConnectTimeout("connection timed out"),
+            httpx.ReadTimeout("read timed out"),
+        ],
+        ids=["connect_timeout", "read_timeout"],
+    )
+    def test_timeout_exhausts_budget_sets_code_none(self, monkeypatch, timeout):
+        """A budget exhausted only by timeouts must raise with code=None."""
+        _, exc = _fetch_err(monkeypatch, repeat(timeout, _MAX_RETRIES))
+        assert exc.attempts == _MAX_RETRIES
+        assert exc.code is None
+
 
 class TestNonRetryableFailures:
     """Failures that raise immediately without retrying."""
