@@ -6,11 +6,14 @@ Fixtures share module-level `get_config()` (lru-cached, env-frozen at first call
 `db_session` uses SAVEPOINT isolation; no test data persists.
 `factory_session` configures the shared scoped session for FactoryBoy
 factories and removes it on teardown.
+`db_schema` creates the ORM tables (`songs`, `song_fingerprints`) on the
+live PostgreSQL engine once per session.
 """
 
 from collections.abc import Generator
 
 import pytest
+from django.test import Client
 from omegaconf import DictConfig
 from sqlalchemy import Engine
 
@@ -35,6 +38,15 @@ def engine(db_cfg) -> Generator[Engine]:
         yield eng
     finally:
         eng.dispose()
+
+
+@pytest.fixture(scope="session")
+def db_schema(engine) -> None:
+    """Create the ORM tables on PostgreSQL once per test session."""
+    from genreguru.db import models  # noqa: F401  registers tables on Base.metadata
+    from genreguru.db.base import Base
+
+    Base.metadata.create_all(engine)
 
 
 @pytest.fixture()
@@ -77,8 +89,6 @@ def factory_session(engine):
 
 
 @pytest.fixture()
-def django_client():
+def django_client() -> Client:
     """Fresh `django.test.Client` for exercising Django views."""
-    from django.test import Client
-
     return Client()

@@ -20,6 +20,7 @@ __all__ = [
     "FeatureScalars",
     "Artist",
     "Album",
+    "DeezerTrack",
     "SongData",
 ]
 
@@ -39,6 +40,23 @@ class Album(TypedDict):
 
     id: int
     title: str
+
+
+class DeezerTrack(TypedDict):
+    """An upstream Deezer track shape (`DeezerTrack`/`confirm` payload input).
+
+    `artist`/`album` may arrive as objects (`Artist`/`Album`) or, when the
+    payload was built from already-normalized data, as plain strings. The
+    fingerprint service flattens them to strings on entry before persisting.
+    """
+
+    deezer_id: int
+    title: str
+    isrc: str
+    duration: int
+    preview: str
+    artist: Artist | str
+    album: Album | str | None
 
 
 class SongData(TypedDict):
