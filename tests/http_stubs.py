@@ -13,6 +13,10 @@ import httpx
 _JSON_HEADERS = {"content-type": "application/json"}
 _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
 
+# Deezer retryable error codes (QUOTA, SERVICE_BUSY) — sourced from the client's
+# own set so the retry suites can't drift from the implementation.
+RETRYABLE_CODES = tuple(sorted(_client._RETRYABLE_CODES))
+
 
 def response(
     status_code: int,
