@@ -18,3 +18,32 @@ DEEZER_MATCH: DeezerTrack = {
 }
 
 DEEZER_MATCHES: list[DeezerTrack] = [DEEZER_MATCH]
+
+SUCCESS_RESPONSE = {
+    "status": "success",
+    "song_id": "0195a1b8-0000-7000-8000-000000000000",
+    "deezer_id": 3135556,
+    "isrc": "GBDUW0000059",
+    "fingerprint": {
+        "spectral_centroid": 2154.32,
+        "rms": 0.045,
+        "spectral_bandwidth": 1820.15,
+        "spectral_contrast": 18.42,
+        "spectral_flatness": 0.012,
+        "spectral_rolloff": 4350.80,
+        "zero_crossing_rate": 0.085,
+        "mfcc": 12.34,
+        "vector_length": 8,
+    },
+}
+
+FINGERPRINT_FIELDS: list[str] = [
+    "spectral_centroid",
+    "rms",
+    "spectral_bandwidth",
+    "spectral_contrast",
+    "spectral_flatness",
+    "spectral_rolloff",
+    "zero_crossing_rate",
+    "mfcc",
+]

@@ -22,6 +22,7 @@ __all__ = [
     "Album",
     "DeezerTrack",
     "SongData",
+    "FingerprintResponse",
 ]
 
 #: The 8 collapsed DSP feature scalars (keyed by `Feature`).
@@ -73,3 +74,16 @@ class SongData(TypedDict):
     album: str | None
     preview_url: str
     duration: int
+
+
+class FingerprintResponse(TypedDict):
+    """The serialized fingerprint sent back to the client (`JsonResponse`).
+
+    `fingerprint` holds the 8 collapsed `FeatureScalars` (snake_case keys)
+    plus `vector_length` (== `len(Feature)`).
+    """
+
+    song_id: str
+    deezer_id: int
+    isrc: str
+    fingerprint: dict[str, float | int]

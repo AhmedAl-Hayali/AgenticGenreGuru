@@ -72,7 +72,7 @@
 - [x] T016 \[P\] \[US1\] Integration test for snippet-fetch retry (3 attempts, 5s delay, `NetworkDisconnectedError`) in `tests/integration/test_deezer_retry.py`
 - [x] T017 \[P\] \[US1\] Integration test for `SongRepository` dedup-by-ISRC persistence (fresh insert vs reuse) in `tests/integration/test_repositories.py`
 - [x] T018 \[P\] \[US1\] Contract test for `GET /api/search/` (top-5, 404 `TrackNotFoundError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_search_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
-- [ ] T019 \[P\] \[US1\] Contract test for `POST /api/confirm/{match}` (fresh fingerprint, ISRC-reuse path, 400 `AudioProcessingError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_confirm_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
+- [x] T019 \[P\] \[US1\] Contract test for `POST /api/confirm/{match}` (fresh fingerprint, ISRC-reuse path, 400 `AudioProcessingError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_confirm_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
 
 ### Implementation for User Story 1
 
