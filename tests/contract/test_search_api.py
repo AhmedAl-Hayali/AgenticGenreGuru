@@ -139,17 +139,31 @@ class TestSearch404:
         resp = get_search(query="Daft+Punk", error=TrackNotFoundError("no match"))
         assert resp.status_code == 404
         assert resp.json()["status"] == "error"
-        assert "TrackNotFoundError" in error_of(resp)
+        assert error_of(resp) == "TrackNotFoundError"
 
-    def test_404_no_partial_rows(self, db_schema, db_session, get_search):
-        """TrackNotFoundError must not create any Song or SongFingerprint rows."""
-        get_search(query="Daft+Punk", error=TrackNotFoundError("no match"))
+
+class TestNoPartialRowsOnError:
+    """Verify error paths create NO Song/SongFingerprint rows."""
+
+    @pytest.mark.parametrize(
+        "error",
+        [
+            TrackNotFoundError("no match"),
+            NetworkDisconnectedError("network broke"),
+        ],
+        ids=["track_not_found_404", "network_503"],
+    )
+    def test_error_creates_no_partial_rows(
+        self, db_schema, db_session, get_search, error
+    ):
+        """An error from the dependency must not create any Song/SongFingerprint rows."""
+        get_search(query="Daft+Punk", error=error)
         assert db_session.query(Song).count() == 0
         assert db_session.query(SongFingerprint).count() == 0
 
 
 class TestSearch503:
-    """Verify 503 response and no partial DB rows on network failure."""
+    """Verify 503 response on network failure."""
 
     def test_503_body_shape(self, get_search):
         """NetworkDisconnectedError must produce HTTP 503 with error status."""
@@ -159,9 +173,3 @@ class TestSearch503:
         assert resp.status_code == 503
         assert resp.json()["status"] == "error"
         assert "NetworkDisconnectedError" in error_of(resp)
-
-    def test_503_no_partial_rows(self, db_schema, db_session, get_search):
-        """NetworkDisconnectedError must not create any Song or SongFingerprint rows."""
-        get_search(query="Daft+Punk", error=NetworkDisconnectedError("network broke"))
-        assert db_session.query(Song).count() == 0
-        assert db_session.query(SongFingerprint).count() == 0
