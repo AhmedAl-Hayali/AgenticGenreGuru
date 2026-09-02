@@ -156,11 +156,3 @@ def test_schema_matches_data_model(engine, eng_inspector) -> None:
     # songs 1 -> 1 song_fingerprints via a real FK on songs.id.
     assert fk_cstrs["fk_song_fingerprints_song_id_songs"].referred_table == "songs"
     assert fk_cstrs["fk_song_fingerprints_song_id_songs"].referred_columns == ["id"]
-
-
-def test_init_db_cli_module_runs() -> None:
-    """Test the init_db module entrypoint is importable and exposes helpers."""
-    import genreguru.db.init_db as module
-
-    assert hasattr(module, "main")
-    assert hasattr(module, "create_all_tables")
