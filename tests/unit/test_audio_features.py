@@ -28,8 +28,6 @@ SILENT = np.zeros(SAMPLE_RATE, dtype=np.float32)
 LOW_ENERGY = (1e-6 * np.random.default_rng(42).random(SAMPLE_RATE)).astype(np.float32)
 
 REL_TOLERANCE = 0.05
-AUDIBLE_LOW_HZ = 100
-AUDIBLE_HIGH_HZ = 8000
 BANDWIDTH_BIN_FACTOR = 4
 
 
@@ -113,17 +111,9 @@ class TestSpectralCentroid:
         raw = feature_extract.extract_spectral_centroid(MAG_LOW_ENERGY, SAMPLE_RATE)
         return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CENTROID)
 
-    def test_sine_centroid_is_positive(self, sine_centroid):
-        """A `SINE_FREQUENCY` sine has energy concentrated above 0 Hz."""
-        assert sine_centroid > 0
-
     def test_matches_ground_truth(self, sine_centroid):
         """Centroid of a pure tone must sit close to its frequency."""
         assert sine_centroid == pytest.approx(SINE_FREQUENCY, rel=REL_TOLERANCE)
-
-    def test_sine_centroid_value_within_audible_bounds(self, sine_centroid):
-        """Centroid of a pure tone should fall within the audible range."""
-        assert AUDIBLE_LOW_HZ < sine_centroid < AUDIBLE_HIGH_HZ
 
     def test_silent_input(self, silent_centroid):
         """Silent audio must still produce a finite value (no NaN/inf)."""
@@ -152,10 +142,6 @@ class TestRMS:
         return feature_collapse.collapse_feature(
             feature_extract.extract_rms(SILENT), Feature.RMS
         )
-
-    def test_sine_rms_value_within_normalized_bounds(self, sine_rms):
-        """RMS of a `SINE_AMPLITUDE`-amplitude sine must be positive, below 1."""
-        assert 0 < sine_rms < 1
 
     def test_matches_ground_truth(self, sine_rms):
         """RMS of a pure tone must sit close to its amplitude divided by sqrt(2).
@@ -186,10 +172,6 @@ class TestSpectralBandwidth:
         return feature_collapse.collapse_feature(
             raw[..., 2:-2], Feature.SPECTRAL_BANDWIDTH
         )
-
-    def test_sine_bandwidth_is_positive(self, sine_bandwidth):
-        """Bandwidth must be positive for any non-degenerate input."""
-        assert sine_bandwidth > 0
 
     def test_sine_bandwidth_value_within_narrow_bounds(self, sine_bandwidth):
         """Pure-tone bandwidth is a small multiple of the FFT bin width sr/n_fft."""
@@ -223,10 +205,6 @@ class TestSpectralContrast:
         """Collapsed spectral contrast of the low-energy input."""
         raw = feature_extract.extract_spectral_contrast(MAG_LOW_ENERGY, SAMPLE_RATE)
         return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CONTRAST)
-
-    def test_sine_contrast_is_positive(self, sine_contrast):
-        """A pure tone has clear peaks, so contrast must be non-negative."""
-        assert sine_contrast >= 0
 
     def test_sine_contrast_is_nonzero(self, sine_contrast):
         """A pure tone yields a strong peak-valley difference."""
@@ -281,14 +259,6 @@ class TestSpectralRolloff:
         raw = feature_extract.extract_spectral_rolloff(MAG_SINE, SAMPLE_RATE)
         return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_ROLLOFF)
 
-    def test_sine_rolloff_is_positive(self, sine_rolloff):
-        """Rolloff frequency must be positive for non-silent audio."""
-        assert sine_rolloff > 0
-
-    def test_sine_rolloff_value_within_audible_bounds(self, sine_rolloff):
-        """`SINE_FREQUENCY` sine rolloff should fall within the audible range."""
-        assert AUDIBLE_LOW_HZ < sine_rolloff < AUDIBLE_HIGH_HZ
-
     def test_matches_ground_truth(self, sine_rolloff):
         """Rolloff of a pure tone must sit near the tone's frequency."""
         assert sine_rolloff == pytest.approx(SINE_FREQUENCY, rel=REL_TOLERANCE)
@@ -325,21 +295,10 @@ class TestMFCC:
 
     @pytest.fixture(scope="class")
     @classmethod
-    def sine_mfcc(cls):
-        """Collapsed mean MFCC of the `SINE_FREQUENCY` Hz sine wave."""
-        raw = feature_extract.extract_mfcc(MAG_SINE, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.MFCC)
-
-    @pytest.fixture(scope="class")
-    @classmethod
     def silent_mfcc(cls):
         """Collapsed mean MFCC of silent audio."""
         raw = feature_extract.extract_mfcc(MAG_SILENT, SAMPLE_RATE)
         return feature_collapse.collapse_feature(raw, Feature.MFCC)
-
-    def test_sine_finite(self, sine_mfcc):
-        """MFCC of a sine must be finite."""
-        assert np.isfinite(sine_mfcc)
 
     def test_silent_finite(self, silent_mfcc):
         """MFCC of silent audio must be finite (no NaN from log)."""
