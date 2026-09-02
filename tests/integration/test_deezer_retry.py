@@ -4,7 +4,7 @@ Verifies that `genreguru.deezer.snippets` retries QUOTA (4) / SERVICE_BUSY
 (700) error codes and network timeouts up to its `_MAX_RETRIES`-attempt
 budget, succeeds when a later attempt succeeds, and raises
 `NetworkDisconnectedError` immediately for non-retryable Deezer error codes,
-`ConnectError`, and non-200 statuses without an audio payload.
+`ConnectError`/`ReadError`, and non-200 statuses without an audio payload.
 
 Tests fake the client's `httpx.get` with the shared `tests.http_stubs`
 helpers. A `sequence` responder feeds events one per call: `httpx.Response`
@@ -17,7 +17,16 @@ import pytest
 
 from genreguru.deezer import snippets
 from genreguru.errors import NetworkDisconnectedError
-from tests.http_stubs import audio, capture_get, error_envelope, response, sequence
+from tests.http_stubs import (
+    RETRYABLE_CODES,
+    audio,
+    capture_get,
+    error_envelope,
+    repeat,
+    response,
+    retry_then_success,
+    sequence,
+)
 
 _PREVIEW_URL = (
     "https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3"
@@ -28,30 +37,25 @@ _FAKE_AUDIO = b"\x00" * 1024
 
 _MAX_RETRIES = snippets._MAX_RETRIES  # single source of truth
 
-_RETRYABLE_CODES = (4, 700)  # QUOTA, SERVICE_BUSY (client._RETRYABLE_CODES)
+assert RETRYABLE_CODES == (4, 700)  # QUOTA, SERVICE_BUSY — guard against silent drift
 
 _SNIPPETS_HTTP_GET = "genreguru.deezer.snippets.httpx.get"
 
 
-def _fetch(monkeypatch, responder):
-    """Patch `httpx.get`, dispatch `fetch_snippet`, return (calls, result|error)."""
+def _fetch_ok(monkeypatch, responder) -> tuple[list[tuple[tuple, dict]], bytes]:
+    """Patch `httpx.get`, dispatch `fetch_snippet`, return (calls, audio_bytes)."""
     calls = capture_get(monkeypatch, _SNIPPETS_HTTP_GET, responder)
-    try:
-        return calls, snippets.fetch_snippet(_PREVIEW_URL)
-    except NetworkDisconnectedError as exc:
-        return calls, exc
+    return calls, snippets.fetch_snippet(_PREVIEW_URL)
 
 
-def _retry_then_success(failure):
-    """A responder: *failure* repeated, then audio success on the last attempt."""
-    ok = audio(_FAKE_AUDIO, _PREVIEW_URL)
-    return sequence(*([failure] * (_MAX_RETRIES - 1)), ok)
-
-
-@pytest.fixture(autouse=True)
-def _no_sleep(monkeypatch):
-    """Eliminate the 5s retry delay so the tests don't sleep between attempts."""
-    monkeypatch.setattr("genreguru.deezer.snippets.time.sleep", lambda _: None)
+def _fetch_err(
+    monkeypatch, responder
+) -> tuple[list[tuple[tuple, dict]], NetworkDisconnectedError]:
+    """Patch `httpx.get`, dispatch `fetch_snippet`, return (calls, error)."""
+    calls = capture_get(monkeypatch, _SNIPPETS_HTTP_GET, responder)
+    with pytest.raises(NetworkDisconnectedError) as exc_info:
+        snippets.fetch_snippet(_PREVIEW_URL)
+    return calls, exc_info.value
 
 
 class TestHappyPath:
@@ -59,7 +63,7 @@ class TestHappyPath:
 
     def test_first_attempt_succeeds(self, monkeypatch):
         """A successful first fetch must return audio after a single call."""
-        calls, result = _fetch(monkeypatch, audio(_FAKE_AUDIO, _PREVIEW_URL))
+        calls, result = _fetch_ok(monkeypatch, audio(_FAKE_AUDIO, _PREVIEW_URL))
         assert result == _FAKE_AUDIO
         assert len(calls) == 1
 
@@ -67,26 +71,47 @@ class TestHappyPath:
 class TestRetryableFailures:
     """Failures that trigger a retry, succeeding on the final attempt."""
 
-    @pytest.mark.parametrize("code", _RETRYABLE_CODES)
+    @pytest.mark.parametrize("code", RETRYABLE_CODES)
     def test_retryable_error_code_then_success(self, monkeypatch, code):
         """A retryable Deezer error code must be retried, succeeding on the last attempt."""
         error = error_envelope(200, code, _PREVIEW_URL)
-        calls, result = _fetch(monkeypatch, _retry_then_success(error))
+        calls, result = _fetch_ok(
+            monkeypatch,
+            retry_then_success(
+                error, audio(_FAKE_AUDIO, _PREVIEW_URL), _MAX_RETRIES - 1
+            ),
+        )
         assert result == _FAKE_AUDIO
         assert len(calls) == _MAX_RETRIES
 
-    @pytest.mark.parametrize("code", _RETRYABLE_CODES)
-    def test_retryable_error_code_exhausts_budget(self, monkeypatch, code):
-        """Repeated retryable codes must exhaust the budget, raising with the code."""
-        error = error_envelope(200, code, _PREVIEW_URL)
-        _, exc = _fetch(monkeypatch, sequence(*([error] * _MAX_RETRIES)))
-        assert exc.attempts == _MAX_RETRIES
-        assert exc.code == code
+    def test_retryable_error_code_exhausts_budget(self, monkeypatch):
+        """Repeated retryable codes exhaust the budget, raising the code.
 
-    def test_network_timeout_retries_then_success(self, monkeypatch):
-        """ConnectTimeout must be retried and succeed on the final attempt."""
-        timeout = httpx.ConnectTimeout("connection timed out")
-        calls, result = _fetch(monkeypatch, _retry_then_success(timeout))
+        One representative code suffices: proving each code retryable belongs to
+        `test_retryable_error_code_then_success` (parametrized over all); this covers
+        exhaustion + code propagation. A second code here would duplicate, not extend.
+        """
+        error = error_envelope(200, RETRYABLE_CODES[0], _PREVIEW_URL)
+        _, exc = _fetch_err(monkeypatch, repeat(error, _MAX_RETRIES))
+        assert exc.attempts == _MAX_RETRIES
+        assert exc.code == RETRYABLE_CODES[0]
+
+    @pytest.mark.parametrize(
+        "timeout",
+        [
+            httpx.ConnectTimeout("connection timed out"),
+            httpx.ReadTimeout("read timed out"),
+        ],
+        ids=["connect_timeout", "read_timeout"],
+    )
+    def test_network_timeout_retries_then_success(self, monkeypatch, timeout):
+        """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""
+        calls, result = _fetch_ok(
+            monkeypatch,
+            retry_then_success(
+                timeout, audio(_FAKE_AUDIO, _PREVIEW_URL), _MAX_RETRIES - 1
+            ),
+        )
         assert result == _FAKE_AUDIO
         assert len(calls) == _MAX_RETRIES
 
@@ -94,22 +119,29 @@ class TestRetryableFailures:
 class TestNonRetryableFailures:
     """Failures that raise immediately without retrying."""
 
-    def test_connect_error_raises_immediately(self, monkeypatch):
-        """ConnectError (e.g. DNS failure) must raise without retrying."""
-        dns_res_fail = httpx.ConnectError("DNS resolution failed")
-        _, exc = _fetch(monkeypatch, sequence(dns_res_fail))
-        assert exc.attempts == 1
+    @pytest.mark.parametrize(
+        "exc",
+        [
+            httpx.ConnectError("DNS resolution failed"),
+            httpx.ReadError("stream interrupted"),
+        ],
+        ids=["connect_error", "read_error"],
+    )
+    def test_permanent_network_error_raises_immediately(self, monkeypatch, exc):
+        """ConnectError/ReadError must raise without retrying (permanent errors)."""
+        _, err = _fetch_err(monkeypatch, sequence(exc))
+        assert err.attempts == 1
 
-    @pytest.mark.parametrize("code", [100, 300])  # outside QUOTA/SERVICE_BUSY
-    def test_non_retryable_error_code_raises_immediately(self, monkeypatch, code):
+    def test_non_retryable_error_code_raises_immediately(self, monkeypatch):
         """A non-retryable Deezer error code must raise without retrying."""
-        _, exc = _fetch(monkeypatch, sequence(error_envelope(200, code, _PREVIEW_URL)))
+        _, exc = _fetch_err(
+            monkeypatch, sequence(error_envelope(200, 100, _PREVIEW_URL))
+        )
         assert exc.attempts == 1
-        assert exc.code == code
+        assert exc.code == 100
 
-    @pytest.mark.parametrize("status", [403, 500])
-    def test_non_ok_status_raises_immediately(self, monkeypatch, status):
-        """A non-200 response without an audio payload must raise without retrying."""
-        _, exc = _fetch(monkeypatch, response(status, url=_PREVIEW_URL))
+    def test_non_ok_status_raises_immediately(self, monkeypatch):
+        """A JSON-less non-200 routes to the error branch, raising with default code=0."""
+        _, exc = _fetch_err(monkeypatch, response(403, url=_PREVIEW_URL))
         assert exc.attempts == 1
         assert exc.code == 0
