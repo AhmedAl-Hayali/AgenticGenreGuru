@@ -6,7 +6,7 @@ Covers:
 - fail-loud on missing ISRC (MissingISRCError) / empty preview
   (PreviewUnavailableError),
 - empty results for DATA_NOT_FOUND (per contracts/deezer-api.md),
-- HTTP error status propagation via `raise_for_status`, and
+- non-2xx status / unparseable body → `NetworkDisconnectedError` (503), and
 - error-code mapping per contracts/deezer-api.md incl. QUOTA(4)/SERVICE_BUSY(700)
   retry classification.
 
@@ -26,13 +26,18 @@ from genreguru.dto import DeezerTrack
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
+    NetworkDisconnectedError,
     PreviewUnavailableError,
 )
 from tests.http_stubs import (
     RETRYABLE_CODES,
     capture_get,
+    error_envelope,
     ok_json,
+    repeat,
     response,
+    retry_then_success,
+    sequence,
     stub_get,
 )
 
@@ -151,16 +156,130 @@ class TestEmptyResults:
         stub_get(monkeypatch, _CLIENT_HTTP_GET, ok_json(body, _SEARCH_URL))
         assert _CLIENT.search(_QUERY) == []
 
+    def test_data_not_found_404_returns_empty(self, monkeypatch):
+        """A 404 carrying a DATA_NOT_FOUND (800) envelope must yield an empty list."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            error_envelope(404, 800, _SEARCH_URL),
+        )
+        assert _CLIENT.search(_QUERY) == []
+
 
 class TestHTTPError:
-    """Verify non-2xx statuses propagate via `raise_for_status`."""
+    """Verify non-2xx statuses map to a 503 `NetworkDisconnectedError`."""
 
-    @pytest.mark.parametrize("status", [400, 404, 500])
-    def test_non_2xx_raises(self, monkeypatch, status):
-        """A non-success HTTP status must raise HTTPStatusError."""
-        stub_get(monkeypatch, _CLIENT_HTTP_GET, response(status, url=_SEARCH_URL))
-        with pytest.raises(httpx.HTTPStatusError):
-            client.search(_QUERY)
+    def test_non_2xx_raises_network_disconnected(self, monkeypatch):
+        """A non-2xx status without an envelope maps to a 503 `NetworkDisconnectedError`."""
+        stub_get(monkeypatch, _CLIENT_HTTP_GET, response(500, url=_SEARCH_URL))
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.attempts == 1
+
+    def test_non_2xx_with_error_envelope_exposes_code(self, monkeypatch):
+        """A non-2xx status carrying an error envelope maps to 503 and preserves its code."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            error_envelope(503, 100, _SEARCH_URL),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.code == 100
+        assert exc_info.value.attempts == 1
+
+
+class TestSearchTransportErrors:
+    """Verify network transport failures map to retry / 503 correctly."""
+
+    @pytest.mark.parametrize(
+        "timeout",
+        [
+            httpx.ConnectTimeout("connection timed out"),
+            httpx.ReadTimeout("read timed out"),
+        ],
+        ids=["connect_timeout", "read_timeout"],
+    )
+    def test_timeout_retries_then_success(self, monkeypatch, timeout):
+        """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""
+        calls = capture_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            retry_then_success(timeout, _ok_search([_SAMPLE_TRACK]), _MAX_RETRIES - 1),
+        )
+        results = _CLIENT.search(_QUERY)
+        assert [r["deezer_id"] for r in results] == [_SAMPLE_TRACK["id"]]
+        assert len(calls) == _MAX_RETRIES
+
+    def test_connect_error_raises_immediately(self, monkeypatch):
+        """ConnectError must raise without retrying."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            sequence(httpx.ConnectError("DNS resolution failed")),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.attempts == 1
+
+    def test_non_object_body_raises_network_disconnected(self, monkeypatch):
+        """A valid-JSON but non-object body (e.g. a list) must map to 503."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            response(
+                200,
+                content=b'["not", "an", "object"]',
+                headers={"content-type": "application/json"},
+                url=_SEARCH_URL,
+            ),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.attempts == 1
+
+
+class TestSearchRetry:
+    """Verify the retry-with-backoff path for QUOTA / SERVICE_BUSY on search."""
+
+    @pytest.mark.parametrize("code", [4, 700])
+    def test_retryable_then_success(self, monkeypatch, code):
+        """A retryable Deezer code must be retried, succeeding on the last attempt."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            retry_then_success(
+                error_envelope(200, code, _SEARCH_URL),
+                _ok_search([_SAMPLE_TRACK]),
+                n_failures=_MAX_RETRIES - 1,
+            ),
+        )
+        results = _CLIENT.search(_QUERY)
+        assert [r["deezer_id"] for r in results] == [_SAMPLE_TRACK["id"]]
+
+    def test_retryable_exhausts_budget(self, monkeypatch):
+        """Repeated retryable codes must exhaust the budget, raising with the code."""
+        code = RETRYABLE_CODES[0]
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            repeat(error_envelope(200, code, _SEARCH_URL), _MAX_RETRIES),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.attempts == _MAX_RETRIES
+        assert exc_info.value.code == code
+
+    def test_non_retryable_envelope_fails_loudly(self, monkeypatch):
+        """A non-retryable Deezer code must fail loudly, preserving the code."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            error_envelope(200, 500, _SEARCH_URL),
+        )
+        with pytest.raises(GenreguruError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.code == 500
 
 
 class TestMissingISRC:

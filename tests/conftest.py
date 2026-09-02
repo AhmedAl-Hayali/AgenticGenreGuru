@@ -8,6 +8,7 @@ Fixtures share module-level `get_config()` (lru-cached, env-frozen at first call
 factories and removes it on teardown.
 `db_schema` creates the ORM tables (`songs`, `song_fingerprints`) on the
 live PostgreSQL engine once per session.
+The autouse `_no_sleep` kills the 5s Deezer retry delay for the retry suites.
 """
 
 from collections.abc import Generator
@@ -21,6 +22,7 @@ from genreguru.config import get_config
 from genreguru.db.engine import create_engine, get_session_factory
 from genreguru.db.repositories import SongRepository
 from tests.factories import sc_session
+from tests.http_stubs import no_sleep
 
 
 @pytest.fixture(scope="session")
@@ -92,3 +94,15 @@ def factory_session(engine):
 def django_client() -> Client:
     """Fresh `django.test.Client` for exercising Django views."""
     return Client()
+
+
+@pytest.fixture(autouse=True)
+def _no_sleep(monkeypatch) -> None:
+    """Eliminate the 5s retry delay so retry tests don't sleep between attempts.
+
+    WARNING: `time` is a process-global singleton, so patching
+    `genreguru.deezer._retry.time.sleep` swaps `time.sleep` suite-wide. Only
+    `_retry.py` (via `import time` + attribute access) consumes it today; any
+    future test that needs a real sleep must not rely on this autouse no-op.
+    """
+    no_sleep(monkeypatch, "genreguru.deezer._retry")

@@ -10,12 +10,41 @@ via pytest's `monkeypatch`.
 
 import httpx
 
+from genreguru.deezer import client as _client
+
 _JSON_HEADERS = {"content-type": "application/json"}
 _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
 
 # Deezer retryable error codes (QUOTA, SERVICE_BUSY) — sourced from the client's
 # own set so the retry suites can't drift from the implementation.
 RETRYABLE_CODES = tuple(sorted(_client._RETRYABLE_CODES))
+
+
+def no_sleep(monkeypatch, module: str) -> None:
+    """Eliminate the retry delay at the module dotted path.
+
+    *module* points at a module that imports `time`, e.g.
+    `"genreguru.deezer._retry"`; patches that module's `time.sleep` so
+    retry tests don't sleep between attempts. `time` is a process-global
+    singleton, so the argument only selects which module's `time` reference
+    to patch; any module with a `time` attribute works.
+    """
+    monkeypatch.setattr(f"{module}.time.sleep", lambda _: None)
+
+
+def retry_then_success(failure, success: httpx.Response, n_failures: int):
+    """A responder: *failure* repeated *n_failures* times, then *success* (repeats).
+
+    For a retry-with-backoff path: the first *n_failures* calls fail, the next
+    succeeds (and `sequence` keeps yielding *success* for any further calls).
+    *failure* may be an `httpx.Response` (returned) or an `Exception` (raised).
+    """
+    return sequence(*(tuple([failure] * n_failures) + (success,)))
+
+
+def repeat(item, times: int):
+    """A responder yielding *item* *times* times, then *item* repeats forever."""
+    return sequence(*tuple([item] * times))
 
 
 def response(
