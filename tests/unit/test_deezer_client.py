@@ -211,6 +211,26 @@ class TestSearchTransportErrors:
         assert [r["deezer_id"] for r in results] == [_SAMPLE_TRACK["id"]]
         assert len(calls) == _MAX_RETRIES
 
+    @pytest.mark.parametrize(
+        "timeout",
+        [
+            httpx.ConnectTimeout("connection timed out"),
+            httpx.ReadTimeout("read timed out"),
+        ],
+        ids=["connect_timeout", "read_timeout"],
+    )
+    def test_timeout_exhausts_budget_sets_code_none(self, monkeypatch, timeout):
+        """A budget exhausted only by timeouts must raise with code=None."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            repeat(timeout, _MAX_RETRIES),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.attempts == _MAX_RETRIES
+        assert exc_info.value.code is None
+
     def test_connect_error_raises_immediately(self, monkeypatch):
         """ConnectError must raise without retrying."""
         stub_get(
