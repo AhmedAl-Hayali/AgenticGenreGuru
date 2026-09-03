@@ -53,6 +53,9 @@ dev = [
 ]
 
 [tool.ruff]
+
+cache-dir = "~/.cache/ruff"
+
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
