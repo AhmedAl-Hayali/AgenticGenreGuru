@@ -9,7 +9,7 @@ from typing import Literal, cast, overload
 
 from genreguru.audio.features import Feature
 from genreguru.db.models import AudioFormat, Song, SongFingerprint
-from genreguru.dto import FeatureScalars, SongData
+from genreguru.dto import DeezerTrack, FeatureScalars, SongData
 from tests.factories import SongFactory, SongFingerprintFactory
 
 _SONG_KEYS = (
@@ -21,6 +21,11 @@ _SONG_KEYS = (
     "preview_url",
     "duration",
 )
+
+# All `Feature` values plus the synthetic `vector_length` key that compose a
+# fingerprint response. Single source of truth so a `Feature` change needs
+# updating here only.
+EXPECTED_FINGERPRINT_KEYS = {f.value for f in Feature} | {"vector_length"}
 
 
 @overload
@@ -55,3 +60,21 @@ def build_repo_payloads(
     sample_rate = fp.sample_rate if include_audio_spec else None
 
     return song_data, features, audio_format, sample_rate
+
+
+def match_from_song(song_data: SongData) -> DeezerTrack:
+    """Shape a `DeezerTrack` input for `process_fingerprint` from repo `song_data`.
+
+    Field names are swapped to the Deezer contract (`preview`, not
+    `preview_url`); artist/album are plain strings here, which is a valid
+    `DeezerTrack` (the upstream payload may also carry them as objects).
+    """
+    return {
+        "deezer_id": song_data["deezer_id"],
+        "title": song_data["title"],
+        "isrc": song_data["isrc"],
+        "duration": song_data["duration"],
+        "preview": song_data["preview_url"],
+        "artist": song_data["artist"],
+        "album": song_data["album"],
+    }
