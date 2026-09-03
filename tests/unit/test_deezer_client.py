@@ -329,6 +329,22 @@ class TestPreviewUnavailable:
             _search(monkeypatch, [{**_SAMPLE_TRACK, "preview": preview}])
 
 
+class TestAlbumMissing:
+    """Verify fail-loud behaviour when a track lacks an album.
+
+    Unlike `isrc`/`preview` (which normalize via `.get` then fail-loud with
+    domain errors), `album` is hard-accessed in `_map_track` — mirroring
+    `artist`. A raw track missing the album key raises `KeyError`, aborting
+    the search batch. This is the deliberate strict boundary for album.
+    """
+
+    def test_missing_album_key_raises_key_error(self, monkeypatch):
+        """A raw track without an `album` key must abort search with `KeyError`."""
+        track = {k: v for k, v in _SAMPLE_TRACK.items() if k != "album"}
+        with pytest.raises(KeyError):
+            _search(monkeypatch, [track])
+
+
 class TestErrorCodeMapping:
     """Verify Deezer error code classification for retry vs. failure."""
 

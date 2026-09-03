@@ -49,6 +49,11 @@ class DeezerTrack(TypedDict):
     `artist`/`album` may arrive as objects (`Artist`/`Album`) or, when the
     payload was built from already-normalized data, as plain strings. The
     fingerprint service flattens them to strings on entry before persisting.
+
+    The `album` key is always present in a validated `DeezerTrack` — a raw
+    track missing `album` fails loud at the client boundary (mirroring
+    `artist`). Its value may be `None`. `isrc`/`preview` are likewise
+    guaranteed present and non-empty after client-side validation.
     """
 
     deezer_id: int
@@ -64,7 +69,8 @@ class SongData(TypedDict):
     """The song fields the repository persists (`create_song_and_fingerprint`).
 
     Uses persistence names (`preview_url`) and always carries `artist`/`album`
-    as plain strings. The service maps from `DeezerTrack` to this shape.
+    as plain strings. The `album` key is always present; its value may be
+    `None`. The service maps from `DeezerTrack` to this shape.
     """
 
     deezer_id: int
