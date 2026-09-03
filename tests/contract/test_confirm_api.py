@@ -67,7 +67,7 @@ def post_confirm(django_client, mocker):
         body=None,
         raw=None,
     ):
-        def fake_process(fake_session, track):
+        def fake_process(fake_session, track, repo):
             if error is not None:
                 raise error
             return dict(SUCCESS_RESPONSE)
