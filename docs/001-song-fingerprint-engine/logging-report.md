@@ -134,13 +134,12 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 
 ### T022 — `genreguru/deezer/client.py`
 
-- INFO: outbound search `query` + `limit=5`, and response `total`.
-- DEBUG: counts only (results returned, fields parsed) — never dump the full JSON payload.
-- WARNING: Deezer error codes `QUOTA`(4) / `SERVICE_BUSY`(700) before entering the retry/backoff path.
-- ERROR + `logger.exception` with `extra={isrc, deezer_id}`:
+- INFO: outbound search attempt `query` + `limit`, and response `total`.
+- DEBUG: counts only (mapped tracks) — never dump the full JSON payload.
+- ERROR `logger.error` (no `extra`):
   - missing `isrc` → raise `MissingISRCError` (REQ-012, REQ-016)
   - missing/empty `preview` → raise `PreviewUnavailableError` (REQ-017); track NOT persisted, no snippet fetch
-- INFO on `DATA_NOT_FOUND`(800) → empty matches (not an error).
+- Retry WARNING (incl. network `ConnectTimeout`/`ReadTimeout`) and exhausted-budget ERROR: shared loop, see T023a.
 
 ### T023 — `genreguru/deezer/snippets.py`
 
