@@ -39,12 +39,16 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 
 ### Search Error Responses
 
-Raised when the search flow cannot return matches:
+Raised when the search request is invalid or the search dependency fails:
 
-| Status Code               | Meaning                                                                                                                                                                               | Body                                                                                        |
-|---------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| `404 Not Found`           | Deezer `/search` returned zero matches → raise `TrackNotFoundError`; show `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."` | `{"status": "error", "error": "TrackNotFoundError"}`                                        |
-| `503 Service Unavailable` | Deezer `/search` unreachable (Deezer / DNS / network)                                                                                                                                 | `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}` |
+| Status Code               | Meaning                                                                                                                                          | Body                                                                                        |
+|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| `404 Not Found`           | Empty/whitespace `query` param (client error) → return `TrackNotFoundError`                                                                      | `{"status": "error", "error": "TrackNotFoundError"}`                                        |
+| `503 Service Unavailable` | Deezer `/search` unreachable (Deezer / DNS / network), incl. QUOTA(4)/SERVICE_BUSY(700) exhausting the retry budget → `NetworkDisconnectedError` | `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}` |
+
+> **Zero-match semantics**: A valid query with zero Deezer matches returns HTTP **200** with an empty `matches` array (`{"status":"success","matches":[]}`), not an error. This mirrors the external contract — Deezer `DATA_NOT_FOUND` (800) yields an empty result, never an error (see [deezer-api.md](deezer-api.md) §4). The `TrackNotFoundError` 404 above is reserved for the invalid/empty-query client error.
+
+> **Zero-match UX**: On a 200-empty result the UI must not leave the user hanging. Show a clear no-results message for the submitted query, e.g. `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."`
 
 ## 2. Confirm & Fingerprint Endpoint
 
@@ -123,8 +127,10 @@ Raised when the search flow cannot return matches:
 > **Fingerprint reuse vs. fresh generation**: To aid developer debugging, the backend shall set a logging flag (e.g., `reused=true` / `reused=false`) in the request logs to distinguish between fingerprints that are freshly generated or reused from an existing database record — the caller is not informed which path was taken.
 
 - **Error Responses**:
+  - `400 Bad Request`: `{"status": "error", "error": "invalid JSON body"}` (malformed JSON) or `{"status": "error", "error": "invalid request body"}` (valid JSON but missing required fields: deezer_id, title, isrc, duration, preview, artist, album)
   - `400 Bad Request`: `{"status": "error", error: "AudioProcessingError", "message": "audio file cannot be processed"}`
   - `503 Service Unavailable`: `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}`
+  - `500 Internal Server Error`: `{"status": "error", "error": "internal server error"}` (unexpected failure; session rolled back)
 
 ## 3. Latency & Performance Requirements
 
