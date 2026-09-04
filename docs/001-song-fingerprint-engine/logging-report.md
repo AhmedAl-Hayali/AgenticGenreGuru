@@ -149,6 +149,16 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 - ERROR + `logger.exception` after the 3rd failed attempt → raises `NetworkDisconnectedError` (REQ-014).
 - Never log byte content.
 
+### T023a — `genreguru/deezer/_retry.py`
+
+Shared `retry_until_success` backoff loop, used by both the search client
+(T022) and the snippet fetcher (T023).
+
+- Parameter guards: `max_retries < 1` / `delay < 0` → `ValueError`.
+- WARNING per retry: `retryable error code=%s attempt=%d delay=%s` (REQ-013), logged only when another attempt follows.
+- ERROR on exhausted budget: `"{operation_label} failed after {max_retries} attempts"` → `NetworkDisconnectedError` (503) with
+  `attempts` + Deezer `code` (REQ-014).
+
 ### T024 — `genreguru/db/repositories.py`
 
 - INFO: `find_by_isrc` outcome (`hit`/`miss` + `isrc`).

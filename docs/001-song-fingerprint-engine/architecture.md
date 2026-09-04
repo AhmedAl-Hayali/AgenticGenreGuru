@@ -85,7 +85,7 @@ genreguru/
 │   └── django/              # dev.yaml, prod.yaml      (web-layer settings; GENREGURU_ENV selects)
 ├── src/                     # standalone core library (Constitution I)
 │   └── genreguru/
-│       ├── audio/           # DSP: loader, features (Feature enum), feature_extract, feature_collapse, visualization, _format_magic
+│       ├── audio/           # DSP: loader, features (Feature enum), feature_extract, feature_collapse, visualization
 │       ├── deezer/          # external client + snippet fetch; shared retry loop (_retry.py)
 │       ├── db/              # engine, base, models, repositories, init_db
 │       ├── config.py        # Hydra compose helper (Django-safe path)
