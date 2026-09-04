@@ -102,3 +102,12 @@ Per the official Deezer [API errors](`https://developers.deezer.com/api/errors`)
 | 901  | `INDIVIDUAL_ACCOUNT_NOT_ALLOWED` | Not applicable. Individual account restriction, out of public search scope                      |
 
 > **Handling Rule**: On `QUOTA` (4) and `SERVICE_BUSY` (700), retry with backoff before propagating `NetworkDisconnectedError`. `DATA_NOT_FOUND` (800) yields empty search results. All other codes fail loudly, preserving the Deezer error `type`/`message`/`code`.
+
+> **Implementation note**: The handling rule is implemented on **both** paths.
+> `snippets.fetch_snippet` parses the error envelope, calls `classify_error`,
+> and preserves the Deezer `code` on the exhausted `NetworkDisconnectedError`.
+> `DeezerSearchClient().search()` likewise parses the non-2xx/envelope body, retries QUOTA (4) /
+> SERVICE_BUSY (700) 3×/5s (and network `ConnectTimeout`/`ReadTimeout`) before raising
+> `NetworkDisconnectedError` (503), maps
+> `DATA_NOT_FOUND` (800) to an empty result, and fails loud on every other code
+> while preserving the `code`.
