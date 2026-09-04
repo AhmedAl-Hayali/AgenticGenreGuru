@@ -33,12 +33,16 @@ __all__ = [
     "LoggingManager",
     "FingerprintContextAdapter",
     "log_fingerprint_outcome",
+    "timer",
 ]
 
 import json
 import logging
 import logging.config
 import queue
+import time
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from logging.handlers import QueueHandler, QueueListener, RotatingFileHandler
 from pathlib import Path
@@ -311,3 +315,19 @@ def log_fingerprint_outcome(
             song_id,
             extra=extra,
         )
+
+
+@contextmanager
+def timer() -> Generator[Callable[[], float]]:
+    """Yield a callable reporting elapsed seconds since context entry.
+
+    Lives here to populate `elapsed` fields in log output. Uses
+    `time.monotonic()` so it is immune to clock adjustments. Usage:
+    `with timer() as elapsed: ...; logger.info(..., elapsed())`.
+    """
+    t0 = time.monotonic()
+
+    def elapsed() -> float:
+        return time.monotonic() - t0
+
+    yield elapsed
