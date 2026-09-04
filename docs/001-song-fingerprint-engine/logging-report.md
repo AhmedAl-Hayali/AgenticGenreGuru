@@ -144,8 +144,8 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 ### T023 — `genreguru/deezer/snippets.py`
 
 - INFO: fetch start and success (`bytes`, `elapsed`).
-- WARNING per retry: `attempt=1..3`, `delay=5s`, exception reason (REQ-013).
-- ERROR + `logger.exception` after the 3rd failed attempt → raises `NetworkDisconnectedError` (REQ-014).
+- ERROR `logger.error` `permanent network error attempt=%d` on `ConnectError`/`ReadError` (immediate fail, REQ-014).
+- Retry WARNING + exhausted-budget ERROR: shared loop, see T023a.
 - Never log byte content.
 
 ### T023a — `genreguru/deezer/_retry.py`

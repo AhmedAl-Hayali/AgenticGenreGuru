@@ -4,7 +4,7 @@ Covers the `retry_until_success` contract in isolation: parameter guards,
 control flow (success / retry / exhaustion / permanent propagation), and the
 WARNING/ERROR log records. Network-path behavior built on this helper is
 exercised by `tests.unit.test_deezer_client` and
-`tests.integration.test_deezer_retry`.
+`tests.integration.test_snippet_retry`.
 """
 
 import logging
