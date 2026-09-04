@@ -77,9 +77,11 @@
 ### Implementation for User Story 1
 
 - [x] T020 \[P\] \[US1\] Implement audio snippet loader with mono downmix (mean of channels) in `genreguru/audio/loader.py`; module logger: DEBUG source/sample_rate/channels/duration/format + mono-downmix, ERROR `logger.exception` → `AudioProcessingError` (REQ-015 message), lazy `%s` args, never log binary buffer; validate format (MP3/WAV/FLAC accepted per REQ-004, unsupported format → error before DSP processing)
-- [ ] T021 \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) returning raw per-frame ndarrays in `genreguru/audio/feature_extract.py` + arithmetic-mean collapse to scalars in `genreguru/audio/feature_collapse.py`; module logging: feature_extract WARNING/INFO on zero/low-energy frames (silent-non-musical edge case) + INFO extraction complete + elapsed (SC-002), feature_collapse DEBUG per-feature collapse mean
-- [ ] T022 \[P\] \[US1\] Implement Deezer search client in `genreguru/deezer/client.py` (`GET https://api.deezer.com/search?q={query}&limit=5`, Track field mapping, fail-loud on missing `isrc`/`preview`, error-code mapping per `contracts/deezer-api.md`); module logger: INFO request query+limit=5 and response `total`, DEBUG counts only (no payload dumps), WARNING on `QUOTA`(4)/`SERVICE_BUSY`(700) before retry, ERROR `logger.exception` on missing `isrc` → `MissingISRCError` and empty `preview` → `PreviewUnavailableError` with `extra={isrc, deezer_id}`
-- [ ] T023 \[P\] \[US1\] Implement audio snippet fetcher with 3x retry / 5s delay (`NetworkDisconnectedError` on all-fail) in `genreguru/deezer/snippets.py`; module logger: INFO fetch start/success (bytes, elapsed), WARNING per retry (`attempt=%d delay=%ds`), ERROR+`logger.exception` → `NetworkDisconnectedError` after 3rd fail (REQ-013/014), never log bytes
+- [x] T021a \[P\] \[US1\] Implement feature extractor computing `spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc` (librosa/numpy/scipy) returning raw per-frame ndarrays in `genreguru/audio/feature_extract.py`; module logging: WARNING/INFO on zero/low-energy frames (silent-non-musical edge case) + INFO extraction complete + elapsed (SC-002)
+- [ ] T021b \[P\] \[US1\] Implement arithmetic-mean collapse of per-frame ndarrays to scalars in `genreguru/audio/feature_collapse.py` (consumes T021a output); module logging: DEBUG per-feature collapse mean
+- [ ] T022a \[P\] \[US1\] Implement shared retry helper `retry_until_success` in `genreguru/deezer/_retry.py` (shared by T022b + T023); module logging: retry WARNING (incl. network `ConnectTimeout`/`ReadTimeout`) + exhausted-budget ERROR (REQ-013/014)
+- [ ] T022b \[P\] \[US1\] Implement Deezer search client in `genreguru/deezer/client.py` (`GET https://api.deezer.com/search?q={query}&limit=5`, Track field mapping, fail-loud on missing `isrc`/`preview`, error-code mapping per `contracts/deezer-api.md`); module logger: INFO request query+limit and response `total`, DEBUG counts only (no payload dumps), ERROR `logger.error` on missing `isrc` → `MissingISRCError` and empty `preview` → `PreviewUnavailableError`; consumes `retry_until_success` from T022a `_retry.py`
+- [ ] T023 \[P\] \[US1\] Implement audio snippet fetcher with 3x retry / 5s delay (`NetworkDisconnectedError` on all-fail) in `genreguru/deezer/snippets.py`; module logger: INFO fetch start/success (bytes, elapsed), ERROR `permanent network error` on `ConnectError`/`ReadError`; retry WARNING + exhausted-budget ERROR in `genreguru/deezer/_retry.py` (REQ-013/014), never log bytes
 - [ ] T024 \[P\] \[US1\] Implement `SongRepository` with `find_by_isrc()` + `create_song_and_fingerprint()` in `genreguru/db/repositories.py`; module logger: INFO `isrc` lookup hit/miss, INFO insert (`song_id`/`isrc`/`deezer_id`), WARNING on concurrent same-`isrc` unique violation (api_flow §3.2)
 - [ ] T025 \[US1\] Implement `FingerprintService` orchestration in `genreguru/fingerprint_service.py` (ISRC reuse path short-circuits; else fetch → extract → store; logs `reused=true/false` via the T011 `LoggerAdapter` — `extra={isrc, deezer_id, song_id, reused}`; INFO `"fingerprint reused (isrc=...)"` vs `"fresh fingerprint generated (isrc=..., elapsed=...s)"`; `logger.exception` on catch before re-raise)
 - [ ] T026 \[US1\] Implement search view `GET /api/search/` in `frontend/fingerprint_app/views.py` (404 `TrackNotFoundError`, 503 `NetworkDisconnectedError` per `contracts/search-api.md`)
@@ -224,6 +226,7 @@
 - Once Foundational completes, all user stories' core/endpoint work can start in parallel (team capacity permitting); UI tasks are serialized
 - All tests within a story marked \[P\] run in parallel (separate test files)
 - US1 core-library tasks T020-T024 run in parallel (separate modules)
+- US1 core-library dependency: T022a (`genreguru/deezer/_retry.py`, shared `retry_until_success`) MUST be built before T022b (`client.py`) and T023 (`snippets.py`); T021b (`feature_collapse.py`) depends on T021a (`feature_extract.py`). These consumers can start once their shared prerequisite module exists
 - Different user stories parallelizable across team members (core + endpoints only — NOT the shared `index.html`/`app.js` UI tasks)
 
 ---
@@ -241,8 +244,10 @@ Task: "Contract test for POST /api/confirm/ in tests/contract/test_confirm_api.p
 
 # Launch all core-library implementations together:
 Task: "Implement audio loader mono downmix in genreguru/audio/loader.py"
-Task: "Implement 8-feature extractor in genreguru/audio/feature_extract.py + feature_collapse.py"
-Task: "Implement Deezer search client in genreguru/deezer/client.py"
+Task: "Implement 8-feature extractor in genreguru/audio/feature_extract.py"
+Task: "Implement feature collapse in genreguru/audio/feature_collapse.py"
+Task: "Implement shared retry helper in genreguru/deezer/_retry.py (T022a)"
+Task: "Implement Deezer search client in genreguru/deezer/client.py (consumes T022a)"
 Task: "Implement snippet fetcher with retry in genreguru/deezer/snippets.py"
 Task: "Implement SongRepository in genreguru/db/repositories.py"
 ```
