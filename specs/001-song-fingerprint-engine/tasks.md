@@ -86,7 +86,7 @@
 - [x] T025 \[US1\] Implement `FingerprintService` orchestration in `genreguru/fingerprint_service.py` (ISRC reuse path short-circuits; else fetch → extract → store; logs `reused=true/false` via the T011 `LoggerAdapter` — `extra={isrc, deezer_id, song_id, reused}`; INFO `"fingerprint reused (isrc=...)"` vs `"fresh fingerprint generated (isrc=..., elapsed=...s)"`; exception handling delegated to the caller)
 - [x] T026 \[US1\] Implement search view `GET /api/search/` in `frontend/fingerprint_app/views.py` (404 `TrackNotFoundError`, 503 `NetworkDisconnectedError` per `contracts/search-api.md`)
 - [x] T027 \[US1\] Implement confirm view `POST /api/confirm/{match}` in `frontend/fingerprint_app/views.py` (400 `AudioProcessingError`, 503 `NetworkDisconnectedError`, response payload incl. `song_id`, `deezer_id`, `isrc`, `fingerprint` with `vector_length: 8`)
-- [ ] T028 \[US1\] Register `/api/search/` and `/api/confirm/` routes in `frontend/fingerprint_app/urls.py` and include them in `frontend/genreguru_web/urls.py`
+- [x] T028 \[US1\] Register `/api/search/` and `/api/confirm/` routes in `frontend/fingerprint_app/urls.py` and include them in `frontend/genreguru_web/urls.py`
 - [ ] T029 \[US1\] Create `index.html` template (search bar, top-5 candidate list, result area) in `frontend/fingerprint_app/templates/fingerprint_app/index.html`
 - [ ] T030 \[US1\] Implement 2-click selection/confirmation JS (Click 1 highlight "Selected", Click 2 confirm + POST) in `frontend/fingerprint_app/static/fingerprint_app/app.js`
 
