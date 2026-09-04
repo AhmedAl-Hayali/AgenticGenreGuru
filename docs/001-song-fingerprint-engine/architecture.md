@@ -85,8 +85,8 @@ genreguru/
 │   └── django/              # dev.yaml, prod.yaml      (web-layer settings; GENREGURU_ENV selects)
 ├── src/                     # standalone core library (Constitution I)
 │   └── genreguru/
-│       ├── audio/           # DSP: loader, features (Feature enum), feature_extract, feature_collapse, visualization
-│       ├── deezer/          # external client + snippet fetch w/ retry
+│       ├── audio/           # DSP: loader, features (Feature enum), feature_extract, feature_collapse, visualization, _format_magic
+│       ├── deezer/          # external client + snippet fetch; shared retry loop (_retry.py)
 │       ├── db/              # engine, base, models, repositories, init_db
 │       ├── config.py        # Hydra compose helper (Django-safe path)
 │       ├── gglogging.py     # dictConfig from Hydra logging group, JsonFormatter, handlers
@@ -127,6 +127,7 @@ genreguru/
 |                   | `genreguru/audio/visualization.py`    | Spectrogram + centroid overlay + top-3 factors by normalized contribution (feature-gated, US3)                                                                                                                                                              | T039       |
 | **Deezer**        | `genreguru/deezer/client.py`          | `GET /search?q=..&limit=5`, Track field mapping, ISRC/preview fail-loud, error-code mapping (QUOTA 4, SERVICE_BUSY 700 → retry; DATA_NOT_FOUND 800 → empty)                                                                                                 | T022       |
 |                   | `genreguru/deezer/snippets.py`        | Preview MP3 fetch with 3 retries / 5 s delay → `NetworkDisconnectedError`                                                                                                                                                                                   | T023       |
+|                   | `genreguru/deezer/_retry.py`          | Shared `retry_until_success` backoff loop (WARNING per retry, exhausted-budget ERROR → `NetworkDisconnectedError` with `attempts` + code); used by client + snippets                                                                                        | T022, T023 |
 | **DB**            | `genreguru/db/engine.py`              | SQLAlchemy engine + `SessionLocal` from Hydra `db` group; pool logging                                                                                                                                                                                      | T007       |
 |                   | `genreguru/db/base.py`                | Declarative `Base`                                                                                                                                                                                                                                          | T008       |
 |                   | `genreguru/db/models.py`              | `Song`, `SongFingerprint` per `data-model.md`                                                                                                                                                                                                               | T009       |
