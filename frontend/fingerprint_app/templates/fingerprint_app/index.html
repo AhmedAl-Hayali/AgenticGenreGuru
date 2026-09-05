@@ -1,0 +1,146 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GenreGuru — Song Fingerprint Engine</title>
+    <style>
+        :root {
+            --bg: #12141a;
+            --panel: #1b1f28;
+            --panel-2: #232936;
+            --border: #303848;
+            --text: #e6e9f0;
+            --muted: #8b93a5;
+            --accent: #6ea8fe;
+            --accent-strong: #3d7bfd;
+            --selected: #243b5e;
+            --err: #ff8f8f;
+            --ok: #7ed492;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+            line-height: 1.5;
+        }
+        .wrap {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 2rem 1rem 4rem;
+        }
+        header { margin-bottom: 1.5rem; }
+        h1 { font-size: 1.6rem; margin: 0 0 0.25rem; }
+        .subtitle { color: var(--muted); margin: 0; font-size: 0.95rem; }
+        form#search-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+        }
+        input[type="text"] {
+            flex: 1;
+            padding: 0.7rem 0.9rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--panel);
+            color: var(--text);
+        }
+        input[type="text"]:focus { outline: none; border-color: var(--accent); }
+        button {
+            padding: 0.7rem 1.25rem;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: none;
+            background: var(--accent-strong);
+            color: #fff;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.55; cursor: not-allowed; }
+        section { margin-bottom: 1.5rem; }
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem 1.25rem;
+        }
+        h2 { font-size: 1rem; margin: 0 0 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+        .status { color: var(--muted); margin: 0 0 1rem; }
+        .status.error { color: var(--err); }
+        ul#candidates { list-style: none; margin: 0; padding: 0; }
+        #candidates li {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--panel-2);
+            cursor: pointer;
+            transition: background 120ms ease, border-color 120ms ease;
+        }
+        #candidates li:hover { border-color: var(--accent); }
+        #candidates li.selected {
+            border-color: var(--accent);
+            background: var(--selected);
+        }
+        #candidates li .title { font-weight: 600; }
+        #candidates li .meta { color: var(--muted); font-size: 0.85rem; }
+        #candidates li .badge {
+            float: right;
+            font-size: 0.75rem;
+            color: #fff;
+            background: var(--accent-strong);
+            border-radius: 999px;
+            padding: 0.15rem 0.6rem;
+            visibility: hidden;
+        }
+        #candidates li.selected .badge { visibility: visible; }
+        #candidates li.processing { opacity: 0.6; cursor: progress; }
+        dl#result {
+            display: grid;
+            grid-template-columns: minmax(9rem, 1fr) 2fr;
+            gap: 0.4rem 1rem;
+            margin: 0;
+        }
+        dl#result dt { color: var(--muted); font-size: 0.9rem; }
+        dl#result dd { margin: 0; font-family: ui-monospace, Consolas, monospace; font-size: 0.95rem; }
+        .result-title { margin: 0 0 1rem; font-weight: 600; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <main class="wrap">
+        <header>
+            <h1>GenreGuru — Song Fingerprint Engine</h1>
+            <p class="subtitle">Search a song, click a match once to select, click it again to confirm and fingerprint it.</p>
+        </header>
+
+        <form id="search-form" autocomplete="off">
+            <input
+                id="query"
+                type="text"
+                name="query"
+                placeholder="Search for a song title, e.g. Daft Punk"
+                aria-label="Song title"
+            >
+            <button id="search-btn" type="submit">Search</button>
+        </form>
+
+        <section id="candidates-section" class="panel">
+            <h2>Matches</h2>
+            <p id="status" class="status">Enter a song title above to begin.</p>
+            <ul id="candidates" aria-live="polite"></ul>
+        </section>
+
+        <section id="result-section" class="panel hidden">
+            <h2>Fingerprint</h2>
+            <p id="result-title" class="result-title"></p>
+            <dl id="result"></dl>
+        </section>
+    </main>
+
+    <script src="{% static 'fingerprint_app/app.js' %}"></script>
+</body>
+</html>
