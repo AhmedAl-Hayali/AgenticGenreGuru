@@ -10,6 +10,8 @@ lazy `%s` args, never log binary buffer.
 
 import io
 import logging
+import os
+import tempfile
 from pathlib import Path
 
 import librosa
@@ -54,6 +56,40 @@ def _detect_format(data: bytes, filename: str | None) -> str | None:
     return None
 
 
+def _decode_file(data: bytes, fmt: str, target_sr: int) -> tuple[np.ndarray, int]:
+    """Decode *data* from a temporary file on disk.
+
+    libsndfile cannot open MP3 from an in-memory `BytesIO` on this build
+    (`LibsndfileError: Format not recognised`), though it decodes MP3 from a
+    real path. The stream decode in `load_audio` therefore falls back to a
+    path-based open via `librosa.load`. The temp file is closed before the
+    path is opened so its handle releases deterministically — on Windows an
+    open handle blocks unlink.
+
+    Args:
+        data: Raw audio file bytes.
+        fmt: Canonical format name (from `_detect_format`) used as the
+            temp-file extension. Never derived from a caller-supplied URL,
+            which may carry an invalid query-string suffix.
+        target_sr: Desired output sample rate.
+
+    Returns:
+        Tuple of (decoded_audio, sample_rate) as `librosa.load` returns it:
+        `(channels, frames)` when multichannel, `(frames,)` when mono. Same
+        shape contract as the in-memory path so the caller's downmix is
+        unchanged.
+    """
+    suffix = f".{fmt}"
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        tmp.write(data)
+        tmp_path = tmp.name
+    try:
+        y, sr = librosa.load(tmp_path, sr=target_sr, mono=False)
+        return y, int(sr)
+    finally:
+        os.unlink(tmp_path)
+
+
 def load_audio(
     data: bytes,
     *,
@@ -87,8 +123,13 @@ def load_audio(
     except AudioProcessingError:
         raise
     except Exception:
-        logger.exception("failed to decode audio data")
-        raise AudioProcessingError("audio file cannot be processed") from None
+        logger.debug("in-memory decode failed; falling back to temp file")
+        try:
+            audio, sr = _decode_file(data, fmt, target_sr)
+        except Exception:
+            logger.exception("failed to decode audio data")
+            raise AudioProcessingError("audio file cannot be processed") from None
+    sr = int(sr)
 
     if audio.ndim == 1:
         mono = audio
