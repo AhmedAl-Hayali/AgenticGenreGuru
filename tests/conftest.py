@@ -9,11 +9,11 @@ factories and removes it on teardown.
 `db_schema` creates the ORM tables (`songs`, `song_fingerprints`) on the
 live PostgreSQL engine once per session.
 The autouse `_no_sleep` kills the 5s Deezer retry delay for the retry suites.
-The autouse `_quiet_numba_loggers` suppresses Numba byteflow/interpreter DEBUG
-spam and its `--- Logging error ---` shutdown banner.
+Numba byteflow/interpreter DEBUG spam is suppressed by the `dev.yaml`
+logging config (`numba.core.byteflow`/`numba.core.interpreter` pinned to
+WARNING); the same config covers pytest via `settings.test`.
 """
 
-import logging
 from collections.abc import Generator
 
 import pytest
@@ -109,16 +109,3 @@ def _no_sleep(monkeypatch) -> None:
     future test that needs a real sleep must not rely on this autouse no-op.
     """
     no_sleep(monkeypatch, "genreguru.deezer._retry")
-
-
-@pytest.fixture(autouse=True, scope="session")
-def _quiet_numba_loggers() -> None:
-    """Suppress Numba's internal byteflow/interpreter DEBUG spam.
-
-    These DEBUG records surface only under pytest (plain `load_audio` runs
-    clean) and, at interpreter shutdown, trip a logging handler that prints a
-    bare `--- Logging error ---` to stderr. Pinning the loggers to WARNING
-    stops the records at the source, with no effect on app logging.
-    """
-    for name in ("numba.core.byteflow", "numba.core.interpreter"):
-        logging.getLogger(name).setLevel(logging.WARNING)

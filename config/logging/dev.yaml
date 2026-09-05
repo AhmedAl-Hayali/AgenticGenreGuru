@@ -45,3 +45,9 @@ loggers:
   urllib3:
     level: WARNING
     handlers: []
+  numba.core.byteflow:
+    level: WARNING
+    handlers: []
+  numba.core.interpreter:
+    level: WARNING
+    handlers: []
