@@ -130,7 +130,7 @@ def test_schema_matches_data_model(engine, eng_inspector) -> None:
     assert fp_cols["sample_rate"].type == "integer"
 
     assert song_cols["id"].type == "uuid"
-    assert song_cols["deezer_id"].type == "integer"
+    assert song_cols["deezer_id"].type == "bigint"
     assert song_cols["isrc"].type == "varchar(255)"
     assert song_cols["title"].type == "varchar(255)"
     assert song_cols["artist"].type == "varchar(255)"

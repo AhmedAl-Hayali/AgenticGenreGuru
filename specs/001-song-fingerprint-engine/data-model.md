@@ -9,7 +9,7 @@ Represents a track retrieved from Deezer search results.
 | Column        | Type           | Constraints               | Description                                                                                          |
 |---------------|----------------|---------------------------|------------------------------------------------------------------------------------------------------|
 | `id`          | UUID           | Primary Key               | Internal song record ID (UUIDv7)                                                                     |
-| `deezer_id`   | Integer        | Unique, Indexed, Not Null | Deezer track ID (platform track ID)                                                                  |
+| `deezer_id`   | BigInteger     | Unique, Indexed, Not Null | Deezer track ID (platform track ID); BIGINT — 10-digit IDs exceed INTEGER range                      |
 | `isrc`        | String         | Unique, Indexed, Not Null | International Standard Recording Code (ISO 3901); mandatory when interfacing with external platforms |
 | `title`       | String(255)    | Not Null                  | Track title                                                                                          |
 | `artist`      | String(255)    | Not Null                  | Artist name                                                                                          |
@@ -54,7 +54,7 @@ erDiagram
 
     SONG {
         uuid id PK "NN"
-        int deezer_id UK "NN"
+        bigint deezer_id UK "NN"
         string isrc UK "NN"
         string title "NN"
         string artist "NN"

@@ -13,7 +13,16 @@ __all__ = ["AudioFormat", "Song", "SongFingerprint"]
 import enum
 import uuid
 
-from sqlalchemy import Float, ForeignKey, Integer, String, Text, UniqueConstraint, text
+from sqlalchemy import (
+    BigInteger,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    text,
+)
 from sqlalchemy.dialects.postgresql import ENUM, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.orm.session import Session
@@ -45,7 +54,7 @@ class Song(Base, TimestampedMixin, UuidMixin):
     )
 
     deezer_id: Mapped[int] = mapped_column(
-        Integer, unique=True, index=True, nullable=False
+        BigInteger, unique=True, index=True, nullable=False
     )
     isrc: Mapped[str] = mapped_column(
         String(255), unique=True, index=True, nullable=False
