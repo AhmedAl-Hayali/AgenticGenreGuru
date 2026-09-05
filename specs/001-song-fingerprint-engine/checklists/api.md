@@ -87,7 +87,7 @@ Captured in [api_flow.md](../../../docs/001-song-fingerprint-engine/api_flow.md)
 
 - [x] CHK025 Does every contract behavior trace back to a spec REQ or acceptance scenario? [Traceability]
 
-- [ ] CHK026 Are dependencies on Deezer API availability, response shape, and mandatory `isrc` presence documented as assumptions? [Dependency, Gap]
+- [x] CHK026 Are dependencies on Deezer API availability, response shape, and mandatory `isrc` presence documented as assumptions? [Dependency, Gap]
 
 No, but as with CHK007, the Deezer API reference contains the response shape, the `isrc` presence mandate is captured through the error handling, and the Deezer API availability is currently unproblematic.
 
