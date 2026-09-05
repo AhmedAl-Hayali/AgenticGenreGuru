@@ -209,3 +209,6 @@ data/*/*
 
 # Notebooks
 notebooks/*
+
+# Node dependency directories
+/frontend/node_modules/*
