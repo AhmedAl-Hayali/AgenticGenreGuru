@@ -3,7 +3,7 @@
 Covers `_detect_format` magic-byte/filename mapping (wav/flac/ogg/mp3 inputs
 are real files generated via `soundfile`; m4a is handcrafted because the test
 environment lacks an MPEG-4 encoder), and the `load_audio` pre-decode guard.
-The decode path is exercised for real on a generated wav.
+The decode path is exercised for real on a generated wav and mp3.
 """
 
 import io
@@ -155,9 +155,15 @@ class TestDetectFormatPrecedence:
 class TestLoadAudioGuard:
     """Verify `load_audio` rejects unsupported formats and decodes known ones."""
 
-    def test_generated_wav_decodes(self):
-        """A real wav must round-trip through detection and decode."""
-        mono, sr = loader.load_audio(_snippet("wav"), target_sr=_SAMPLE_RATE)
+    @pytest.mark.parametrize("fmt", ["wav", "mp3"], ids=["wav", "mp3"])
+    def test_generated_decodes(self, fmt):
+        """A generated {fmt} clip must round-trip through detection and decode.
+
+        Either route must yield a valid mono float32 array.
+        """
+        # MP3 specifically can trip libsndfile's in-memory `BytesIO` path in some
+        # builds/versions; `load_audio` then falls back to a temp-file path-decode.
+        mono, sr = loader.load_audio(_snippet(fmt), target_sr=_SAMPLE_RATE)
 
         assert mono.dtype == np.float32
         assert mono.ndim == 1
