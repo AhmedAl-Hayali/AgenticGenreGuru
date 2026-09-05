@@ -10,6 +10,9 @@ def main() -> None:
     os.environ.setdefault(
         "DJANGO_SETTINGS_MODULE", "genreguru_web.settings.development"
     )
+    from genreguru_web.runtime import init_runtime
+
+    init_runtime()
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

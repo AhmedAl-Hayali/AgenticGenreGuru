@@ -6,6 +6,11 @@ via `genreguru.config`. The DB connection comes from the Hydra `db` group
 (`cfg.db.*`) so Django and the core library share one connection source.
 `.development`, `.production`, and `.test` import these and override
 only what differs.
+
+This module is side-effect free: importable with no DB engine or logging
+runtime initialized. `genreguru_web.runtime.init_runtime()` performs those
+initializations; entrypoints (`manage.py`, `wsgi.py`, `asgi.py`) call it
+before serving.
 """
 
 from pathlib import Path
@@ -13,7 +18,6 @@ from pathlib import Path
 from omegaconf import OmegaConf
 
 from genreguru.config import get_config
-from genreguru.gglogging import LoggingManager
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
@@ -94,6 +98,3 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "fingerprint_app" / "static"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-_logging_manager = LoggingManager()
-_logging_manager.setup(cfg.logging)
