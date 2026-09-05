@@ -156,10 +156,19 @@ class TestNoPartialRowsOnError:
     def test_error_creates_no_partial_rows(
         self, db_schema, db_session, get_search, error
     ):
-        """An error from the dependency must not create any Song/SongFingerprint rows."""
+        """An error from the dependency must not create any Song/SongFingerprint rows.
+
+        Asserts a zero **delta** (count before vs after) rather than an empty
+        table, so pre-existing committed rows in the shared dev database (e.g.
+        from the live confirm flow) cannot mask a partial-row leak.
+        """
+        songs_before = db_session.query(Song).count()
+        fingerprints_before = db_session.query(SongFingerprint).count()
+
         get_search(query="Daft+Punk", error=error)
-        assert db_session.query(Song).count() == 0
-        assert db_session.query(SongFingerprint).count() == 0
+
+        assert db_session.query(Song).count() == songs_before
+        assert db_session.query(SongFingerprint).count() == fingerprints_before
 
 
 class TestSearch503:
