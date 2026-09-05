@@ -1,4 +1,4 @@
-"""Contract tests for POST /api/confirm/{match_id} endpoint.
+"""Contract tests for POST /api/confirm/ endpoint.
 
 GREEN phase: `confirm_view` is exercised as the REAL view. The two mocked
 boundaries are `genreguru.fingerprint_service.process_fingerprint` (the
@@ -13,8 +13,8 @@ SongFingerprint rows on error" contract guarantee at the view boundary
 (T018/T019); the actual SAVEPOINT-isolation row assertions live in the
 integration suites (repositories / fingerprint_service), which drive the real
 persistence path. The real `genreguru_web.urls` → `fingerprint_app.urls`
-routing is used via the default `ROOT_URLCONF`; the `/api/confirm/{match_id}`
-POST resolves to `confirm_view` through the live URL wiring.
+routing is used via the default `ROOT_URLCONF`; the `/api/confirm/` POST
+resolves to `confirm_view` through the live URL wiring.
 """
 
 import json
@@ -52,7 +52,7 @@ def status_of(resp) -> str:
 
 @pytest.fixture
 def post_confirm(django_client, mocker):
-    """POST /api/confirm/3135556/ with stubbed service/session; returns the response.
+    """POST /api/confirm/ with stubbed service/session; returns the response.
 
     All arguments are keyword-only. `error` makes the service raise,
     `session` replaces the view's session (to assert rollback/close), `body`
@@ -79,13 +79,13 @@ def post_confirm(django_client, mocker):
 
         if raw is not None:
             return django_client.post(
-                "/api/confirm/3135556/",
+                "/api/confirm/",
                 data=raw,
                 content_type="application/json",
             )
         payload = DEEZER_MATCH if body is None else body
         return django_client.post(
-            "/api/confirm/3135556/",
+            "/api/confirm/",
             data=json.dumps(payload),
             content_type="application/json",
         )

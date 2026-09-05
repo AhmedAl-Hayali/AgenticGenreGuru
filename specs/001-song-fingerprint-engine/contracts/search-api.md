@@ -53,6 +53,7 @@ Raised when the search request is invalid or the search dependency fails:
 ## 2. Confirm & Fingerprint Endpoint
 
 - **Path**: `POST /api/confirm/{match}`
+- **Path**: `POST /api/confirm/`
 - **Request Body**: Selected match object (same schema as `matches[]` in the search response):
 ```json
 {
@@ -119,6 +120,11 @@ Raised when the search request is invalid or the search dependency fails:
 | `fingerprint.vector_length`      | integer | Number of features (8 in V1)                       |
 
 > **V1 Notes**
+> - The confirm endpoint exposes the match as the request body only; there is no
+>   track id in the path (`POST /api/confirm/`, not `/api/confirm/{id}`). The
+>   body is the single source of the selected match. If per-track resource
+>   semantics (e.g. querying a stored fingerprint by id) are needed later, a
+>   path parameter can be reintroduced without breaking the body schema.
 > - All audio snippets are processed as single-channel (mono) audio, downmixing multichannel audio by averaging channels. 
 > - Each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling (e.g., MFCC frames as many `n_mfcc` scalars).*
 
@@ -136,10 +142,10 @@ Raised when the search request is invalid or the search dependency fails:
 
 Performance targets quantified per the [spec.md](../spec.md) Success Criteria:
 
-| Endpoint / Path                              | Scenario                                    | Target                                                                                                                                                 | Source       |
-|----------------------------------------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `GET /api/search/`                           | Return top 5 matches via Deezer `/search`   | Turnaround bounded by the upstream Deezer round-trip; no internal sub-second target defined (coverage target: 95% of valid mainstream queries succeed) | Spec §SC-001 |
-| `POST /api/confirm/{match}`                  | Local ISRC match → reuse stored fingerprint | Stored fingerprint retrieval MUST return in **under 500 ms**                                                                                           | Spec §SC-005 |
-| `POST /api/confirm/{match}` (no local match) | Fetch snippet + generate new fingerprint    | End-to-end (snippet fetch + DSP extraction) MUST complete **within 10 seconds** per audio snippet on standard consumer hardware                        | Spec §SC-002 |
+| Endpoint / Path                       | Scenario                                    | Target                                                                                                                                                 | Source       |
+|---------------------------------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `GET /api/search/`                    | Return top 5 matches via Deezer `/search`   | Turnaround bounded by the upstream Deezer round-trip; no internal sub-second target defined (coverage target: 95% of valid mainstream queries succeed) | Spec §SC-001 |
+| `POST /api/confirm/`                  | Local ISRC match → reuse stored fingerprint | Stored fingerprint retrieval MUST return in **under 500 ms**                                                                                           | Spec §SC-005 |
+| `POST /api/confirm/` (no local match) | Fetch snippet + generate new fingerprint    | End-to-end (snippet fetch + DSP extraction) MUST complete **within 10 seconds** per audio snippet on standard consumer hardware                        | Spec §SC-002 |
 
 *Note: The reuse path (under 500 ms) applies only when no audio fetch or DSP is required. The fresh-generation path target (10 s) covers the entire snippet-fetch → fingerprint-extraction pipeline, matching plan.md Performance Goals.

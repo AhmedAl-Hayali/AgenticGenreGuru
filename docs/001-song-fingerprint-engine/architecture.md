@@ -208,7 +208,7 @@ sequenceDiagram
     SVC-->>UI: top-5 matches (status: success)
     UI-->>U: render candidates
     U->>UI: Click 1 select, Click 2 confirm
-    UI->>SVC: confirm(match_id) -> POST /api/confirm/{match_id}/
+    UI->>SVC: confirm(match) -> POST /api/confirm/
     SVC->>DB: find by isrc
     alt isrc match found
         DB-->>SVC: stored song + fingerprint
@@ -246,14 +246,14 @@ sequenceDiagram
 
 ### 6.1 Internal REST API (`contracts/search-api.md`)
 
-| Endpoint                           | Method | Purpose                                                         | Key errors                      |
-|------------------------------------|--------|-----------------------------------------------------------------|---------------------------------|
-| `/api/search/?query=`              | GET    | Top-5 matches (mirrors Deezer Track schema)                     | 404 `TrackNotFoundError`, 503   |
-| `/api/confirm/{match_id}/`         | POST   | ISRC dedup → reuse or fetch→extract→store (match id in path)    | 400 `AudioProcessingError`, 503 |
-| `/api/songs/`                      | GET    | Catalog summary (US2)                                           | -                               |
-| `/api/songs/{isrc}/`               | GET    | Full fingerprint detail (US2)                                   | 404                             |
-| `/api/songs/{isrc}/visualization/` | GET    | Spectrogram + top-3 factors (US3, feature-gated)                | 404 when disabled               |
-| `/api/recommend/`                  | POST   | Cosine-similarity top-5 vs modified vector (US4, feature-gated) | 404 when disabled               |
+| Endpoint                           | Method | Purpose                                                                                  | Key errors                      |
+|------------------------------------|--------|------------------------------------------------------------------------------------------|---------------------------------|
+| `/api/search/?query=`              | GET    | Top-5 matches (mirrors Deezer Track schema)                                              | 404 `TrackNotFoundError`, 503   |
+| `/api/confirm/`                    | POST   | ISRC dedup → reuse or fetch→extract→store (match carried in request body, no id in path) | 400 `AudioProcessingError`, 503 |
+| `/api/songs/`                      | GET    | Catalog summary (US2, planned)                                                           | -                               |
+| `/api/songs/{isrc}/`               | GET    | Full fingerprint detail (US2, planned)                                                   | 404                             |
+| `/api/songs/{isrc}/visualization/` | GET    | Spectrogram + top-3 factors (US3, feature-gated, planned)                                | 404 when disabled               |
+| `/api/recommend/`                  | POST   | Cosine-similarity top-5 vs modified vector (US4, feature-gated, planned)                 | 404 when disabled               |
 
 Response fingerprint object carries all 8 collapsed scalars + `vector_length: 8`.
 
