@@ -9,9 +9,12 @@ import json
 import logging
 
 from django.http import JsonResponse
-from sqlalchemy.orm import Session
+from django.shortcuts import render
+from django.urls import reverse
+from django.views.decorators.http import require_GET, require_POST
 
 from genreguru import fingerprint_service
+from genreguru.audio.features import Feature
 from genreguru.db.engine import get_session_factory
 from genreguru.db.repositories import SongRepository
 from genreguru.deezer.client import DeezerSearchClient
@@ -29,13 +32,54 @@ _deezer = DeezerSearchClient()
 
 TOP_MATCHES = 5
 
+FEATURE_LABELS = {f.value: f.label for f in Feature}
+"""UI display labels for the `Feature` enum. Built once at import time."""
+
+
+def _api_config() -> dict:
+    """Build the client bootstrap config shared by all UI pages.
+
+    Served as the `#api-config` JSON blob
+    ([`json_script`](https://docs.djangoproject.com/en/stable/ref/templates/builtins/#json_script));
+    carries the search URL, the confirm URL (the matched track lives in the
+    request body — no id in the path), and the feature display labels the UI
+    renders (single source: `Feature`).
+    """
+    return {
+        "searchPattern": reverse("search"),
+        "confirmUrl": reverse("confirm"),
+        "featureLabels": FEATURE_LABELS,
+    }
+
 
 def _error_response(status: int, error: str) -> JsonResponse:
     """Build an error envelope `{"status": "error", "error": ...}`."""
     return JsonResponse({"status": "error", "error": error}, status=status)
 
 
-def _get_session() -> Session:
+def index_view(request):
+    """Render the 2-click song search & confirm page.
+
+    `GET /`. Serves `fingerprint_app/index.html`, which drives the search
+    (`GET /api/search/`) and confirm (`POST /api/confirm/`) endpoints via the
+    `ts/pages/index-page.ts` bootstrap (bundled to `app.js`). The `api_config`
+    context is emitted as the `#api-config` JSON blob.
+    """
+    return render(
+        request,
+        "fingerprint_app/index.html",
+        {
+            "api_config": _api_config(),
+            "page_title": "GenreGuru — Song Fingerprint Engine",
+            "page_subtitle": (
+                "Search a song, click a match once to select, click it again "
+                "to confirm and fingerprint it."
+            ),
+        },
+    )
+
+
+def _get_session():
     factory = get_session_factory()
     return factory()
 
