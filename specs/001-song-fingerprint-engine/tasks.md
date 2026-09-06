@@ -88,7 +88,7 @@
 - [x] T027 \[US1\] Implement confirm view `POST /api/confirm/{match}` in `frontend/fingerprint_app/views.py` (400 `AudioProcessingError`, 503 `NetworkDisconnectedError`, response payload incl. `song_id`, `deezer_id`, `isrc`, `fingerprint` with `vector_length: 8`)
 - [x] T028 \[US1\] Register `/api/search/` and `/api/confirm/` routes in `frontend/fingerprint_app/urls.py` and include them in `frontend/genreguru_web/urls.py`
 - [x] T029 \[US1\] Create `index.html` template (search bar, top-5 candidate list, result area) in `frontend/fingerprint_app/templates/fingerprint_app/index.html`
-- [ ] T030 \[US1\] Implement 2-click selection/confirmation JS (Click 1 highlight "Selected", Click 2 confirm + POST) in `frontend/fingerprint_app/static/fingerprint_app/app.js`
+- [x] T030 \[US1\] Implement 2-click selection/confirmation JS (Click 1 highlight "Selected", Click 2 confirm + POST) — `fingerprint_app/ts/` modules + `ts/pages/index-page.ts` bootstrap (esbuild-bundled to `static/fingerprint_app/app.js`)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -137,7 +137,7 @@
 
 - [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top 3 feature factors by normalized contribution magnitude via librosa matplotlib/numpy) in `genreguru/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
 - [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
-- [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
+- [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `frontend/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
 - [ ] T042 \[US3\] Register visualization route in `frontend/fingerprint_app/urls.py`
 
 **Checkpoint**: User Story 3 functional and testable independently
@@ -162,7 +162,7 @@
 
 - [ ] T044 \[P\] \[US4\] Implement `RecommendationService` (cosine similarity over the 8-dimensional fingerprint vectors, returns top-N=5 matches) in `genreguru/recommendations.py`; module logger: INFO result size + top-N=5 similarity scores, WARNING on fewer candidates than N=5 or degenerate (all-zero) query vector
 - [ ] T045 \[US4\] Implement `POST /api/recommend/` endpoint (accepts modified vector, returns top matches; only active when `features.recommendations.enabled=true`, else 404) in `frontend/fingerprint_app/views.py`
-- [ ] T046 \[US4\] Add acoustic feature slider controls + recommendation list render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` and `frontend/fingerprint_app/static/fingerprint_app/app.js`
+- [ ] T046 \[US4\] Add acoustic feature slider controls + recommendation list render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `frontend/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
 - [ ] T047 \[US4\] Register `/api/recommend/` route in `frontend/fingerprint_app/urls.py`
 
 **Checkpoint**: All user stories should now be independently functional
@@ -199,7 +199,7 @@
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - Backend/core user story work can proceed in parallel (if staffed) — but UI frontend tasks are serialized (they share `index.html`/`app.js`)
+  - Backend/core user story work can proceed in parallel (if staffed) — but UI frontend tasks are serialized (they share `index.html`/`partials/`/`ts/pages/`)
   - Or sequentially in priority order (P1 → P2 → P3)
 - **Polish (Final Phase)**: Depends on all desired user stories being complete
 
@@ -227,7 +227,7 @@
 - All tests within a story marked \[P\] run in parallel (separate test files)
 - US1 core-library tasks T020-T024 run in parallel (separate modules)
 - US1 core-library dependency: T022a (`genreguru/deezer/_retry.py`, shared `retry_until_success`) MUST be built before T022b (`client.py`) and T023 (`snippets.py`); T021b (`feature_collapse.py`) depends on T021a (`feature_extract.py`). These consumers can start once their shared prerequisite module exists
-- Different user stories parallelizable across team members (core + endpoints only — NOT the shared `index.html`/`app.js` UI tasks)
+- Different user stories parallelizable across team members (core + endpoints only — NOT the shared `index.html`/`partials/`/`ts/pages/` UI tasks)
 
 ---
 
@@ -305,8 +305,8 @@ With multiple developers:
    - Developer A: User Story 1 (core + endpoints + UI for search/confirm)
    - Developer B: User Story 2 (core + endpoints)
    - Developer C: User Story 3 / 4 (core + endpoints)
-3. UI integration is the serial bottleneck: US1/2/3/4 frontend tasks all edit the SAME files (`frontend/fingerprint_app/templates/fingerprint_app/index.html` + `.../static/fingerprint_app/app.js`). These tasks (T029/T030, T036, T041, T046) MUST be done sequentially ON ONE workstream to avoid merge conflicts — they can NOT run in parallel.
-4. Core/endpoint tasks per story run in parallel; UI tasks are consolidated and merged into `index.html`/`app.js` one story at a time.
+3. UI integration is the serial bottleneck: US1/2/3/4 frontend tasks all edit the SAME files (`frontend/fingerprint_app/templates/fingerprint_app/index.html` + `.../partials/` + `.../ts/pages/*.ts`; `app.js` is the esbuild-generated artifact). These tasks (T029/T030, T036, T041, T046) MUST be done sequentially ON ONE workstream to avoid merge conflicts — they can NOT run in parallel.
+4. Core/endpoint tasks per story run in parallel; UI tasks are consolidated and merged into `index.html`/`partials/`/`ts/pages/` one story at a time.
 
 ---
 
@@ -319,5 +319,5 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
-- UI tasks share `index.html`/`app.js` — mark them non-parallel and serialize across stories
+- UI tasks share `index.html`/`partials/`/`ts/pages/` — mark them non-parallel and serialize across stories
 - Performance targets: SC-001 95% query success, SC-002 <10s/snippet, SC-003 100% persistence, SC-005 <500ms reuse lookup
