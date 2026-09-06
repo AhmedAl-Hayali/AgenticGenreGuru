@@ -1,0 +1,6 @@
+node_modules/
+coverage/
+logs/
+package-lock.json
+fingerprint_app/static/fingerprint_app/app.js
+fingerprint_app/static/fingerprint_app/app.js.map

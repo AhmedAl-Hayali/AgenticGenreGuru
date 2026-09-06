@@ -1,0 +1,41 @@
+{
+  "name": "genreguru-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GenreGuru Django frontend static assets built from TypeScript (esbuild, eslint, prettier, vitest).",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "build": "esbuild fingerprint_app/ts/pages/index-page.ts --bundle --format=esm --minify --sourcemap --outfile=fingerprint_app/static/fingerprint_app/app.js",
+    "build:watch": "esbuild fingerprint_app/ts/pages/index-page.ts --bundle --format=esm --minify --sourcemap --outfile=fingerprint_app/static/fingerprint_app/app.js --watch",
+    "lint:check": "eslint \"eslint.config.ts\" \"vitest.config.ts\" \"fingerprint_app/ts/**/*.ts\" \"tests/**/*.ts\"",
+    "lint:fix": "eslint --fix \"eslint.config.ts\" \"vitest.config.ts\" \"fingerprint_app/ts/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"**/*.{ts,json}\" --ignore-path .prettierignore",
+    "format:write": "prettier --write \"**/*.{ts,json}\" --ignore-path .prettierignore",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc -p tsconfig.json",
+    "check": "npm run build && npm run lint:check && npm run format:check && npm run typecheck && npm run test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^5.0.0",
+    "@vitest/eslint-plugin": "^1.6.27",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.10.0",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^17.12.0",
+    "jiti": "^2.7.0",
+    "jsdom": "^30.0.1",
+    "prettier": "^3.9.6",
+    "typescript": "^5.9.0",
+    "typescript-eslint": "^8.69.0",
+    "vitest": "^5.0.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
+  }
+}
