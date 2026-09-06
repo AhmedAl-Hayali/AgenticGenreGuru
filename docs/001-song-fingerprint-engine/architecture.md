@@ -96,7 +96,7 @@ genreguru/
 ├── frontend/                # Django web application
 │   ├── manage.py
 │   ├── genreguru_web/       # project: settings/ package (base+dev+prod+test), urls.py, asgi.py, wsgi.py
-│   └── fingerprint_app/     # app: views.py, urls.py, templates/, static/
+│   └── fingerprint_app/     # app: views.py, urls.py, templates/ (+ partials/), static/
 ├── tests/                   # TDD suites
 │   ├── unit/                # DSP, Deezer client, model unit tests
 │   ├── integration/         # DB, retry, repositories (FactoryBoy fixtures)

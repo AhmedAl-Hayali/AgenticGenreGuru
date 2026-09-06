@@ -1,0 +1,15 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'fingerprint_app/style.css' %}">
+    {% block head_extras %}{% endblock %}
+</head>
+<body>
+    {% block content %}{% endblock %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>

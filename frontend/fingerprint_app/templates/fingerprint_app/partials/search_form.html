@@ -1,0 +1,11 @@
+<form id="search-form" autocomplete="off">
+    {% csrf_token %}
+    <input
+        id="query"
+        type="text"
+        name="query"
+        placeholder="Search for a song title, e.g. Blinding Lights"
+        aria-label="Song title"
+    >
+    <button id="search-btn" type="submit">Search</button>
+</form>
