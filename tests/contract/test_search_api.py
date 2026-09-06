@@ -23,7 +23,12 @@ import pytest
 from genreguru.db.models import Song, SongFingerprint
 from genreguru.deezer import client as deezer_client
 from genreguru.dto import Album, Artist, DeezerTrack
-from genreguru.errors import NetworkDisconnectedError, TrackNotFoundError
+from genreguru.errors import (
+    MissingISRCError,
+    NetworkDisconnectedError,
+    PreviewUnavailableError,
+    TrackNotFoundError,
+)
 from tests.sample_payloads import DEEZER_MATCH, DEEZER_MATCHES
 
 
@@ -182,3 +187,32 @@ class TestSearch503:
         assert resp.status_code == 503
         assert resp.json()["status"] == "error"
         assert "NetworkDisconnectedError" in error_of(resp)
+
+
+class TestSearch500:
+    """Verify 500 responses on upstream data-integrity failures."""
+
+    def test_500_missing_isrc(self, get_search):
+        """A match missing its ISRC is a data-integrity failure → HTTP 500."""
+        resp = get_search(query="Daft+Punk", error=MissingISRCError("missing isrc"))
+        assert resp.status_code == 500
+        assert resp.json()["status"] == "error"
+        assert "internal server error" in error_of(resp)
+
+    def test_500_preview_unavailable(self, get_search):
+        """A match with no preview URL is a data-integrity failure → HTTP 500."""
+        resp = get_search(
+            query="Daft+Punk", error=PreviewUnavailableError("no preview")
+        )
+        assert resp.status_code == 500
+        assert resp.json()["status"] == "error"
+        assert "internal server error" in error_of(resp)
+
+
+class TestSearchMethodEnforcement:
+    """Verify GET-only enforcement on the search endpoint."""
+
+    def test_post_is_rejected(self, django_client):
+        """A POST to /api/search/ must be rejected with HTTP 405."""
+        resp = django_client.post("/api/search/?query=Daft+Punk")
+        assert resp.status_code == 405
