@@ -155,6 +155,15 @@ class TestConfirm400InvalidJSON:
         assert status_of(resp) == "error"
 
 
+class TestConfirmMethodEnforcement:
+    """Verify POST-only enforcement on the confirm endpoint."""
+
+    def test_get_is_rejected(self, django_client):
+        """A GET to /api/confirm/ must be rejected with HTTP 405."""
+        resp = django_client.get("/api/confirm/")
+        assert resp.status_code == 405
+
+
 class TestConfirmErrorPaths:
     """Verify every service failure maps to its status and rolls back/closes the session."""
 
