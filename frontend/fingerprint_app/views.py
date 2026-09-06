@@ -17,7 +17,9 @@ from genreguru.db.repositories import SongRepository
 from genreguru.deezer.client import DeezerSearchClient
 from genreguru.errors import (
     AudioProcessingError,
+    MissingISRCError,
     NetworkDisconnectedError,
+    PreviewUnavailableError,
     TrackNotFoundError,
 )
 
@@ -38,6 +40,7 @@ def _get_session() -> Session:
     return factory()
 
 
+@require_GET
 def search_view(request):
     """Return top-5 Deezer matches for a song-title query.
 
@@ -46,7 +49,8 @@ def search_view(request):
     Returns:
         JsonResponse: Top-5 matches (status 200) or an error response:
         404 `TrackNotFoundError` / empty query, 503
-        `NetworkDisconnectedError`.
+        `NetworkDisconnectedError`, 500 on an upstream data-integrity
+        failure (`MissingISRCError` / `PreviewUnavailableError`).
     """
     query = request.GET.get("query", "").strip()
     if not query:
@@ -58,6 +62,9 @@ def search_view(request):
         return _error_response(404, "TrackNotFoundError")
     except NetworkDisconnectedError:
         return _error_response(503, "NetworkDisconnectedError")
+    except MissingISRCError, PreviewUnavailableError:
+        logger.exception("unexpected error in search_view")
+        return _error_response(500, "internal server error")
 
     return JsonResponse({"status": "success", "matches": matches[:TOP_MATCHES]})
 
