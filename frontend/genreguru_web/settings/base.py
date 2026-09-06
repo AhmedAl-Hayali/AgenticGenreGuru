@@ -71,7 +71,11 @@ INSTALLED_APPS = [
     "fingerprint_app",
 ]
 
-MIDDLEWARE: list[str] = []
+MIDDLEWARE = [
+    "django.middleware.security.SecurityMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+]
 
 ROOT_URLCONF = "genreguru_web.urls"
 
@@ -81,6 +85,9 @@ TEMPLATES = [
         "DIRS": [BASE_DIR / "genreguru_web" / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
+            # Intentional: no auth or request-context processors are installed.
+            # `{% static %}` is a template tag, and since Django 4.1 the
+            # `{% csrf_token %}` context is built from the request fallback.
             "context_processors": [],
         },
     },
