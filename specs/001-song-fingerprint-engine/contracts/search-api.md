@@ -52,7 +52,6 @@ Raised when the search request is invalid or the search dependency fails:
 
 ## 2. Confirm & Fingerprint Endpoint
 
-- **Path**: `POST /api/confirm/{match}`
 - **Path**: `POST /api/confirm/`
 - **Request Body**: Selected match object (same schema as `matches[]` in the search response):
 ```json
