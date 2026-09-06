@@ -1,0 +1,15 @@
+# Normalize line endings to LF for text files, regardless of platform.
+# Keeps the git index LF while allowing checkouts to stay LF, so Prettier's
+# default `endOfLine: "lf"` is deterministic (no per-OS CRLF surprises).
+* text=auto
+
+*.js text eol=lf
+*.mjs text eol=lf
+*.cjs text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
