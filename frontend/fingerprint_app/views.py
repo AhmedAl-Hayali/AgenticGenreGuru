@@ -69,6 +69,7 @@ def search_view(request):
     return JsonResponse({"status": "success", "matches": matches[:TOP_MATCHES]})
 
 
+@require_POST
 def confirm_view(request):
     """Process a confirmed 2-click selection into a stored fingerprint.
 
