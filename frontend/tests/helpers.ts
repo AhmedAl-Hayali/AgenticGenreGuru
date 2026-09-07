@@ -178,3 +178,18 @@ export async function withUnhandledRejection(
     process.removeListener("unhandledRejection", onRejection);
   }
 }
+
+/**
+ * Assert the idle fresh-search state (found 1 match, not a failure). With
+ * `opts.checkHidden`, also assert the result section is still hidden — the
+ * post-supersede state where a stale confirm must not reveal results.
+ */
+export function expectFreshSearchState(els: BootEls, opts?: { checkHidden?: boolean }) {
+  expect(els.status.textContent).toContain("Found 1 match");
+  expect(els.status.textContent).not.toContain("Network disconnected.");
+  expect(els.status.classList.contains("error")).toBe(false);
+  expect(els.searchButton.disabled).toBe(false);
+  if (opts?.checkHidden) {
+    expect(els.resultSection.classList.contains("hidden")).toBe(true);
+  }
+}

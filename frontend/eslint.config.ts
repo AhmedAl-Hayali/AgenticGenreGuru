@@ -22,7 +22,14 @@ export default defineConfig(
   {
     files: ["tests/**/*.ts"],
     plugins: { vitest },
-    rules: { ...vitest.configs.recommended.rules },
+    rules: {
+      ...vitest.configs.recommended.rules,
+      // Custom assertion helpers count as assertions for expect-expect.
+      "vitest/expect-expect": [
+        "error",
+        { assertFunctionNames: ["expect", "expectFreshSearchState"] },
+      ],
+    },
   },
   {
     files: ["eslint.config.ts", "vitest.config.ts"],
