@@ -37,6 +37,15 @@ describe("bootstrap", () => {
     await expect(importIndexPage()).rejects.toThrow();
   });
 
+  it("propagates a parse error for an empty #api-config blob", async () => {
+    document.body.innerHTML = fixtureHtml(CONFIG).replace(
+      /(<script id="api-config" type="application\/json">).*(<\/script>)/s,
+      "$1</script>",
+    );
+
+    await expect(importIndexPage()).rejects.toThrow();
+  });
+
   it("config loader throws when its root has no #api-config", () => {
     const root = document.createElement("div");
     expect(() => loadConfig(root)).toThrow(/Missing #api-config JSON blob/);
