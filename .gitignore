@@ -204,6 +204,13 @@ multirun
 # Runtime application logs (genreguru/gglogging.py rotating JSONL sink)
 logs/
 
+# Frontend JS coverage reports (vitest --coverage)
+coverage/
+
+# Frontend built artifacts (source of truth is frontend/fingerprint_app/ts/ modules + ts/pages/*-page.ts bootstrap)
+frontend/fingerprint_app/static/fingerprint_app/app.js
+frontend/fingerprint_app/static/fingerprint_app/app.js.map
+
 # Data
 data/*/*
 
