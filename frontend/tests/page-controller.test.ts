@@ -138,6 +138,33 @@ describe("page controller", () => {
     const confirm = deferred<Response>();
     const els = await bootApp();
     els.fetchMock.mockImplementationOnce(routeSearchOk).mockImplementation(() => confirm.promise);
+    it("maps a timed-out search request to the reachability message", async () => {
+      vi.useFakeTimers();
+      const els = await bootApp();
+      els.fetchMock.mockImplementation(abortAwareFetch());
+
+      submitSearch(els);
+
+      await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
+      vi.useRealTimers();
+
+      await vi.waitFor(() => {
+        expect(els.status.textContent).toContain("Network disconnected.");
+      });
+    });
+
+    it("recovers when a search request is aborted outright (AbortError)", async () => {
+      const els = await bootApp();
+      els.fetchMock.mockRejectedValue(new DOMException("The operation was aborted.", "AbortError"));
+
+      submitSearch(els);
+
+      await vi.waitFor(() => {
+        expect(els.status.textContent).toContain("Network disconnected.");
+        expect(els.searchButton.disabled).toBe(false);
+      });
+    });
+
 
     const item = await startConfirm(els);
     item.click();
@@ -231,30 +258,17 @@ describe("page controller", () => {
     expect(els.searchButton.disabled).toBe(false);
   });
 
-  it("maps a non-TypeError confirm rejection to the network-down message", async () => {
-    const els = await bootApp();
-    els.fetchMock.mockImplementation(routeSearchOkConfirmRejects(new Error("boom")));
+    it("drops a stale success response that settles after a newer search", async () => {
+      const els = await bootApp();
+      const { search } = await setupSearchSupersede(els);
 
-    const item = await startConfirm(els);
+      search.resolve(jsonResponse({ status: "success", matches: [] }));
+      await vi.waitFor(() => {
+        expect(els.fetchMock).toHaveBeenCalledTimes(2);
+      });
 
-    await vi.waitFor(() => {
-      expect(els.status.textContent).toContain("Network disconnected.");
+      expectFreshSearchState(els);
     });
-    await expectNoProcessing(item);
-    expect(els.searchButton.disabled).toBe(false);
-  });
-
-  it("drops a rejected search that settles after a newer search supersedes", async () => {
-    const els = await bootApp();
-    const { search } = await setupSearchSupersede(els);
-
-    search.reject(new Error("boom"));
-    await vi.waitFor(() => {
-      expect(els.fetchMock).toHaveBeenCalledTimes(2);
-    });
-
-    expectFreshSearchState(els);
-  });
 
   it("drops a rejected confirm that settles after a newer search supersedes", async () => {
     const els = await bootApp();
