@@ -17,6 +17,7 @@ Represents a track retrieved from Deezer search results.
 | `preview_url` | Text           | Not Null                  | Deezer 30s preview MP3 URL                                                                           |
 | `duration`    | Integer        | Not Null                  | Track duration in seconds                                                                            |
 | `created_at`  | DateTime (UTC) | Default: now()            | Record creation timestamp                                                                            |
+| `updated_at`  | DateTime (UTC) | Default: now() on update  | Last-modified timestamp (server-side `ON UPDATE now()`, `TimestampedMixin` in `db/base.py`)          |
 
 *Deduplication Strategy*: Every processed song stores both `deezer_id` and `isrc`. When checking whether a track was already processed, look up by `isrc`; if no local record matches, generate a new feature vector and store it.
 
@@ -26,21 +27,22 @@ Represents a track retrieved from Deezer search results.
 
 Represents extracted DSP acoustic feature vectors linked to a song.
 
-| Column               | Type           | Constraints                                | Description                                 |
-|----------------------|----------------|--------------------------------------------|---------------------------------------------|
-| `id`                 | UUID           | Primary Key                                | Internal fingerprint ID (UUIDv7)            |
-| `song_id`            | UUID           | Foreign Key (`songs.id`), Unique, Not Null | Linked song ID (UUIDv7)                     |
-| `spectral_centroid`  | Float          | Not Null                                   | Collapsed Spectral Centroid value (Hz)      |
-| `rms`                | Float          | Not Null                                   | Collapsed Root Mean Square Energy value     |
-| `spectral_bandwidth` | Float          | Not Null                                   | Collapsed Spectral Bandwidth value (Hz)     |
-| `spectral_contrast`  | Float          | Not Null                                   | Collapsed Spectral Contrast value (dB)      |
-| `spectral_flatness`  | Float          | Not Null                                   | Collapsed Spectral Flatness value           |
-| `spectral_rolloff`   | Float          | Not Null                                   | Collapsed Spectral Roll-off value (Hz)      |
-| `zero_crossing_rate` | Float          | Not Null                                   | Collapsed Zero Crossing Rate value          |
-| `mfcc`               | Float          | Not Null                                   | Collapsed Mean MFCC summary value           |
-| `audio_format`       | ENUM           | Not Null                                   | Audio snippet format (mp3/wav/flac/ogg/m4a) |
-| `sample_rate`        | Integer        | Default: 22050                             | Sampling rate in Hz                         |
-| `created_at`         | DateTime (UTC) | Default: now()                             | Fingerprint extraction timestamp            |
+| Column               | Type           | Constraints                                | Description                                  |
+|----------------------|----------------|--------------------------------------------|----------------------------------------------|
+| `id`                 | UUID           | Primary Key                                | Internal fingerprint ID (UUIDv7)             |
+| `song_id`            | UUID           | Foreign Key (`songs.id`), Unique, Not Null | Linked song ID (UUIDv7)                      |
+| `spectral_centroid`  | Float          | Not Null                                   | Collapsed Spectral Centroid value (Hz)       |
+| `rms`                | Float          | Not Null                                   | Collapsed Root Mean Square Energy value      |
+| `spectral_bandwidth` | Float          | Not Null                                   | Collapsed Spectral Bandwidth value (Hz)      |
+| `spectral_contrast`  | Float          | Not Null                                   | Collapsed Spectral Contrast value (dB)       |
+| `spectral_flatness`  | Float          | Not Null                                   | Collapsed Spectral Flatness value            |
+| `spectral_rolloff`   | Float          | Not Null                                   | Collapsed Spectral Roll-off value (Hz)       |
+| `zero_crossing_rate` | Float          | Not Null                                   | Collapsed Zero Crossing Rate value           |
+| `mfcc`               | Float          | Not Null                                   | Collapsed Mean MFCC summary value            |
+| `audio_format`       | ENUM           | Not Null                                   | Audio snippet format (mp3/wav/flac/ogg/m4a)  |
+| `sample_rate`        | Integer        | Default: 22050                             | Sampling rate in Hz                          |
+| `created_at`         | DateTime (UTC) | Default: now()                             | Fingerprint extraction timestamp             |
+| `updated_at`         | DateTime (UTC) | Default: now() on update                   | Last-modified timestamp (`TimestampedMixin`) |
 
 *Downsampling Strategy*: For Version 1, each acoustic feature's temporal vector is collapsed (downsampled) to a single scalar feature value to maintain a compact feature space. Future versions will support lower downsampling rates to retain temporal dynamics.
 
@@ -62,6 +64,7 @@ erDiagram
         string preview_url "NN"
         int duration "NN"
         datetime created_at "NN"
+        datetime updated_at "NN"
     }
 
     SONG_FINGERPRINT {
@@ -78,6 +81,7 @@ erDiagram
         string audio_format  "NN, ENUM(mp3|wav|flac|ogg|m4a)"
         int sample_rate  "NN"
         datetime created_at  "NN"
+        datetime updated_at  "NN"
     }
 ```
 
