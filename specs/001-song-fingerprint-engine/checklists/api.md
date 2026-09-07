@@ -26,7 +26,7 @@ The internal search query should be idempotent under the same version — whethe
 
 - [x] CHK009 Are query parameter constraints (e.g., `limit=5`) explicitly documented on the search contract? [Clarity, [deezer-api.md](../contracts/deezer-api.md) §1]
 
-<span style='color:gold'>Captured in</span> [next_phase_features.xit](../../../docs/TODOs/next_phase_features.xit)<span style='color:gold'>.</span>
+<span style='color:gold'>Captured in</span> [idea.md](../../../docs/idea.md) (§ Data)<span style='color:gold'>.</span>
 
 - [x] CHK010 Is the boundary between the external Deezer contract and the internal Django contract clearly stated so implementers know which layer owns each response? [Clarity]
 
@@ -77,7 +77,7 @@ Captured in [search-api.md](../contracts/search-api.md) §3 (Latency & Performan
 
 - [x] CHK023 Are rate-limiting or abuse-prevention requirements for the internal API specified? [NFR, Gap]
 
-<span style='color:gold'>Captured in</span> [next_phase_features.xit](../../../docs/TODOs/next_phase_features.xit)<span style='color:gold'>.</span>
+<span style='color:gold'>Captured in</span> [idea.md](../../../docs/idea.md) (§ Architecture)<span style='color:gold'>.</span>
 
 - [x] CHK024 Are input validation/sanitization requirements documented for user-supplied search queries? [NFR, Gap]
 
