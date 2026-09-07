@@ -132,6 +132,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 #### Notes
 - ISRC is now considered mandatory because it's required before listing records on Deezer via a [distributor](https://creatorsupport.deezer.com/hc/en-us/articles/5927556644125-How-To-Add-Your-Own-Independent-Music-To-Deezer).
 - **REQ-011** is only for V1. Future versions should retain temporal dimensions by less aggressively downsampling, or not downsampling at all.
+- **Streaming DSP**: A future objective is to process songs as streams, feeding audio chunks into the DSP pipeline as they arrive so preview processing can begin before the full snippet has downloaded — pipelining fetch and extraction to minimize waiting-around time. REQ-004/REQ-005 currently assume the full snippet is fetched before extraction.
 - **SC-001 verification**: the acceptance corpus (odd-numbered Billboard Hot 100 placings) is exercised against a versioned snapshot fixture rather than live network calls (see task T053); the live-shifting-chart framing is a spec-level acceptance target, and the snapshot substitution is an implementation decision.
 
 ### Key Entities *(include if feature involves data)*
