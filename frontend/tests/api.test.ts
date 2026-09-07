@@ -9,9 +9,24 @@ import {
   fetchWithTimeout,
   getCsrfToken,
   readJsonMaybe,
+  searchTracks
 } from "../fingerprint_app/ts/api.ts";
 import { clearCookies } from "./setup.ts";
 import { CONFIG, MATCH, jsonResponse } from "./helpers.ts";
+
+describe("searchTracks", () => {
+  it("encodes the query and targets the configured search pattern", () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response());
+    vi.stubGlobal("fetch", fetchMock);
+
+    searchTracks(CONFIG, "Daft Punk");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/search/?query=Daft%20Punk",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
+  });
+});
 
 describe("confirmTrack", () => {
   function stubFetch() {
