@@ -42,6 +42,16 @@ describe("keyboard + click selection (a11y)", () => {
     expect(preventDefault).toHaveBeenCalled();
   });
 
+  it("ignores non-activating keys on a candidate", async () => {
+    const els = await bootWithMatch();
+    const listItem = grabCandidate(els);
+
+    listItem.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+
+    expect(listItem.classList.contains("selected")).toBe(false);
+    expect(listItem.getAttribute("aria-pressed")).toBe("false");
+  });
+
   it("click-to-select then click-again confirms only the selected match", async () => {
     const els = await bootWithMatch();
     const listItem = grabCandidate(els);
