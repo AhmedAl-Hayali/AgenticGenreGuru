@@ -18,6 +18,59 @@ const BODY = {
   },
 } as ConfirmResponse;
 
+const MINIMAL_MATCH: Match = {
+  deezer_id: 1001,
+  title: "Around the World",
+  isrc: "GBDUW0000123",
+  duration: 217,
+  preview: "https://example.test/preview-minimal.mp3",
+};
+
+function renderInto(matches: Match[], handler = () => {}) {
+  const list = document.createElement("ul");
+  renderCandidates(list, matches, handler);
+  return { list };
+}
+
+describe("renderCandidates", () => {
+  it("renders one item per match in order, badge before the label", () => {
+    const { list } = renderInto([MATCH, MINIMAL_MATCH]);
+
+    const items = Array.from(list.children);
+    expect(items).toHaveLength(2);
+
+    const first = items[0] as HTMLElement;
+    const badge = first.firstElementChild;
+    expect(badge?.classList.contains("badge")).toBe(true);
+    expect(badge?.textContent).toBe("Selected");
+    expect(badge?.nextElementSibling?.classList.contains("title")).toBe(true);
+  });
+
+  it("labels a match as 'title · artist' with the album in parentheses", () => {
+    const { list } = renderInto([MATCH]);
+
+    const label = (list.children[0] as HTMLElement).querySelector(".title")?.textContent ?? "";
+    expect(label).toContain("Harder, Better, Faster, Stronger · Daft Punk");
+    expect(label).toContain("(Discovery)");
+  });
+
+  it("falls back to 'Unknown artist' and omits album meta when absent", () => {
+    const { list } = renderInto([MINIMAL_MATCH]);
+
+    const label = (list.children[0] as HTMLElement).querySelector(".title")?.textContent ?? "";
+    expect(label).toContain("Unknown artist");
+    expect(label).not.toContain("(");
+  });
+
+  it("replaces previously rendered candidates on re-render", () => {
+    const { list } = renderInto([MATCH]);
+
+    renderCandidates(list, [MATCH, MINIMAL_MATCH], () => {});
+
+    expect(list.children).toHaveLength(2);
+  });
+});
+
 describe("renderFingerprint formatting", () => {
   it("falls back to the feature key for a null label", () => {
     const section = document.createElement("section");
