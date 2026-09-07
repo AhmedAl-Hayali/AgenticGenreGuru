@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { MATCH, bootApp, jsonResponse } from "./helpers.ts";
+import { MATCH, bootApp, expectFreshSearchState, jsonResponse, submitSearch } from "./helpers.ts";
 import { abortAwareFetch } from "./setup.ts";
 import { REQUEST_TIMEOUT_MS } from "../fingerprint_app/ts/api.ts";
 
@@ -9,8 +9,7 @@ describe("request robustness", () => {
     const els = await bootApp();
     els.fetchMock.mockImplementation(abortAwareFetch());
 
-    els.query.value = "Daft Punk";
-    els.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    submitSearch(els);
 
     await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS);
     vi.useRealTimers();
@@ -24,8 +23,7 @@ describe("request robustness", () => {
     const els = await bootApp();
     els.fetchMock.mockRejectedValue(new DOMException("The operation was aborted.", "AbortError"));
 
-    els.query.value = "Daft Punk";
-    els.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    submitSearch(els);
 
     await vi.waitFor(() => {
       expect(els.status.textContent).toContain("Network disconnected.");
@@ -44,9 +42,8 @@ describe("request robustness", () => {
       .mockResolvedValueOnce(first)
       .mockResolvedValue(jsonResponse({ status: "success", matches: [MATCH] }));
 
-    els.query.value = "Daft Punk";
-    els.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    els.form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    submitSearch(els);
+    submitSearch(els);
 
     await vi.waitFor(() => {
       expect(els.candidates.children.length).toBe(1);
@@ -57,8 +54,6 @@ describe("request robustness", () => {
       expect(els.fetchMock).toHaveBeenCalledTimes(2);
     });
 
-    expect(els.candidates.children.length).toBe(1);
-    expect(els.status.textContent).toContain("Found 1 match");
-    expect(els.searchButton.disabled).toBe(false);
+    expectFreshSearchState(els);
   });
 });
