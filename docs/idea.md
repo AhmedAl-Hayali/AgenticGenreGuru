@@ -41,6 +41,7 @@ out to specs/roadmap.
 18. **`notebooks/` documentation** — document purpose and usage of exploratory DSP notebooks.
 19. **`docs/001-song-fingerprint-engine/` index** — `specs/README.md` or similar index listing all spec documents and their relationships.
 20. **`phase_3_notes.md` → `CHANGELOG.md` migration** — migrate resolved Pass 1-7 entries from `phase_3_notes.md` into `CHANGELOG.md` entries.
+21. **Docs-in-PR policy** — a feature PR ships its docs with the code: contract → traceability → status docs (`tasks.md`), `architecture.md` decision/tree rows, README/quickstart, and pdoc template purpose rows change in the SAME PR as the code. Review enforces; never land a docs/impl mismatch.
 
 ### Standards/patterns reference (one-time deep-parse)
 - One-time deep-parse of the repo to extract coding standards + established
