@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
+import type { Match } from "../fingerprint_app/ts/dto.ts";
 import {
   MATCH,
   bootApp,
@@ -7,6 +8,14 @@ import {
   submitSearch,
   waitForCandidate,
 } from "./helpers.ts";
+
+const MINIMAL_MATCH: Match = {
+  deezer_id: 1001,
+  title: "Around the World",
+  isrc: "GBDUW0000123",
+  duration: 217,
+  preview: "https://example.test/preview-minimal.mp3",
+};
 
 describe("search UX", () => {
   it("renders one candidate row per match with a Selected badge", async () => {
@@ -110,4 +119,46 @@ describe("search UX", () => {
       });
     },
   );
+
+  it("renders multiple candidates and pluralizes the match count", async () => {
+    const els = await bootApp();
+    els.fetchMock.mockResolvedValue(
+      jsonResponse({ status: "success", matches: [MATCH, MINIMAL_MATCH] }),
+    );
+
+    submitSearch(els);
+    await vi.waitFor(() => {
+      expect(els.candidates.children.length).toBe(2);
+    });
+
+    expect(els.candidates.children.length).toBe(2);
+    expect(els.status.textContent).toContain("Found 2 matches.");
+  });
+
+  it("moves selection to a newly clicked candidate and falls back for missing artist/album", async () => {
+    const els = await bootApp();
+    els.fetchMock.mockResolvedValue(
+      jsonResponse({ status: "success", matches: [MATCH, MINIMAL_MATCH] }),
+    );
+
+    submitSearch(els);
+    await vi.waitFor(() => {
+      expect(els.candidates.children.length).toBe(2);
+    });
+
+    const rows = Array.from(els.candidates.children) as HTMLElement[];
+    const first = rows[0]!;
+    const second = rows[1]!;
+
+    first.click();
+    expect(first.classList.contains("selected")).toBe(true);
+
+    second.click();
+    expect(first.classList.contains("selected")).toBe(false);
+    expect(first.getAttribute("aria-pressed")).toBe("false");
+    expect(second.classList.contains("selected")).toBe(true);
+    expect(second.getAttribute("aria-pressed")).toBe("true");
+    expect(second.textContent).toContain("Unknown artist");
+    expect(second.textContent).not.toContain("(");
+  });
 });
