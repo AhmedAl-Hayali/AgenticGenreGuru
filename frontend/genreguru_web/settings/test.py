@@ -37,6 +37,8 @@ from .base import (  # noqa: E401, F401, I001
 
 DEBUG = False
 
+ALLOWED_HOSTS = ["testserver", *ALLOWED_HOSTS]
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
