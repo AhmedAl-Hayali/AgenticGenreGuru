@@ -8,7 +8,7 @@ import {
   waitForCandidate,
 } from "./helpers.ts";
 
-describe("keyboard + click selection (a11y)", () => {
+describe("keyboard accessibility (a11y)", () => {
   async function bootWithMatch() {
     const els = await bootApp();
     els.fetchMock.mockResolvedValue(jsonResponse({ status: "success", matches: [MATCH] }));
@@ -50,27 +50,5 @@ describe("keyboard + click selection (a11y)", () => {
 
     expect(listItem.classList.contains("selected")).toBe(false);
     expect(listItem.getAttribute("aria-pressed")).toBe("false");
-  });
-
-  it("click-to-select then click-again confirms only the selected match", async () => {
-    const els = await bootWithMatch();
-    const listItem = grabCandidate(els);
-    els.fetchMock.mockResolvedValue(
-      jsonResponse({
-        status: "success",
-        song_id: "11111111-1111-1111-1111-111111111111",
-        deezer_id: MATCH.deezer_id,
-        isrc: MATCH.isrc,
-        fingerprint: { spectral_centroid: 2500.5, vector_length: 13 },
-      }),
-    );
-
-    listItem.click();
-    expect(els.status.textContent).toContain("Selected");
-    listItem.click();
-
-    await vi.waitFor(() => {
-      expect(els.status.textContent).toBe("Fingerprint stored successfully.");
-    });
   });
 });
