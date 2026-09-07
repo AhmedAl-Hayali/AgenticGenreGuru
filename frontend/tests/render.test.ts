@@ -83,4 +83,17 @@ describe("renderFingerprint formatting", () => {
 
     expect(result.textContent).toContain("13");
   });
+
+  it("throws a TypeError when featureLabels is missing", () => {
+    const section = document.createElement("section");
+    section.classList.add("hidden");
+    const title = document.createElement("p");
+    const result = document.createElement("dl");
+
+    expect(() => renderFingerprint(section, title, result, CONFIRM_OK, undefined)).toThrow(
+      "featureLabels is required to render a fingerprint.",
+    );
+    expect(section.classList.contains("hidden")).toBe(true);
+    expect(result.textContent).toBe("");
+  });
 });

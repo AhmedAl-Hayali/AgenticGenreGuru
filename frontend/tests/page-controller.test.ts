@@ -181,6 +181,55 @@ describe("page controller", () => {
   it("drops an error body that settles after a newer search supersedes", async () => {
     const els = await bootApp();
     const { body } = await setupDeferredBodySupersede(els, jsonResponse({ status: "error" }, 500));
+    it("renders fingerprint feature rows on success", async () => {
+      const els = await bootDoubleClickConfirm();
+
+      await vi.waitFor(() => {
+        expect(els.resultSection.classList.contains("hidden")).toBe(false);
+      });
+      expect(els.resultTitle.textContent).toBe("Fingerprint stored");
+      expect(els.result.textContent).toContain("Song ID");
+      expect(els.result.textContent).toContain("Spectral Centroid (Hz)");
+      expect(els.result.textContent).toContain("2500.5000");
+      expect(els.result.textContent).toContain("Vector Length");
+      expect(els.status.textContent).toBe("Fingerprint stored successfully.");
+    });
+
+    const confirmErrorCases: Array<{
+      confirmStatus: number;
+      confirmBody: Record<string, unknown>;
+      message: string;
+    }> = [
+      {
+        confirmStatus: 400,
+        confirmBody: { status: "error", error: "AudioProcessingError" },
+        message: "The audio file cannot be processed",
+      },
+      {
+        confirmStatus: 503,
+        confirmBody: { status: "error", error: "NetworkDisconnectedError" },
+        message: "Network disconnected.",
+      },
+      {
+        confirmStatus: 500,
+        confirmBody: { status: "error" },
+        message: "Could not confirm this match. Please try again.",
+      },
+    ];
+
+    describe.each(confirmErrorCases)(
+      "confirm error mapping (HTTP $confirmStatus)",
+      ({ confirmStatus, confirmBody, message }) => {
+        it("shows the mapped message", async () => {
+          const els = await bootDoubleClickConfirm(confirmStatus, confirmBody);
+
+          await vi.waitFor(() => {
+            expect(els.status.textContent).toContain(message);
+          });
+        });
+      },
+    );
+
 
     body.resolve({});
     await vi.waitFor(() => {
