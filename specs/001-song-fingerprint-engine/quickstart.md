@@ -4,6 +4,7 @@
 
 - Python 3.14+
 - PostgreSQL database running locally
+- Node.js 26+ and npm (for the frontend JS toolchain)
 - Virtual environment with dependencies (`django`, `sqlalchemy`, `psycopg2-binary`, `librosa`, `numpy`, `scipy`, `httpx`, `pytest`)
 
 ## Setup
@@ -34,6 +35,25 @@ python frontend/manage.py runserver 0.0.0.0:8000
 
 Open browser to `http://localhost:8000`.
 
+## Frontend JS Toolchain
+
+The browser UI source of truth is `frontend/fingerprint_app/ts/` — reusable modules (`dto`, `config`, `api`, `messages`, `render`, `page-controller`, `errors`) plus a thin per-page bootstrap (`ts/pages/index-page.ts`). esbuild bundles the bootstrap to the served ES module `frontend/fingerprint_app/static/fingerprint_app/app.js` — a generated, gitignored artifact, so a fresh checkout must run `npm run build` before `runserver` or any `collectstatic` deploy. The source is checked by ESLint 10 (flat config, `eslint.config.ts`), formatted with Prettier 3, typechecked with `tsc` (strict, no emit), and unit-tested with Vitest 5 + jsdom contract tests in `frontend/tests/`.
+
+```bash
+cd frontend
+
+# Install the JS toolchain from the lockfile
+npm ci
+
+# Build the browser bundle (esbuild)
+npm run build
+
+# Full gate: build + lint + format:check + typecheck + unit tests
+npm run check
+```
+
+All checks run in CI (`tests.yml`, `frontend` job: `npm ci` → `npm run check` (which builds) → `npm run test:coverage` with artifact upload), so they must pass before merge.
+
 ## Validation Workflows
 
 ### Scenario 1: Search & 2-Click Confirmation
@@ -49,4 +69,13 @@ Open browser to `http://localhost:8000`.
 ```bash
 # Run test suite
 pytest tests/
+```
+
+### Scenario 3: Frontend JS Checks
+
+```bash
+cd frontend
+npm run check            # build + eslint + prettier + tsc strict + vitest
+npm run build:watch      # rebuild the bundle on change (dev)
+npm run test:coverage    # coverage report + 75% threshold gate
 ```

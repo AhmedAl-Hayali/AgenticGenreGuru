@@ -19,7 +19,7 @@ out to specs/roadmap.
 - **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** — some drifted from the implemented API.
 
 ### Documentation improvement/addition plan
-1. **`CONTRIBUTING.md`** — repo root contributor guide: prerequisites (Python 3.14, uv, PostgreSQL, Node 24), setup (`uv sync`, `npm ci`), running tests (`uv run pytest`, `npm run check`), lint/type-check commands, commit conventions (conventional-pre-commit hook), branch/PR workflow, pre-commit installation.
+1. **`CONTRIBUTING.md`** — repo root contributor guide: prerequisites (Python 3.14, uv, PostgreSQL, Node 26), setup (`uv sync`, `npm ci`), running tests (`uv run pytest`, `npm run check`), lint/type-check commands, commit conventions (conventional-pre-commit hook), branch/PR workflow, pre-commit installation.
 2. **`CODE_OF_CONDUCT.md`** — open-source standard companion to the AGPL-3.0 license.
 3. **README.md enhancements** — add CI status badges (tests, ruff, pdoc, coverage), Table of Contents anchor links, callout box for Known Limitations near the top, progress indicator (phase 1 done / phase 2 pending), link to live API Reference (pdoc deployed on GitHub Pages).
 4. **`docs/README.md`** — index/overview of all documentation files for discoverability.
