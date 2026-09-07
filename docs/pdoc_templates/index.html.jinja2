@@ -51,10 +51,19 @@
 
             <div class="docstring">
                 <p><strong>GenreGuru</strong> turns a song title into a machine-readable acoustic fingerprint.
-                Pulls a 30-second Deezer preview, runs a DSP pipeline extracting 8 acoustic features,
-                and stores the fingerprint vector in PostgreSQL. Query stored fingerprints by cosine
-                similarity to find sonically similar tracks.</p>
+                Pulls a 30-second Deezer preview, runs a DSP pipeline that extracts 8 acoustic features
+                (<code>Feature</code> enum in <code>audio.features</code>), collapses them to scalars
+                (<code>audio.feature_collapse</code>), and stores the vector in PostgreSQL. Recommending
+                sonically similar tracks by cosine similarity is planned (US4).</p>
             </div>
+
+            <p><a href="https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/README.md">README</a>
+            &middot; <a href="https://github.com/AhmedAl-Hayali/AgenticGenreGuru/blob/main/docs/001-song-fingerprint-engine/architecture.md">Architecture</a> &middot;
+            <a href="genreguru/audio/features.html">Feature enum</a> &middot;
+            <a href="genreguru/audio/feature_extract.html">Feature extraction</a> &middot;
+            <a href="genreguru/audio/feature_collapse.html">Feature collapse</a> &middot;
+            <a href="genreguru/fingerprint_service.html">FingerprintService</a>
+            </p>
 
             <h2>Architecture</h2>
 
@@ -93,7 +102,7 @@
                 <tbody>
                     <tr>
                         <td><a href="genreguru.html"><code>genreguru</code></a></td>
-                        <td>Core library: logging, errors, config, database, audio processing, Deezer integration.</td>
+                        <td>Core library: logging, errors, config, database, audio processing (extract + collapse via the <code>Feature</code> enum), Deezer integration, fingerprint service.</td>
                     </tr>
                     <tr>
                         <td><a href="genreguru_web.html"><code>genreguru_web</code></a></td>

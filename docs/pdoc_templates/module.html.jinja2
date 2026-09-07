@@ -8,115 +8,62 @@
         {{ module_name() }}
         {{ docstring(module) }}
 
-        {% if module.modulename == "genreguru" %}
+        {% if module.modulename in ["genreguru", "genreguru_web", "fingerprint_app"] %}
+            {% set purposes_by_pkg = {
+                "genreguru": {
+                    "genreguru.audio": "Audio package: loader, `Feature` enum, extract + collapse.",
+                    "genreguru.audio.features": "`Feature` enum — the single source of the 8 acoustic feature names.",
+                    "genreguru.audio.feature_extract": "8-feature DSP extraction → raw per-frame ndarrays (shared STFT).",
+                    "genreguru.audio.feature_collapse": "Arithmetic-mean collapse to a scalar per feature.",
+                    "genreguru.audio.loader": "Audio snippet loading + mono downmix + format validation.",
+                    "genreguru.config": "Hydra config composition (Django-safe, cwd-independent).",
+                    "genreguru.db.base": "Declarative base, `TimestampedMixin`, `UuidMixin`.",
+                    "genreguru.db.engine": "SQLAlchemy engine creation and session-factory lifecycle.",
+                    "genreguru.db.init_db": "Idempotent table-creation entrypoint (`python -m genreguru.db.init_db`).",
+                    "genreguru.db.models": "`Song` and `SongFingerprint` ORM models (PostgreSQL 18 `uuidv7()`).",
+                    "genreguru.db.repositories": "`SongRepository` persistence with deduplication-by-ISRC.",
+                    "genreguru.deezer": "Deezer API integration: search client + snippet fetcher with retry.",
+                    "genreguru.deezer.client": "`DeezerSearchClient.search()` + error-code classification.",
+                    "genreguru.deezer.snippets": "Preview snippet fetch with 3x retry / 5s delay.",
+                    "genreguru.dto": "Transport DTOs (Artist, Album, DeezerTrack, FeatureScalars, ...).",
+                    "genreguru.errors": "Domain exception hierarchy with structured `context()` for log enrichment.",
+                    "genreguru.fingerprint_service": "US1 orchestration: ISRC reuse short-circuit, else fetch → extract → store.",
+                    "genreguru.gglogging": "Centralized logging: `LoggingManager`, `JsonFormatter`, `FingerprintContextAdapter`.",
+                },
+                "genreguru_web": {
+                    "genreguru_web.asgi": "ASGI entry point for async server deployment.",
+                    "genreguru_web.runtime": "One-time initialization: shared SQLAlchemy engine, logging setup.",
+                    "genreguru_web.settings.base": "Shared base settings (Hydra compose; side-effect free).",
+                    "genreguru_web.settings.development": "Local development settings (default).",
+                    "genreguru_web.settings.production": "Deployed environment settings.",
+                    "genreguru_web.settings.test": "CI and test runner settings.",
+                    "genreguru_web.urls": "Root URL configuration.",
+                    "genreguru_web.wsgi": "WSGI entry point for sync server deployment.",
+                },
+                "fingerprint_app": {
+                    "fingerprint_app.admin": "Django admin configuration for fingerprint models.",
+                    "fingerprint_app.apps": "Django app configuration.",
+                    "fingerprint_app.migrations": "Database migration history.",
+                    "fingerprint_app.models": "Fingerprint models for Django ORM integration.",
+                    "fingerprint_app.urls": "App-level URL routing.",
+                    "fingerprint_app.views": "Fingerprint search views and API endpoints.",
+                },
+            } %}
             <h2>Modules</h2>
             <table>
                 <thead>
                     <tr><th>Module</th><th>Purpose</th></tr>
                 </thead>
                 <tbody>
+                {% for submodule in all_modules
+                        if "._" not in submodule
+                        and not submodule.startswith("_")
+                        and submodule.startswith(module.modulename + ".") %}
                     <tr>
-                        <td><a href="genreguru/audio.html"><code>genreguru.audio</code></a></td>
-                        <td>Audio processing and feature extraction (planned).</td>
+                        <td><a href="{{ submodule.replace(".", "/") }}.html"><code>{{ submodule }}</code></a></td>
+                        <td>{{ purposes_by_pkg[module.modulename].get(submodule, "See module docstring.") }}</td>
                     </tr>
-                    <tr>
-                        <td><a href="genreguru/config.html"><code>genreguru.config</code></a></td>
-                        <td>Hydra config composition (Django-safe, cwd-independent).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/base.html"><code>genreguru.db.base</code></a></td>
-                        <td>Declarative base, <code>TimestampedMixin</code>, <code>UuidMixin</code>.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/engine.html"><code>genreguru.db.engine</code></a></td>
-                        <td>SQLAlchemy engine creation and session-factory lifecycle.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/init_db.html"><code>genreguru.db.init_db</code></a></td>
-                        <td>Idempotent table-creation entrypoint (<code>python -m genreguru.db.init_db</code>).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/db/models.html"><code>genreguru.db.models</code></a></td>
-                        <td><code>Song</code> and <code>SongFingerprint</code> ORM models (PostgreSQL 18 <code>uuidv7()</code>).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/deezer.html"><code>genreguru.deezer</code></a></td>
-                        <td>Deezer API integration (planned).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/errors.html"><code>genreguru.errors</code></a></td>
-                        <td>Domain exception hierarchy with structured <code>context()</code> for log enrichment.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru/gglogging.html"><code>genreguru.gglogging</code></a></td>
-                        <td>Centralized logging: <code>LoggingManager</code>, <code>JsonFormatter</code>, <code>FingerprintContextAdapter</code>.</td>
-                    </tr>
-                </tbody>
-            </table>
-        {% elif module.modulename == "genreguru_web" %}
-            <h2>Modules</h2>
-            <table>
-                <thead>
-                    <tr><th>Module</th><th>Purpose</th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><a href="genreguru_web/asgi.html"><code>genreguru_web.asgi</code></a></td>
-                        <td>ASGI entry point for async server deployment.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru_web/settings/development.html"><code>genreguru_web.settings.development</code></a></td>
-                        <td>Local development settings (default).</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru_web/settings/production.html"><code>genreguru_web.settings.production</code></a></td>
-                        <td>Deployed environment settings.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru_web/settings/test.html"><code>genreguru_web.settings.test</code></a></td>
-                        <td>CI and test runner settings.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru_web/urls.html"><code>genreguru_web.urls</code></a></td>
-                        <td>Root URL configuration.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="genreguru_web/wsgi.html"><code>genreguru_web.wsgi</code></a></td>
-                        <td>WSGI entry point for sync server deployment.</td>
-                    </tr>
-                </tbody>
-            </table>
-        {% elif module.modulename == "fingerprint_app" %}
-            <h2>Modules</h2>
-            <table>
-                <thead>
-                    <tr><th>Module</th><th>Purpose</th></tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><a href="fingerprint_app/admin.html"><code>fingerprint_app.admin</code></a></td>
-                        <td>Django admin configuration for fingerprint models.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="fingerprint_app/apps.html"><code>fingerprint_app.apps</code></a></td>
-                        <td>Django app configuration.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="fingerprint_app/migrations.html"><code>fingerprint_app.migrations</code></a></td>
-                        <td>Database migration history.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="fingerprint_app/models.html"><code>fingerprint_app.models</code></a></td>
-                        <td>Fingerprint models for Django ORM integration.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="fingerprint_app/urls.html"><code>fingerprint_app.urls</code></a></td>
-                        <td>App-level URL routing.</td>
-                    </tr>
-                    <tr>
-                        <td><a href="fingerprint_app/views.html"><code>fingerprint_app.views</code></a></td>
-                        <td>Fingerprint search views and API endpoints.</td>
-                    </tr>
+                {% endfor %}
                 </tbody>
             </table>
         {% endif %}

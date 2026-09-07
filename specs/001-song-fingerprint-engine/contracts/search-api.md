@@ -53,6 +53,7 @@ Raised when the search request is invalid or the search dependency fails:
 ## 2. Confirm & Fingerprint Endpoint
 
 - **Path**: `POST /api/confirm/`
+- **CSRF**: The confirm mutation is CSRF-protected (`CsrfViewMiddleware` in the global `MIDDLEWARE`). Clients must send the session's `csrftoken` cookie value as the `X-CSRFToken` request header; a POST without a matching token is rejected with **403** before the handler runs. (The token cookie is issued on `GET /` via the rendered `{% csrf_token %}`.)
 - **Request Body**: Selected match object (same schema as `matches[]` in the search response):
 ```json
 {

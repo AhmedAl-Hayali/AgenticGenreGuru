@@ -78,7 +78,7 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${oc.env:DJANGO_ALLO
 ## 3. Conventions
 
 1. **Secrets via env interpolation, never committed.** Use OmegaConf `${oc.env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005a).
-2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.password`, `cfg.django.secret_key`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/logging.py`, `FEATURES` in Django `settings/base.py`).
+2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.password`, `cfg.django.secret_key`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/gglogging.py`, `FEATURES` in Django `settings/base.py`).
 3. **Override from the CLI, no code edits.** Examples:
    - `python -m genreguru.db.init_db logging.level=DEBUG`
    - `python -m genreguru.db.init_db db=prod`

@@ -9,20 +9,20 @@
 
 ## 1. Core Principles (from the article)
 
-| #  | Rule                                                                                                   | Where enforced                                                                                         |
-|----|--------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------|
-| 1  | Use stdlib `logging`, never `print()`                                                                  | All `genreguru/` modules                                                                               |
-| 2  | Configure once, centrally, via `dictConfig`                                                            | `genreguru/gglogging.py` (T011)                                                                        |
-| 3  | One named logger per module: `logger = logging.getLogger(__name__)`                                    | Every module                                                                                           |
-| 4  | Handlers live on the root logger; child loggers propagate (no duplicate output)                        | `genreguru/gglogging.py`                                                                               |
-| 5  | Multi-destination routing: stdout (non-errors), stderr (errors), JSONL file (all)                      | T011 handlers                                                                                          |
-| 6  | Structured JSON in files, UTC ISO timestamps, `extra` context                                          | `JsonFormatter` (T011)                                                                                 |
-| 7  | Non-blocking I/O via `QueueHandler` + `QueueListener`                                                  | T011                                                                                                   |
-| 8  | Lazy `%s`-style args, never f-strings in log calls                                                     | All modules                                                                                            |
-| 9  | `logger.exception()` inside `except` blocks (full traceback)                                           | All modules                                                                                            |
-| 10 | Log safely: no secrets, no PII, no binary payloads                                                     | All modules                                                                                            |
-| 11 | Library code silent until configured: `NullHandler` on package root                                    | `genreguru/__init__.py`                                                                                |
-| 12 | No hard-coded logging constants; all levels/format/handlers come from the Hydra `logging` config group | `genreguru/logging.py` + `config/logging/`; tree & conventions in [config-report.md](config-report.md) |
+| #  | Rule                                                                                                   | Where enforced                                                                                           |
+|----|--------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------|
+| 1  | Use stdlib `logging`, never `print()`                                                                  | All `genreguru/` modules                                                                                 |
+| 2  | Configure once, centrally, via `dictConfig`                                                            | `genreguru/gglogging.py` (T011)                                                                          |
+| 3  | One named logger per module: `logger = logging.getLogger(__name__)`                                    | Every module                                                                                             |
+| 4  | Handlers live on the root logger; child loggers propagate (no duplicate output)                        | `genreguru/gglogging.py`                                                                                 |
+| 5  | Multi-destination routing: stdout (non-errors), stderr (errors), JSONL file (all)                      | T011 handlers                                                                                            |
+| 6  | Structured JSON in files, UTC ISO timestamps, `extra` context                                          | `JsonFormatter` (T011)                                                                                   |
+| 7  | Non-blocking I/O via `QueueHandler` + `QueueListener`                                                  | T011                                                                                                     |
+| 8  | Lazy `%s`-style args, never f-strings in log calls                                                     | All modules                                                                                              |
+| 9  | `logger.exception()` inside `except` blocks (full traceback)                                           | All modules                                                                                              |
+| 10 | Log safely: no secrets, no PII, no binary payloads                                                     | All modules                                                                                              |
+| 11 | Library code silent until configured: `NullHandler` on package root                                    | `genreguru/__init__.py`                                                                                  |
+| 12 | No hard-coded logging constants; all levels/format/handlers come from the Hydra `logging` config group | `genreguru/gglogging.py` + `config/logging/`; tree & conventions in [config-report.md](config-report.md) |
 
 ---
 
@@ -83,7 +83,7 @@ After `dictConfig`, wrap the root handlers behind a named `QueueHandler` (`loggi
 
 Attach `logging.NullHandler()` to the `genreguru` package logger in `genreguru/__init__.py` so the core library emits nothing until an application configures it (Constitution Principle I — headless CLI / test isolation).
 
-> **Status**: pending — `genreguru/__init__.py` does not attach a handler yet (T011 scope).
+> **Status**: implemented — `genreguru/__init__.py` attaches a `logging.NullHandler()` on import (see `src/genreguru/__init__.py`).
 
 ### `FingerprintContextAdapter` — the `reused` flag
 

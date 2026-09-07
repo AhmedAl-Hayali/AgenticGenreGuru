@@ -89,13 +89,14 @@ genreguru/
 │       ├── deezer/          # external client + snippet fetch; shared retry loop (_retry.py)
 │       ├── db/              # engine, base, models, repositories, init_db
 │       ├── config.py        # Hydra compose helper (Django-safe path)
+│       ├── dto.py           # transport DTOs (Artist, Album, DeezerTrack, FeatureScalars, ...)
 │       ├── gglogging.py     # dictConfig from Hydra logging group, JsonFormatter, handlers
-│       ├── errors.py        # shared exception hierarchy (planned, task T006)
-│       ├── fingerprint_service.py   # US1 orchestration (planned, task T025)
+│       ├── errors.py        # shared exception hierarchy (task T006)
+│       ├── fingerprint_service.py   # US1 orchestration (task T025)
 │       └── recommendations.py       # US4 cosine-similarity service (planned, task T044)
 ├── frontend/                # Django web application
 │   ├── manage.py
-│   └── fingerprint_app/     # app: views.py, urls.py, templates/ (+ partials/), static/
+│   ├── genreguru_web/       # project: settings/ package (base+dev+prod+test), runtime.py, urls.py, asgi.py, wsgi.py
 │   ├── fingerprint_app/     # app: views.py, urls.py, templates/ (+ partials/), static/, ts/ (browser source)
 │   ├── tests/               # Vitest DOM contract tests for the index-page bootstrap (jsdom)
 │   ├── package.json         # JS toolchain scripts + devDependencies (ESLint, Prettier, Vitest, TypeScript, esbuild)
@@ -108,8 +109,8 @@ genreguru/
 │   ├── integration/         # DB, retry, repositories (FactoryBoy fixtures)
 │   ├── contract/            # search/confirm/songs API tests
 │   ├── benchmarks/          # SC-002 (<10 s) and SC-005 (<500 ms)
-│   ├── conftest.py          # shared fixtures (planned, task T012)
-│   └── factories.py         # SongFactory, SongFingerprintFactory (planned, task T013)
+│   ├── conftest.py          # shared fixtures (task T012)
+│   └── factories.py         # SongFactory, SongFingerprintFactory (task T013)
 ├── docs/                    # design reports (this file, config/logging reports)
 ├── specs/                   # spec, plan, data-model, contracts, tasks
 ├── data/                    # runtime data (gitignored)
@@ -120,7 +121,7 @@ genreguru/
 └── reports/                 # generated reports (gitignored store)
 ```
 
-> **State note**: Phase 1 (T001, T005a/b) is implemented: config tree, `genreguru/config.py`, `genreguru/gglogging.py`, `genreguru/{audio,deezer,db}/` packages, Django project + app scaffolds, `tests/*/` package skeleton. Phase 2+ bodies (`errors.py`, engine, models, services, views, factories) are pending per `tasks.md`.
+> **State note**: Phase 1 (T001, T005a/b) and the US1 core-library bodies are implemented: config tree, `genreguru/config.py`, `gglogging.py`, `errors.py`, `audio/{loader,features,feature_extract,feature_collapse}`, `deezer/{client,snippets}`, `db/{engine,base,models,repositories,init_db}`, `fingerprint_service.py`, the search + confirm Django views/routes, the frontend `index.html` (blocks + `partials/`) + `ts/` modules 2-click UI (T029-030, bundled to a served ES module by esbuild; contract-tested via Vitest/jsdom in `frontend/tests/`), and the `tests/{unit,integration,contract}` suites + `factories.py`/`conftest.py` + `init_db`. Still pending per `tasks.md`: `audio/visualization.py` (T039), `recommendations.py` (T044), `tests/benchmarks/` (T052-053), and end-to-end validation against a live PostgreSQL.
 
 ### 3.2 Core library (`genreguru/`) — layers
 
@@ -137,7 +138,7 @@ genreguru/
 | **DB**            | `genreguru/db/engine.py`              | SQLAlchemy engine + `SessionLocal` from Hydra `db` group; pool logging                                                                                                                                                                                      | T007       |
 |                   | `genreguru/db/base.py`                | Declarative `Base`                                                                                                                                                                                                                                          | T008       |
 |                   | `genreguru/db/models.py`              | `Song`, `SongFingerprint` per `data-model.md`                                                                                                                                                                                                               | T009       |
-|                   | `genreguru/db/repositories.py`        | `find_by_isrc`, `create_song_and_fingerprint`, `list_songs`, `get_fingerprint_by_isrc`                                                                                                                                                                      | T024, T033 |
+|                   | `genreguru/db/repositories.py`        | `find_by_isrc`, `create_song_and_fingerprint` (implemented); `list_songs`, `get_fingerprint_by_isrc` (planned, US2)                                                                                                                                         | T024, T033 |
 |                   | `genreguru/db/init_db.py`             | `python -m genreguru.db.init_db` table-creation entrypoint                                                                                                                                                                                                  | T010       |
 | **Application**   | `genreguru/fingerprint_service.py`    | US1 orchestration: ISRC reuse short-circuit; else fetch → extract → store; `reused=true/false` log flag                                                                                                                                                     | T025       |
 |                   | `genreguru/recommendations.py`        | US4 `RecommendationService`: cosine similarity over 8-dim vectors, top-N=5                                                                                                                                                                                  | T044       |
