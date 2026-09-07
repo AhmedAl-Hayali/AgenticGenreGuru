@@ -67,4 +67,20 @@ describe("renderFingerprint formatting", () => {
     expect(section.classList.contains("hidden")).toBe(false);
     expect(title.textContent).toBe("Fingerprint stored");
   });
+
+  it("renders integer feature values without decimals", () => {
+    const section = document.createElement("section");
+    const title = document.createElement("p");
+    const result = document.createElement("dl");
+    const integerBody = {
+      ...BODY,
+      fingerprint: { spectral_centroid: 13 },
+    } as ConfirmResponse;
+
+    renderFingerprint(section, title, result, integerBody, {
+      spectral_centroid: "Spectral Centroid",
+    });
+
+    expect(result.textContent).toContain("13");
+  });
 });
