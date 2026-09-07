@@ -11,6 +11,7 @@ import {
   BootEls,
   bootApp,
   deferred,
+  expectFreshSearchState,
   grabCandidate,
   jsonResponse,
   submitSearch,
@@ -70,12 +71,66 @@ async function startConfirm(els: BootEls): Promise<HTMLElement> {
   return item;
 }
 
-/** Assert the idle fresh-search state (found 1 match, not a failure). */
-function expectFreshSearchState(els: BootEls) {
-  expect(els.status.textContent).toContain("Found 1 match");
-  expect(els.status.textContent).not.toContain("Network disconnected.");
-  expect(els.status.classList.contains("error")).toBe(false);
-  expect(els.searchButton.disabled).toBe(false);
+/** Wait until the candidate leaves its processing state (confirm settled). */
+async function expectNoProcessing(item: HTMLElement) {
+  await vi.waitFor(() => {
+    expect(item.classList.contains("processing")).toBe(false);
+  });
+}
+
+/**
+ * Start a confirm via double-click, then supersede it with a newer search and
+ * wait until all three fetch calls (search, confirm, newer search) have fired.
+ * Returns the deferred that gates the confirm's settlement so the test can
+ * resolve or reject it after the supersede.
+ */
+async function setupConfirmSupersede(els: BootEls) {
+  const confirm = deferred<Response>();
+  els.fetchMock
+    .mockImplementationOnce(routeSearchOk)
+    .mockImplementationOnce(() => confirm.promise)
+    .mockImplementation(routeSearchOk);
+  await startConfirm(els);
+  submitSearch(els, "newer search");
+  await vi.waitFor(() => {
+    expect(els.fetchMock).toHaveBeenCalledTimes(3);
+  });
+  return { confirm };
+}
+
+/**
+ * Run a search whose response settles immediately but whose body stays
+ * pending, then supersede with a second search and wait for its candidate.
+ * The body deferred is returned so the test can settle the stale body after
+ * the supersede and assert it is dropped. `bodyResponse` is the `Response`
+ * whose `json()` the stale body overrides.
+ */
+async function setupDeferredBodySupersede(els: BootEls, bodyResponse: Response) {
+  const response = deferred<Response>();
+  const body = deferred<unknown>();
+  const wrappedResponse = withDeferredJson(bodyResponse, body.promise);
+  els.fetchMock.mockImplementationOnce(() => response.promise).mockImplementation(routeSearchOk);
+  submitSearch(els, "first");
+  response.resolve(wrappedResponse);
+  await settleTicks();
+  submitSearch(els, "second");
+  await waitForCandidate(els);
+  return { body };
+}
+
+/**
+ * Fire a deferred first search, then supersede with a second that resolves and
+ * wait for its candidate. Returns the deferred gating the first search so the
+ * test can settle (reject) it after the supersede.
+ */
+async function setupSearchSupersede(els: BootEls) {
+  const search = deferred<Response>();
+  els.fetchMock.mockImplementationOnce(() => search.promise).mockImplementation(routeSearchOk);
+  submitSearch(els, "first");
+  await settleTicks();
+  submitSearch(els, "second");
+  await waitForCandidate(els);
+  return { search };
 }
 
 describe("page controller", () => {
@@ -93,24 +148,12 @@ describe("page controller", () => {
     expect(confirmCalls.length).toBe(1);
 
     confirm.resolve(jsonResponse(CONFIRM_OK, 201));
-    await vi.waitFor(() => {
-      expect(item.classList.contains("processing")).toBe(false);
-    });
+    await expectNoProcessing(item);
   });
 
   it("drops an error body that settles after a newer search supersedes", async () => {
     const els = await bootApp();
-    const response = deferred<Response>();
-    const body = deferred<unknown>();
-    const errorResponse = withDeferredJson(jsonResponse({ status: "error" }, 500), body.promise);
-    els.fetchMock.mockImplementationOnce(() => response.promise).mockImplementation(routeSearchOk);
-
-    submitSearch(els, "first");
-    response.resolve(errorResponse);
-    await settleTicks();
-
-    submitSearch(els, "second");
-    await waitForCandidate(els);
+    const { body } = await setupDeferredBodySupersede(els, jsonResponse({ status: "error" }, 500));
 
     body.resolve({});
     await vi.waitFor(() => {
@@ -122,17 +165,7 @@ describe("page controller", () => {
 
   it("drops a success body that settles after a newer search supersedes", async () => {
     const els = await bootApp();
-    const response = deferred<Response>();
-    const body = deferred<unknown>();
-    const staleResponse = withDeferredJson(searchResponse([OTHER_MATCH]), body.promise);
-    els.fetchMock.mockImplementationOnce(() => response.promise).mockImplementation(routeSearchOk);
-
-    submitSearch(els, "first");
-    response.resolve(staleResponse);
-    await settleTicks();
-
-    submitSearch(els, "second");
-    await waitForCandidate(els);
+    const { body } = await setupDeferredBodySupersede(els, searchResponse([OTHER_MATCH]));
 
     body.resolve({ status: "success", matches: [OTHER_MATCH] });
     await vi.waitFor(() => {
@@ -146,25 +179,12 @@ describe("page controller", () => {
 
   it("drops a confirm response that settles after a newer search supersedes", async () => {
     const els = await bootApp();
-    const confirm = deferred<Response>();
-    els.fetchMock
-      .mockImplementationOnce(routeSearchOk)
-      .mockImplementationOnce(() => confirm.promise)
-      .mockImplementation(routeSearchOk);
-
-    await startConfirm(els);
-
-    submitSearch(els, "newer search");
-    await vi.waitFor(() => {
-      expect(els.fetchMock).toHaveBeenCalledTimes(3);
-    });
+    const { confirm } = await setupConfirmSupersede(els);
 
     confirm.resolve(jsonResponse(CONFIRM_OK, 201));
     await waitForCandidate(els);
 
-    expect(els.resultSection.classList.contains("hidden")).toBe(true);
-    expect(els.status.textContent).toContain("Found 1 match");
-    expect(els.searchButton.disabled).toBe(false);
+    expectFreshSearchState(els, { checkHidden: true });
   });
 
   it("drops a confirm body that settles after a newer search supersedes", async () => {
@@ -192,7 +212,7 @@ describe("page controller", () => {
 
     expect(els.resultSection.classList.contains("hidden")).toBe(true);
     expect(els.result.textContent).toBe("");
-    expect(els.status.textContent).toContain("Found 1 match");
+    expectFreshSearchState(els);
   });
 
   it("rethrows TypeError rejections instead of mapping them to a network down", async () => {
@@ -205,9 +225,7 @@ describe("page controller", () => {
         expect(reasons.length).toBeGreaterThan(0);
       });
       expect(reasons[0]).toBeInstanceOf(TypeError);
-      await vi.waitFor(() => {
-        expect(item.classList.contains("processing")).toBe(false);
-      });
+      await expectNoProcessing(item);
     });
     expect(els.status.textContent).not.toContain("Network disconnected.");
     expect(els.searchButton.disabled).toBe(false);
@@ -222,22 +240,13 @@ describe("page controller", () => {
     await vi.waitFor(() => {
       expect(els.status.textContent).toContain("Network disconnected.");
     });
-    await vi.waitFor(() => {
-      expect(item.classList.contains("processing")).toBe(false);
-    });
+    await expectNoProcessing(item);
     expect(els.searchButton.disabled).toBe(false);
   });
 
   it("drops a rejected search that settles after a newer search supersedes", async () => {
     const els = await bootApp();
-    const search = deferred<Response>();
-    els.fetchMock.mockImplementationOnce(() => search.promise).mockImplementation(routeSearchOk);
-
-    submitSearch(els, "first");
-    await settleTicks();
-
-    submitSearch(els, "second");
-    await waitForCandidate(els);
+    const { search } = await setupSearchSupersede(els);
 
     search.reject(new Error("boom"));
     await vi.waitFor(() => {
@@ -249,25 +258,13 @@ describe("page controller", () => {
 
   it("drops a rejected confirm that settles after a newer search supersedes", async () => {
     const els = await bootApp();
-    const confirm = deferred<Response>();
-    els.fetchMock
-      .mockImplementationOnce(routeSearchOk)
-      .mockImplementationOnce(() => confirm.promise)
-      .mockImplementation(routeSearchOk);
-
-    await startConfirm(els);
-
-    submitSearch(els, "newer search");
-    await vi.waitFor(() => {
-      expect(els.fetchMock).toHaveBeenCalledTimes(3);
-    });
+    const { confirm } = await setupConfirmSupersede(els);
 
     confirm.reject(new Error("boom"));
     await vi.waitFor(() => {
       expect(els.status.textContent).toContain("Found 1 match");
     });
 
-    expect(els.resultSection.classList.contains("hidden")).toBe(true);
-    expectFreshSearchState(els);
+    expectFreshSearchState(els, { checkHidden: true });
   });
 });
