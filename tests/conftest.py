@@ -99,6 +99,12 @@ def django_client() -> Client:
     return Client()
 
 
+@pytest.fixture()
+def django_csrf_client() -> Client:
+    """Fresh `django.test.Client` for exercising Django views."""
+    return Client(enforce_csrf_checks=True)
+
+
 @pytest.fixture(autouse=True)
 def _no_sleep(monkeypatch) -> None:
     """Eliminate the 5s retry delay so retry tests don't sleep between attempts.

@@ -15,6 +15,11 @@ integration suites (repositories / fingerprint_service), which drive the real
 persistence path. The real `genreguru_web.urls` → `fingerprint_app.urls`
 routing is used via the default `ROOT_URLCONF`; the `/api/confirm/` POST
 resolves to `confirm_view` through the live URL wiring.
+
+With `CsrfViewMiddleware` in `MIDDLEWARE`, a confirm POST **without** a
+matching `X-CSRFToken` header/cookie is rejected with 403 before the view
+runs. These tests drive `django.test.Client(enforce_csrf_checks=True)` to
+prove enforcement.
 """
 
 import json
@@ -50,6 +55,16 @@ def status_of(resp) -> str:
     return body["status"]
 
 
+def patch_session_and_process_fp(mocker, session_patch, process_fp_patch):
+    """Patch session and `process_fingerprint` with provided stubs."""
+    mocker.patch.object(views, "_get_session", new=session_patch)
+    mocker.patch.object(
+        fingerprint_service,
+        "process_fingerprint",
+        side_effect=process_fp_patch,
+    )
+
+
 @pytest.fixture
 def post_confirm(django_client, mocker):
     """POST /api/confirm/ with stubbed service/session; returns the response.
@@ -66,31 +81,40 @@ def post_confirm(django_client, mocker):
         session=None,
         body=None,
         raw=None,
+        csrf_token=None,
     ):
         def fake_process(fake_session, track, repo):
             if error is not None:
                 raise error
             return dict(SUCCESS_RESPONSE)
 
-        mocker.patch.object(views, "_get_session", new=lambda: session or mocker.Mock())
-        mocker.patch.object(
-            fingerprint_service, "process_fingerprint", side_effect=fake_process
+        patch_session_and_process_fp(
+            mocker,
+            lambda: session or mocker.Mock(),
+            fake_process,
         )
 
-        if raw is not None:
+        payload = json.dumps(DEEZER_MATCH) if body is None else body
+        payload = raw if raw is not None else payload
+
+        if csrf_token is not None:
             return django_client.post(
-                "/api/confirm/",
-                data=raw,
+                _CONFIRM_URL,
+                data=payload,
                 content_type="application/json",
+                HTTP_X_CSRFTOKEN=csrf_token,
             )
-        payload = DEEZER_MATCH if body is None else body
+
         return django_client.post(
-            "/api/confirm/",
-            data=json.dumps(payload),
+            _CONFIRM_URL,
+            data=payload,
             content_type="application/json",
         )
 
     return _post_confirm
+
+
+_CONFIRM_URL = "/api/confirm/"
 
 
 class TestConfirmSuccess:
@@ -160,7 +184,7 @@ class TestConfirmMethodEnforcement:
 
     def test_get_is_rejected(self, django_client):
         """A GET to /api/confirm/ must be rejected with HTTP 405."""
-        resp = django_client.get("/api/confirm/")
+        resp = django_client.get(_CONFIRM_URL)
         assert resp.status_code == 405
 
 
@@ -191,3 +215,45 @@ class TestConfirmErrorPaths:
         assert error_of(resp) == message
         session.rollback.assert_called_once()
         session.close.assert_called_once()
+
+
+class TestConfirmCsrf:
+    """CSRF enforcement proofs for the confirm endpoint."""
+
+    def test_post_without_token_is_rejected(self, django_csrf_client, mocker):
+        """A confirm POST with no CSRF token must be blocked with 403.
+
+        The service seam must not have been reached: patch it to raise if
+        called, proving the middleware rejects before the view runs.
+        """
+        patch_session_and_process_fp(
+            mocker,
+            lambda: mocker.Mock(),
+            AssertionError("view ran without CSRF token"),
+        )
+
+        resp = django_csrf_client.post(
+            _CONFIRM_URL,
+            data=json.dumps(DEEZER_MATCH),
+            content_type="application/json",
+        )
+
+        print("bruh=", resp)
+
+        assert resp.status_code == 403
+
+    def test_post_with_token_succeeds(self, django_csrf_client, post_confirm):
+        """After GET / issues the csrftoken cookie, a token-header POST passes.
+
+        The rendered `{% csrf_token %}` in index.html sets the cookie; echoing
+        it back as `X-CSRFToken` satisfies the middleware and the mocked
+        service path returns 201.
+        """
+        index = django_csrf_client.get("/")
+        assert index.status_code == 200
+        token = django_csrf_client.cookies["csrftoken"].value
+        assert token
+
+        resp = post_confirm(body=json.dumps(DEEZER_MATCH), csrf_token=token)
+
+        assert resp.status_code == 201
