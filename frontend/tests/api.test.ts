@@ -9,7 +9,7 @@ import {
   fetchWithTimeout,
   getCsrfToken,
   readJsonMaybe,
-  searchTracks
+  searchTracks,
 } from "../fingerprint_app/ts/api.ts";
 import { clearCookies } from "./setup.ts";
 import { CONFIG, MATCH, jsonResponse } from "./helpers.ts";

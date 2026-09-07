@@ -77,5 +77,5 @@ pytest tests/
 cd frontend
 npm run check            # build + eslint + prettier + tsc strict + vitest
 npm run build:watch      # rebuild the bundle on change (dev)
-npm run test:coverage    # coverage report + 75% threshold gate
+npm run test:coverage    # coverage report + 90% threshold gate
 ```

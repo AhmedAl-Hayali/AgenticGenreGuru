@@ -92,7 +92,7 @@
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, the story's `pytest` tasks, and the frontend JS gate from `frontend/` (`npm run check`; `npm run test:coverage` for the ≥75% coverage report). All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, the story's `pytest` tasks, and the frontend JS gate from `frontend/` (`npm run check`; `npm run test:coverage` for the ≥90% coverage report). All MUST pass.
 
 ---
 
@@ -321,4 +321,4 @@ With multiple developers:
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 - UI tasks share `index.html`/`partials/`/`ts/pages/` — mark them non-parallel and serialize across stories
 - Performance targets: SC-001 95% query success, SC-002 <10s/snippet, SC-003 100% persistence, SC-005 <500ms reuse lookup
-- Frontend tests live in `frontend/tests/` as per-domain spec files (`app-boot`, `search-ux`, `robustness`, `a11y`, `confirm-flow`) sharing `helpers.ts`/`setup.ts` (loaded via `setupFiles`) — not a single `app.test.ts`
+- Frontend tests live in `frontend/tests/` as module-mirrored files — `api.test.ts` ↔ `ts/api.ts`, `render.test.ts` ↔ `ts/render.ts`, `page-controller.test.ts` ↔ `ts/page-controller.ts` (behavior suite), `bootstrap.test.ts` ↔ `ts/config.ts` + `ts/pages/index-page.ts`, plus cross-cutting `a11y.test.ts` — sharing `helpers.ts`/`setup.ts` (loaded via `setupFiles`); behavior flows fold into the module suites rather than a single `app.test.ts`

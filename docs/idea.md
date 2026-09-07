@@ -54,8 +54,8 @@ out to specs/roadmap.
 7. **`docs/DECISION_LOG.md`** (ADR log) — track why specific technologies were chosen (Django vs Flask, SQLAlchemy vs Django ORM, Hydra vs env vars), record rejected alternatives, prevent re-litigation. Already partially documented in `architecture.md` §8.
 8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations; phase/pass history currently only in git history (the old `phase_3_notes.md` scratch file has been discarded).
 9. **`SECURITY.md`** — secret handling, Django security headers, CSRF protection, dependency scanning (bandit).
-10. **`frontend/README.md`** — frontend dev instructions: running dev server, adding tests (domain spec files in `tests/` with shared `helpers.ts`/`setup.ts` + `setupFiles`), ESLint/Prettier/Vitest config, JS architecture (DOM-free TS modules + per-page `ts/pages/*-page.ts` bootstrap, 2-click state machine, `api-config` blob pattern).
-11. **`tests/README.md`** — test structure, naming conventions, TDD workflow (Constitution III), fixture usage (`conftest.py`, `factories.py`), benchmark test patterns.
+10. **`frontend/README.md`** — frontend dev instructions: running dev server, adding tests (module-mirrored test files in `tests/` — `api.test.ts`/`render.test.ts`/`page-controller.test.ts` cover the `ts/` modules, `bootstrap.test.ts` the boot layer, `a11y.test.ts` cross-cutting — with shared `helpers.ts`/`setup.ts`), ESLint/Prettier/Vitest config, JS architecture (DOM-free TS modules + per-page `ts/pages/*-page.ts` bootstrap, 2-click state machine, `api-config` blob pattern).
+11. **`tests/README.md`** — test structure, naming conventions (module-mirrored frontend files; `dto.ts`/`messages.ts`/`errors.ts` intentionally fileless — covered transitively via their callers), TDD workflow (Constitution III), fixture usage (`conftest.py`, `factories.py`), benchmark test patterns.
 12. **`config/README.md`** — Hydra config tree explanation: environment switching (`GENREGURU_ENV`), `${oc.env:...}` interpolation, feature flag gating, adding new config groups.
 13. **Module docstrings** — add missing docstrings to `genreguru/config.py`, `genreguru/errors.py`, `genreguru/dto.py`, `genreguru/__init__.py` (also needs `NullHandler` per logging-report Rule 11), `fingerprint_service.py`. Required for complete pdoc API output.
 14. **`docs/idea.md` → `docs/ROADMAP.md`** — convert raw backlog to structured roadmap with completed/in-progress/planned sections; integrate completed Pass 1-7 items.
@@ -265,8 +265,9 @@ clean; `python -m pytest tests/unit -q` all existing + new green.
 - Demo video once the product story settles.
 - **Present testing on GitHub** — make the test suite visible to visitors:
   live README badges (vitest check, coverage %, ruff, pdoc) wired to CI, a
-  "Tests" section with the breakdown by layer (frontend unit/contract/
-  robustness/a11y + backend pytest families), and test-stat reporting
+  "Tests" section with the breakdown by layer (frontend module suites —
+  api/render/page-controller/bootstrap + cross-cutting a11y — and backend
+  pytest families), and test-stat reporting
   (coverage % + test counts posted as CI artifacts/badges — or Codecov/
   Coveralls). Deep breakdown lives in `tests/README.md` (Docs #11); the root
   README shows headline numbers.
