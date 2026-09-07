@@ -19,15 +19,15 @@ Re-check after any contract or spec change: matrix must stay in sync with both d
 
 ## Internal Contract ([search-api.md](search-api.md))
 
-| #    | Behavior                                                                                                                                       | § | Spec anchor                          | Status |
-|------|------------------------------------------------------------------------------------------------------------------------------------------------|---|--------------------------------------|--------|
-| sa01 | `GET /api/search/?query={song_title}` returns top-5 matches                                                                                    | 1 | **REQ-001**, **REQ-002**             | Traced |
-| sa02 | Zero search matches → `TrackNotFoundError` (404) + user-facing message                                                                         | 1 | **REQ-002**                          | Traced |
-| sa03 | Deezer `/search` unreachable; retry 3× (5s cooldown between attempts) on network failure. All retries fail → `NetworkDisconnectedError` (503)  | 1 | **REQ-013**, **REQ-014**             | Traced |
-| sa04 | `POST /api/confirm/` local `isrc` match → reuse stored fingerprint                                                                             | 2 | **REQ-008**                          | Traced |
-| sa05 | `POST /api/confirm/` no local `isrc` match → fetch snippet, extract features, persist in local database                                        | 2 | **REQ-004**, **REQ-005**, **SC-003** | Traced |
-| sa06 | Snippet fetch network failure; retry 3× (5s cooldown between attempts) on network failure. All retries fail → `NetworkDisconnectedError` (503) | 2 | **REQ-013**, **REQ-014**             | Traced |
-| sa07 | Unprocessable audio → `AudioProcessingError` (400)                                                                                             | 2 | **REQ-015**                          | Traced |
+| #    | Behavior                                                                                                                                                                                                                                  | § | Spec anchor                          | Status |
+|------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---|--------------------------------------|--------|
+| sa01 | `GET /api/search/?query={song_title}` returns top-5 matches                                                                                                                                                                               | 1 | **REQ-001**, **REQ-002**             | Traced |
+| sa02 | Valid query with zero Deezer matches → HTTP 200 with an empty `matches` array (`{"status":"success","matches":[]}`); `TrackNotFoundError` (404) reserved for empty/whitespace `query` ([search-api.md](search-api.md) §1 zero-match note) | 1 | **REQ-002**                          | Traced |
+| sa03 | Deezer `/search` unreachable; retry 3× (5s cooldown between attempts) on network failure. All retries fail → `NetworkDisconnectedError` (503)                                                                                             | 1 | **REQ-013**, **REQ-014**             | Traced |
+| sa04 | `POST /api/confirm/` local `isrc` match → reuse stored fingerprint                                                                                                                                                                        | 2 | **REQ-008**                          | Traced |
+| sa05 | `POST /api/confirm/` no local `isrc` match → fetch snippet, extract features, persist in local database                                                                                                                                   | 2 | **REQ-004**, **REQ-005**, **SC-003** | Traced |
+| sa06 | Snippet fetch network failure; retry 3× (5s cooldown between attempts) on network failure. All retries fail → `NetworkDisconnectedError` (503)                                                                                            | 2 | **REQ-013**, **REQ-014**             | Traced |
+| sa07 | Unprocessable audio → `AudioProcessingError` (400)                                                                                                                                                                                        | 2 | **REQ-015**                          | Traced |
 
 ## Reverse pass: REQ → contract surface
 

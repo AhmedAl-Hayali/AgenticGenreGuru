@@ -72,7 +72,7 @@
 - [x] T016 \[P\] \[US1\] Integration test for snippet-fetch retry (3 attempts, 5s delay, `NetworkDisconnectedError`) in `tests/integration/test_deezer_retry.py`
 - [x] T017 \[P\] \[US1\] Integration test for `SongRepository` dedup-by-ISRC persistence (fresh insert vs reuse) in `tests/integration/test_repositories.py`
 - [x] T018 \[P\] \[US1\] Contract test for `GET /api/search/` (top-5, 404 `TrackNotFoundError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_search_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
-- [x] T019 \[P\] \[US1\] Contract test for `POST /api/confirm/{match}` (fresh fingerprint, ISRC-reuse path, 400 `AudioProcessingError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_confirm_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
+- [x] T019 \[P\] \[US1\] Contract test for `POST /api/confirm/` (fresh fingerprint, ISRC-reuse path, 400 `AudioProcessingError`, 503 `NetworkDisconnectedError`) in `tests/contract/test_confirm_api.py`; assert NO partial Song/SongFingerprint rows created on error paths
 
 ### Implementation for User Story 1
 
@@ -85,14 +85,14 @@
 - [x] T024 \[P\] \[US1\] Implement `SongRepository` with `find_by_isrc()` + `create_song_and_fingerprint()` in `genreguru/db/repositories.py`; module logger: INFO `isrc` lookup hit/miss, INFO insert (`song_id`/`isrc`/`deezer_id`), WARNING on concurrent same-`isrc` unique violation (api_flow §3.2)
 - [x] T025 \[US1\] Implement `FingerprintService` orchestration in `genreguru/fingerprint_service.py` (ISRC reuse path short-circuits; else fetch → extract → store; logs `reused=true/false` via the T011 `LoggerAdapter` — `extra={isrc, deezer_id, song_id, reused}`; INFO `"fingerprint reused (isrc=...)"` vs `"fresh fingerprint generated (isrc=..., elapsed=...s)"`; exception handling delegated to the caller)
 - [x] T026 \[US1\] Implement search view `GET /api/search/` in `frontend/fingerprint_app/views.py` (404 `TrackNotFoundError`, 503 `NetworkDisconnectedError` per `contracts/search-api.md`)
-- [x] T027 \[US1\] Implement confirm view `POST /api/confirm/{match}` in `frontend/fingerprint_app/views.py` (400 `AudioProcessingError`, 503 `NetworkDisconnectedError`, response payload incl. `song_id`, `deezer_id`, `isrc`, `fingerprint` with `vector_length: 8`)
+- [x] T027 \[US1\] Implement confirm view `POST /api/confirm/` in `frontend/fingerprint_app/views.py` (400 `AudioProcessingError`, 503 `NetworkDisconnectedError`, response payload incl. `song_id`, `deezer_id`, `isrc`, `fingerprint` with `vector_length: 8`)
 - [x] T028 \[US1\] Register `/api/search/` and `/api/confirm/` routes in `frontend/fingerprint_app/urls.py` and include them in `frontend/genreguru_web/urls.py`
 - [x] T029 \[US1\] Create `index.html` template (search bar, top-5 candidate list, result area) in `frontend/fingerprint_app/templates/fingerprint_app/index.html`
 - [x] T030 \[US1\] Implement 2-click selection/confirmation JS (Click 1 highlight "Selected", Click 2 confirm + POST) — `fingerprint_app/ts/` modules + `ts/pages/index-page.ts` bootstrap (esbuild-bundled to `static/fingerprint_app/app.js`)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, the story's `pytest` tasks, and the frontend JS gate from `frontend/` (`npm run check`; `npm run test:coverage` for the ≥75% coverage report). All MUST pass.
 
 ---
 
@@ -321,3 +321,4 @@ With multiple developers:
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 - UI tasks share `index.html`/`partials/`/`ts/pages/` — mark them non-parallel and serialize across stories
 - Performance targets: SC-001 95% query success, SC-002 <10s/snippet, SC-003 100% persistence, SC-005 <500ms reuse lookup
+- Frontend tests live in `frontend/tests/` as per-domain spec files (`app-boot`, `search-ux`, `robustness`, `a11y`, `confirm-flow`) sharing `helpers.ts`/`setup.ts` (loaded via `setupFiles`) — not a single `app.test.ts`

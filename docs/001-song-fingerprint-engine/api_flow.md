@@ -32,7 +32,7 @@ flowchart TD
     A2 --> UI["UI lists top 5 candidates"]
     UI --> C["User Click 1: select candidate"]
     C --> C2["Click 2: confirm selection"]
-    C2 --> POST["POST /api/confirm/{match} ({match}={deezer_id, title, isrc, duration, preview, artist, album})"]
+    C2 --> POST["POST /api/confirm/ (body = selected match)"]
     POST --> LOC["Local DB lookup by isrc"]
     LOC -->|"no match"| FETCH["Fetch preview MP3 from Deezer"]
     FETCH --> DSP["DSP feature extraction (8 collapsed features)"]
@@ -45,7 +45,7 @@ flowchart TD
 1. **User input** → `GET /api/search/?query={song_title}` (Django internal endpoint).
 2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
 3. **Search response returns top 5** → UI renders candidates and waits for the user.
-4. **2-click confirmation** → `POST /api/confirm/{match}` with `{match}={deezer_id, title, isrc, duration, preview, artist, album}`.
+4. **2-click confirmation** → `POST /api/confirm/` with the selected match in the request body (`deezer_id`, `title`, `isrc`, `duration`, `preview`, `artist`, `album`).
 5. **Local ISRC lookup** → `genreguru/db/` queries `songs` by `isrc`.
 6. **No local match**  → fetch the 30s preview MP3 from `preview` via `genreguru/deezer/` (3 retries, 5s delay).
 7. **DSP extraction** → `genreguru/audio/` computes 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), mono downmix, arithmetic-mean collapse to one scalar per feature.
@@ -73,12 +73,13 @@ These interrupt the happy path and must surface an expected error instead of pro
 
 ### 3.2 ISRC & record identity
 
-| Fault                                        | Location                     | Expected Behavior                                                                                                                                                                                             |
-|----------------------------------------------|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| External Deezer response omits `isrc`        | Deezer interface (retrieval) | **Fail loud** — throw an error; do not persist without ISRC ([deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) note, spec REQ-007)                                             |
-| Search returns zero matches                  | `/api/search` → Deezer       | raise `TrackNotFoundError` (404) and show user `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."`; no incomplete DB record created (spec scenario 2) |
-| `isrc` already exists in `songs`             | DB lookup                    | local record found → reuse stored fingerprint, no duplicate rows (spec REQ-008)                                                                                                                               |
-| Concurrent duplicate submission, same `isrc` | DB write                     | DB unique constraint on `isrc` flips the second write into a uniqueness error rather than a duplicate record                                                                                                  |
+| Fault                                        | Location                     | Expected Behavior                                                                                                                                                                                                                                                                     |
+|----------------------------------------------|------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| External Deezer response omits `isrc`        | Deezer interface (retrieval) | **Fail loud** — throw an error; do not persist without ISRC ([deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) note, spec REQ-007)                                                                                                                     |
+| Empty/whitespace `query`                     | `/api/search`                | `TrackNotFoundError` (404); no incomplete DB record created (spec scenario 2)                                                                                                                                                                                                         |
+| Valid query, zero Deezer matches             | `/api/search` → Deezer       | HTTP 200 with empty `matches` array (`{"status":"success","matches":[]}`); UI shows `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."` ([search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) §1) |
+| `isrc` already exists in `songs`             | DB lookup                    | local record found → reuse stored fingerprint, no duplicate rows (spec REQ-008)                                                                                                                                                                                                       |
+| Concurrent duplicate submission, same `isrc` | DB write                     | DB unique constraint on `isrc` flips the second write into a uniqueness error rather than a duplicate record                                                                                                                                                                          |
 
 ### 3.3 Audio / DSP processing
 
