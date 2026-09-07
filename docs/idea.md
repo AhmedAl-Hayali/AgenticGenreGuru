@@ -14,6 +14,32 @@ out to specs/roadmap.
 - Django integration tests (view + template + settings path) — that gap backfired.
 - Test environment isolation: dedicated `genreguru_test` DB so dev data never
   bleeds into assertions (option B from the contract-testing discussion).
+- **Raw-array test layer** — `tests/unit/test_audio_features.py` mostly pins the
+  *collapsed* scalar layer; the extract/collapse split's raw ndarray layer stays
+  largely untested (only mfcc `(20, n_frames)` shape + finiteness are covered).
+  Still to add:
+  - **Raw shape contract** — parametrized per `extract_<feature>` on the
+    1s/22050Hz sine: temporal features `(1, n_frames)` (centroid, rms,
+    bandwidth, flatness, rolloff, zcr), contrast `(7, n_frames)`, mfcc
+    `(20, n_frames)`; `n_frames` consistent with `n_fft=2048`, `hop=512`,
+    center=True.
+  - **Raw dtype** — spectral outputs float32 (librosa default); assert no
+    object/void dtype.
+  - **Raw finiteness** — `np.all(np.isfinite(arr))` per feature on sine,
+    silent, low-energy inputs (mirrors the collapsed finite checks at raw
+    level).
+  - **`collapse_feature(arr, name)` == `float(np.mean(raw))`** — exactly, no
+    hidden transforms.
+  - **`collapse_features` round-trip** — equals `collapse_feature(arr, f)`
+    applied individually; keys match the `Feature` enum; all values Python
+    `float`.
+  - **Centroid reuse invariant** — bandwidth equals
+    `spectral_bandwidth(S=mag, sr=sr, centroid=raw["spectral_centroid"])`
+    (guards the shared-centroid optimization against regression).
+  - **Collapse-policy independence** — adding/replacing a `collapse_<feature>`
+    must not change `extract_<feature>` output (contract of the split).
+  - **Empty / zero-length input** — `extract_<feature>` behavior (warn/raise?)
+    is untested for empty arrays.
 
 ## Docs
 - **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** — some drifted from the implemented API.
@@ -26,7 +52,7 @@ out to specs/roadmap.
 5. **`docs/API.md`** — top-level API reference page tying together pdoc output, contract specs (`contracts/search-api.md`, `contracts/deezer-api.md`), and the endpoint table from README.
 6. **`docs/ARCHITECTURE.md`** — promoted top-level entry point from `001-song-fingerprint-engine/architecture.md`.
 7. **`docs/DECISION_LOG.md`** (ADR log) — track why specific technologies were chosen (Django vs Flask, SQLAlchemy vs Django ORM, Hydra vs env vars), record rejected alternatives, prevent re-litigation. Already partially documented in `architecture.md` §8.
-8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations; currently Phase 1-7 passes are only in `phase_3_notes.md`.
+8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations; phase/pass history currently only in git history (the old `phase_3_notes.md` scratch file has been discarded).
 9. **`SECURITY.md`** — secret handling, Django security headers, CSRF protection, dependency scanning (bandit).
 10. **`frontend/README.md`** — frontend dev instructions: running dev server, adding tests (domain spec files in `tests/` with shared `helpers.ts`/`setup.ts` + `setupFiles`), ESLint/Prettier/Vitest config, JS architecture (DOM-free TS modules + per-page `ts/pages/*-page.ts` bootstrap, 2-click state machine, `api-config` blob pattern).
 11. **`tests/README.md`** — test structure, naming conventions, TDD workflow (Constitution III), fixture usage (`conftest.py`, `factories.py`), benchmark test patterns.
@@ -40,8 +66,18 @@ out to specs/roadmap.
 17. **`AGENTS.md`** at repo root — document agentic workflow conventions, available skills (`caveman`, `speckit-*`, `caveman-commit`, etc.), and project-specific AI-assisted development instructions.
 18. **`notebooks/` documentation** — document purpose and usage of exploratory DSP notebooks.
 19. **`docs/001-song-fingerprint-engine/` index** — `specs/README.md` or similar index listing all spec documents and their relationships.
-20. **`phase_3_notes.md` → `CHANGELOG.md` migration** — migrate resolved Pass 1-7 entries from `phase_3_notes.md` into `CHANGELOG.md` entries.
-21. **Docs-in-PR policy** — a feature PR ships its docs with the code: contract → traceability → status docs (`tasks.md`), `architecture.md` decision/tree rows, README/quickstart, and pdoc template purpose rows change in the SAME PR as the code. Review enforces; never land a docs/impl mismatch.
+20. **Docs-in-PR policy** — a feature PR ships its docs with the code: contract → traceability → status docs (`tasks.md`), `architecture.md` decision/tree rows, README/quickstart, and pdoc template purpose rows change in the SAME PR as the code. Review enforces; never land a docs/impl mismatch.
+21. **Per-folder README strategy** — GitHub renders a folder's `README.md` as
+    its directory landing page; give the 7 content folders one (`src/`,
+    `frontend/`, `tests/`, `config/`, `specs/`, `docs/`, `.github/`) so the
+    root README headline stays clean and each folder reads in full when
+    browsed. Folds in items #4, #10, #11, #12, #19. When implementing:
+    collapse the root `Project Structure` prose (README.md:246-270) to
+    one-line link pointers + add them to `Learn More`; keep each README small
+    and factual (15-40 lines, same shape: purpose → layout → entry points →
+    run/verify → links); leave empty/artifact folders (`data/`, `models/`,
+    `reports/`, `references/`, `notebooks/`, `outputs/`, `logs/`)
+    README-less; ship README changes in the same PR as the feature (#20).
 
 ### Standards/patterns reference (one-time deep-parse)
 - One-time deep-parse of the repo to extract coding standards + established
@@ -96,12 +132,99 @@ out to specs/roadmap.
 - Add a `<meta name="description">` snippet — a non-functional page summary
   used in search-result listings and preview cards (browser tabs show the
   `<title>`; the description is what external surfaces quote).
+- **Accessibility testing beyond unit context** — `frontend/tests/a11y.test.ts`
+  pins keyboard/click + ARIA contract tests, but there's no programmatic WCAG
+  audit. Add axe-core scans in Vitest/jsdom (cheap, fast) and/or a Playwright
+  end-to-end pass on the served app; pair with a manual WCAG checklist step
+  (keyboard-only walkthrough, focus order/visibility, contrast, touch targets,
+  aria-live). Error-toasts bullet above already calls out the missing
+  `role="status"`/aria-live source — fold audits in when that lands.
+- **Design-tool integration (Figma)** — introduce a component library + design
+  tokens (color/type/spacing) in Figma, exported to CSS custom properties the
+  UI consumes; single source of truth instead of ad-hoc CSS. Evaluate a tokens
+  pipeline (e.g., style-dictionary) before styles multiply.
+- **Frontend test-tooling review** — survey the JS ecosystem (what Mocha & Jest
+  are vs the current Vitest 5 + jsdom setup; where Playwright/axe add value)
+  and record the decision. No migration for its own sake — Vitest is working;
+  gain would be layered e2e/a11y coverage, not a runner swap.
+- **Lazy loading audit** — today one bundled `app.js` serves the index page.
+  As `pages/` and features grow: per-page/dynamic `import()` splitting,
+  `defer`/`async` script loading, static-asset caching (hash-named files), and
+  lazy-loading song preview metadata/artwork when the candidate is confirmed.
+- **Draft + audit non-functional requirements** — capture frontend NFRs as
+  explicit budgets and contracts: performance (FCP/TTI, bundle size), load-time
+  budget, accessibility baseline, responsive breakpoints, browser matrix,
+  offline/resilience behavior. Audit on a schedule: measure → record → fix.
+  Today NFRs are implicit; spec them before they bite.
+- **HCI principles — document, audit, record violations** — name the heuristics
+  the UI is designed around (error prevention: 2-click select/confirm state
+  machine; visibility of system status: `aria-live` status line; consistency;
+  feedback/copy) and how to verify them. Define a per-heuristic walkthrough
+  (e.g., Nielsen's 10) to find violations; keep a running HCI-violation log
+  (file/component + heuristic) feeding the backlog, not a one-off review.
 
 ## Data
 - Backfill a large catalogue for dev/prod (e.g. Billboard chart feeds) so the
   fingerprint engine has real volume to chew on.
 - Use Deezer [global parameters](https://developers.deezer.com/api/parameters)
   and [optional search parameters](https://developers.deezer.com/api/search#:~:text=Optionnal%20Parameters) on the search client.
+
+## Audio / DSP
+
+### N-section collapse (`feature_collapse.py`) — PENDING REVIEW
+
+Design sketched, not approved; no code changed (`collapse_feature` still
+returns a scalar, `collapse_features` a `dict[Feature, float]`). Don't implement
+until questions [B]/[C] below settle.
+
+Motivation: `data-model.md` line 45 — V1 collapses each feature to one scalar;
+"future versions will support lower downsampling rates to retain temporal
+dynamics." Proposal: collapse produces **N section scalars** per feature
+(intro/middle/outro dynamics) via a pluggable split rule. Scope: collapse module
++ tests + minimal caller wiring; no DB/schema change.
+
+Confirmed decisions: (1) unified always-sections API — scalar path is a slice of
+the 1-section result; (2) return type `dict[Feature, np.ndarray]`, each key
+shape `(N,)`; (3) sections may be unequal length in the future — split strategy
+pluggable, not hardcoded; (4) collapse module only.
+
+Design:
+- `SectionPlan.split(n_frames) -> list[np.ndarray]` (frame index groups);
+  `EvenFrameSections(n_sections)` clamps `max(1, min(n, n_frames))` and uses
+  `np.array_split` (15/15/14 for n=44,N=3). Future `DurationSections`, adaptive,
+  weighted strategies implement `split`; core only depends on `.split`.
+- `_mean_per_section(feature, n_sections, section_plan=None)` → shape `(N,)` via
+  `np.mean(feature[..., g])` per group (averages leading non-time axes for
+  contrast/mfcc); **N=1 == `np.mean(feature)` exactly** (backward compatible).
+- API: `collapse_feature(arr, Feature.X, n_sections=1, section_plan=None)`
+  shape `(N,)`; `collapse_features(d, n_sections=1) -> dict[Feature, ndarray]`;
+  `collapse_features_to_scalars(d) -> dict[Feature, float]` preserves the
+  current float contract. The 8 `collapse_*` aliases were already dropped in the
+  `Feature`-enum refactor — fully generic `collapse_feature` only ([A] resolved).
+- Caller wiring: `fingerprint_service.py` → `collapse_features_to_scalars`
+  (still stores floats, DB untouched); `feature_extract.py` docstring scalar
+  reference updated.
+- Tests: scalar fixtures → `collapse_features_to_scalars` / shape-`(1,)`; new
+  `n_sections=8` → 8 keys × shape `(8,)`; N=1 equals `np.mean(feature)`; section
+  values within feature min/max; `n_sections > n_frames` clamps; custom
+  unequal-length `SectionPlan` sum-of-lengths == n_frames; scalar view equals
+  pre-refactor `dict[str, float]`.
+
+Open questions:
+- **[B] N=1 return type** — unified `collapse_features(d, N=1)` returns shape-
+  `(1,)` arrays, breaking the current `dict[str, float]` contract. Confirm the
+  `collapse_features_to_scalars` split vs changing `collapse_features` outright.
+- **[C] Unequal-length semantics** — `np.array_split` gives 15/15/14 for
+  n=44,N=3; confirm contiguous frame groups are the right sectioning (vs
+  equal-duration / overlapping later).
+
+Behavioral output (sine, N=3): frame groups [(1,15),(16,30),(31,44)]; rms
+0.34686 → [0.34352, 0.35352, 0.34332]; spectral_contrast 18.7347 → [18.1115,
+19.9331, 18.1185] (mid-track peak retained); mfcc −19.7905 → [−19.0115,
+−21.4269, −18.8719].
+
+Verify when implementing (not yet run): `ruff check` + `ruff format --check`
+clean; `python -m pytest tests/unit -q` all existing + new green.
 
 ## Infrastructure
 - Rename `frontend/` → `web/` to resolve confusion (Django project root named
@@ -140,3 +263,10 @@ out to specs/roadmap.
 - GitHub Pages site: a repo hosts one `github.io` site; an org can host many
   (so this could live on a separate repo, or on this one at `docs/`).
 - Demo video once the product story settles.
+- **Present testing on GitHub** — make the test suite visible to visitors:
+  live README badges (vitest check, coverage %, ruff, pdoc) wired to CI, a
+  "Tests" section with the breakdown by layer (frontend unit/contract/
+  robustness/a11y + backend pytest families), and test-stat reporting
+  (coverage % + test counts posted as CI artifacts/badges — or Codecov/
+  Coveralls). Deep breakdown lives in `tests/README.md` (Docs #11); the root
+  README shows headline numbers.
