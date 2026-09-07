@@ -126,3 +126,55 @@ export function grabCandidate(els: BootEls): HTMLElement {
   }
   return el;
 }
+
+/** Manual-resolve promise for controlling when a `fetch` call settles. */
+export function deferred<T = Response>(): {
+  promise: Promise<T>;
+  resolve: (value: T | PromiseLike<T>) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+/**
+ * Override a `Response`'s `json()` so the body settles separately from the
+ * response. Lets tests insert a superseding action between the response and
+ * body awaits (the `actionSeq` post-body guards are otherwise unreachable).
+ */
+export function withDeferredJson(response: Response, body: Promise<unknown>): Response {
+  (response as { json: () => Promise<unknown> }).json = () => body;
+  return response;
+}
+
+// Minimal shape for the Node global; the project does not ship @types/node.
+declare const process: {
+  on(event: "unhandledRejection", listener: (reason: unknown) => void): unknown;
+  removeListener(event: "unhandledRejection", listener: (reason: unknown) => void): unknown;
+};
+
+/**
+ * Run `task` under an extra `unhandledRejection` listener. Vitest's own
+ * process-level handler treats a second listener as "handled by user code" and
+ * stays quiet, so a deliberately fire-and-forget rejection can be observed and
+ * asserted through `reasons` without flagging the test as failed.
+ */
+export async function withUnhandledRejection(
+  task: (reasons: unknown[]) => void | Promise<void>,
+): Promise<void> {
+  const reasons: unknown[] = [];
+  const onRejection = (reason: unknown) => {
+    reasons.push(reason);
+  };
+  process.on("unhandledRejection", onRejection);
+  try {
+    await task(reasons);
+  } finally {
+    process.removeListener("unhandledRejection", onRejection);
+  }
+}
