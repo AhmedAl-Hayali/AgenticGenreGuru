@@ -111,13 +111,6 @@ export async function waitForCandidate(els: BootEls) {
   });
 }
 
-export function findConfirmCall(
-  fetchMock: BootEls["fetchMock"],
-): [string, RequestInit] | undefined {
-  const call = fetchMock.mock.calls.find(([url]) => String(url).includes("/api/confirm/"));
-  return call ? [String(call[0]), call[1] as RequestInit] : undefined;
-}
-
 /** Grab the first rendered candidate row, throwing if none exists. */
 export function grabCandidate(els: BootEls): HTMLElement {
   const el = els.candidates.firstElementChild as HTMLElement | null;
