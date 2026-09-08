@@ -43,6 +43,20 @@ out to specs/roadmap.
 
 ## Docs
 - **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** — some drifted from the implemented API.
+- **API reference look-and-feel** — pdoc's default template is functional but
+  dated; the live reference is a public-facing surface (README badge → GH
+  Pages). Options, cheapest first: (1) pdoc already ships a theme toggle —
+  check current template/`pdoc themes` for a dark-mode option and CSS
+  overrides before touching anything else; (2) drop a custom CSS/JS embed via
+  pdoc's `--template-directory` / custom `head.mako` for branding; (3) if
+  pdoc still underwhelms, switch generators — candidates that are equally
+  plug-in-and-run against docstrings/modules: `mkdocstrings` (Material for
+  MkDocs, themable dark mode, search), `Sphinx + sphinx-rtd-dark-mode` or
+  `Furo` theme (heavier config). Keep the bar: near-zero migration cost +
+  equally productive output (module/class/function docstrings, signatures,
+  source links); pdoc deployment already lives in CI `docs.yml` + `.github/
+  workflows`, keep that path. Future-proof: pick a theme behind a build-time
+  config so the docs site and the deployed artifact share one source.
 
 ### Documentation improvement/addition plan
 1. **`CONTRIBUTING.md`** — repo root contributor guide: prerequisites (Python 3.14, uv, PostgreSQL, Node 26), setup (`uv sync`, `npm ci`), running tests (`uv run pytest`, `npm run check`), lint/type-check commands, commit conventions (conventional-pre-commit hook), branch/PR workflow, pre-commit installation.
@@ -231,6 +245,52 @@ clean; `python -m pytest tests/unit -q` all existing + new green.
   "frontend"). Blast radius: `.gitignore` (~5 entries), README tree+commands,
   architecture.md paths, quickstart.md paths, CI `tests.yml` working-directory,
   any `cd frontend` in scripts/docs, `pyproject.toml` tool configs.
+- **Deployment & containerization** — ship the app to a prod-grade environment.
+  Directions settled (decisions D1–D5; each records its future-proof path so a
+  later scale-up slots in with minimal churn). None implemented yet.
+  - **D1 — Deploy target: local prod-sim first, cloud later.** `Dockerfile` +
+    `compose.yaml` (web + postgres + TLS reverse proxy) mimicking prod wiring
+    locally via `GENREGURU_ENV=prod` config groups. Future-proof: the same
+    image deploys to a PaaS (Fly.io/Render/Railway — managed TLS, deploy from
+    git) behind a GH Actions build→registry→`fly deploy`/`render deploy`
+    workflow; does not change when multi-node arrives.
+  - **D2 — App server: Gunicorn (WSGI, sync workers), no `--preload`.**
+    Views are sync today (`fingerprint_app/views.py`); wsgi.py + asgi.py
+    entrypoints exist, ASGI path unused. Per-worker import runs
+    `runtime.init_runtime()` per process (safe); `--preload` would share one
+    psycopg3 engine/pool across forked fds (risk — keep off). Future-proof:
+    uvicorn/granian ASGI when async views land; `--threads` for IO-heavy
+    paths; multi-replica needs the `runtime.init_runtime()` `threading.Lock`
+    fix (Architecture bullet) + per-replica `create_engine` (already
+    per-process).
+  - **D3 — Static: Whitenoise in-container.** esbuild output
+    (`fingerprint_app/static/.../app.js`) is gitignored → frontend must build
+    inside the image (Node 26 builder stage); serve via collectstatic +
+    whitenoise. Future-proof: `ManifestStaticFilesStorage` cache-busting;
+    object storage/CDN (MinIO/S3) when media/uploads grow; no settings churn
+    at either step.
+  - **D4 — DB reliability: compose PG18 + named volume + healthcheck +
+    release-step schema job + `pg_dump` backup.** Native `uuidv7()` requires
+    PG18+ (CI already pins `postgres:18`). Schema via one-off `migrate`
+    compose service running `python -m genreguru.db.init_db`, gated
+    `service_completed_successfully`; no racing on-boot mutations.
+    Future-proof: swap db service for managed Postgres (Fly/Render/Neon) with
+    PITR — same `DB_*` env contract; pgbouncer/read-replica when load grows;
+    backups escalate pg_dump → WAL/PITR.
+  - **D5 — Scale/hardening: single instance, standard hardening.** prod
+    settings already `DEBUG=0`, secure cookies, HSTS, fail-closed
+    `DJANGO_ALLOWED_HOSTS`/`DJANGO_SECRET_KEY`/`DB_*` via env. Add
+    `SECURE_PROXY_SSL_HEADER` (TLS-terminating proxy) since
+    `secure_ssl_redirect: true` would otherwise loop behind the proxy.
+    Rate-limiting (CHK024) stays deferred. Future-proof: multi-replica, WAF/
+    ingress, secrets manager, pool-size/`CONN_MAX_AGE` tuning per replica.
+  Still open (verify when implementing): Gunicorn wheels on Python 3.14
+  (fallback uvicorn/granian if unsupported — D2 keeps the slot, driver
+  swappable); prod logging `file_all` handler writes
+  `logs/genreguru.log.jsonl` — container path is ephemeral, pick stdout-only
+  override vs mounted volume; `uv.lock` is gitignored — commit it or
+  `uv sync --no-lock` for fresh clones; whether Deezer preview URLs need a
+  proxy/allowlist for CORS in prod.
 
 ## Architecture
 - Centralize cross-functional/cross-language/cross-file constants into a single
