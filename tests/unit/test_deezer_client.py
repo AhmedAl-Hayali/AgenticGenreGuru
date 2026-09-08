@@ -10,7 +10,7 @@ Covers:
 - error-code mapping per contracts/deezer-api.md incl. QUOTA(4)/SERVICE_BUSY(700)
   retry classification.
 
-Tests import the `client.DeezerSearchClient` class, exercise a module-level
+Tests import the `client.DeezerClient` class, exercise a module-level
 instance, and fake its `httpx.get` with the shared `tests.http_stubs` helpers
 via pytest's function-scoped `monkeypatch`; cases are collapsed with
 `@pytest.mark.parametrize`.
@@ -64,7 +64,7 @@ _CLIENT_HTTP_GET = f"{_MODULE}.httpx.get"
 
 _MAX_RETRIES = client._MAX_RETRIES
 
-_CLIENT = client.DeezerSearchClient()
+_CLIENT = client.DeezerClient()
 
 
 def _ok_search(data: list[dict]) -> httpx.Response:

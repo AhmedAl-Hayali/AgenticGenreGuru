@@ -17,7 +17,7 @@ from genreguru import fingerprint_service
 from genreguru.audio.features import Feature
 from genreguru.db.engine import get_session_factory
 from genreguru.db.repositories import SongRepository
-from genreguru.deezer.client import DeezerSearchClient
+from genreguru.deezer.client import DeezerClient
 from genreguru.errors import (
     AudioProcessingError,
     MissingISRCError,
@@ -28,7 +28,7 @@ from genreguru.errors import (
 
 logger = logging.getLogger(__name__)
 
-_deezer = DeezerSearchClient()
+_deezer = DeezerClient()
 
 TOP_MATCHES = 5
 

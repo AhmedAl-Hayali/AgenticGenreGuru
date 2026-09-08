@@ -303,7 +303,7 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
   or per-file literals. Audit other duplicated values (units, message strings,
   thresholds, URL "know-how") for the same treatment so a change lands in one
   place and crosses the frontend/backend boundary through the `#api-config` blob.
-- Explicit instance of the above: `_deezer = DeezerSearchClient()` in
+- Explicit instance of the above: `_deezer = DeezerClient()` in
   `fingerprint_app/views.py` uses constructor defaults (search URL, limit,
   timeouts, retry budget) rather than `cfg`. The deezer search tuning should
   flow from config like the rest of the cross-boundary constants.

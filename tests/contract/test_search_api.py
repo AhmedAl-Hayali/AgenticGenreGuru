@@ -4,7 +4,7 @@ Validates the JSON response shape, status codes (200/404/503), the real
 `[:5]` cap, and that error paths create NO partial Song/SongFingerprint rows.
 
 GREEN phase: `search_view` is exercised as the REAL view. The only mocked
-dependency is `DeezerSearchClient.search` (the network boundary), so
+dependency is `DeezerClient.search` (the network boundary), so
 the view's own logic — empty-query 404, error-code mapping, 5-match cap,
 `matches=[]` for zero results — is genuinely under test.
 
@@ -48,7 +48,7 @@ def error_of(resp) -> str:
 
 @pytest.fixture
 def get_search(django_client, monkeypatch):
-    """GET /api/search/ with a stubbed `DeezerSearchClient.search`; returns the response.
+    """GET /api/search/ with a stubbed `DeezerClient.search`; returns the response.
 
     `query` is the search term to issue (required, keyword-only), `result`
     sets the returned matches (default empty), and `error` makes the stub
@@ -66,7 +66,7 @@ def get_search(django_client, monkeypatch):
                 raise error
             return list(result or [])
 
-        monkeypatch.setattr(deezer_client.DeezerSearchClient, "search", fake_search)
+        monkeypatch.setattr(deezer_client.DeezerClient, "search", fake_search)
         return django_client.get(f"/api/search/?query={query}")
 
     return _search

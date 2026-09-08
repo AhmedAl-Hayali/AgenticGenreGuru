@@ -2,7 +2,7 @@
 
 Submodules:
 
-- `.client` — `DeezerSearchClient().search()`: song-title search against
+- `.client` — `DeezerClient().search()`: song-title search against
   `GET https://api.deezer.com/search?q=...&limit=5`, Track field mapping,
   fail-loud on missing `isrc` (`MissingISRCError`) / empty `preview`
   (`PreviewUnavailableError`), and error-code classification

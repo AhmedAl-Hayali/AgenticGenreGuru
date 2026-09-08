@@ -93,7 +93,7 @@ def _build_tracks(body: dict) -> list[DeezerTrack]:
     return tracks
 
 
-class DeezerSearchClient:
+class DeezerClient:
     """Deezer `/search` client with retry-with-backoff.
 
     Owns the endpoint, per-request limit/timeout, and retry budget so
