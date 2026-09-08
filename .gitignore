@@ -206,9 +206,9 @@ logs/
 # Frontend JS coverage reports (vitest --coverage)
 coverage/
 
-# Frontend built artifacts (source of truth is frontend/fingerprint_app/ts/ modules + ts/pages/*-page.ts bootstrap)
-frontend/fingerprint_app/static/fingerprint_app/app.js
-frontend/fingerprint_app/static/fingerprint_app/app.js.map
+# Frontend built artifacts (source of truth is web/fingerprint_app/ts/ modules + ts/pages/*-page.ts bootstrap)
+web/fingerprint_app/static/fingerprint_app/app.js
+web/fingerprint_app/static/fingerprint_app/app.js.map
 
 # Data
 data/*/*
@@ -217,4 +217,4 @@ data/*/*
 notebooks/*
 
 # Node dependency directories
-/frontend/node_modules/*
+/web/node_modules/*

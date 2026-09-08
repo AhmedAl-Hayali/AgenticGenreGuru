@@ -6,7 +6,7 @@
 
 **GenreGuru** turns a song title into a machine-readable acoustic fingerprint. Type a title → it pulls a 30-second Deezer preview → runs a DSP pipeline extracting 8 acoustic features → stores the vector in PostgreSQL. Recommending sonically similar tracks by querying stored fingerprints with cosine similarity is planned (US4).
 
-> **Project status:** Partial implementation. The core library is implemented — audio loading + mono downmix, the `Feature` enum (`genreguru/audio/features.py`), 8-feature DSP extraction (`feature_extract.py`) and arithmetic-mean collapse (`feature_collapse.py`), Deezer search client + snippet fetcher with retry, SQLAlchemy engine/models/repository with ISRC dedup, `FingerprintService` orchestration, and the shared error hierarchy — with passing unit tests. The Django `search` + `confirm` API endpoints and the 2-click browser UI (`frontend/fingerprint_app/ts/` modules + `pages/` bootstrap, bundled by esbuild to the served ES module, contract-tested with Vitest/jsdom) are wired. Still pending: DSP visualization (US3), custom recommendations (US4), benchmarks, and end-to-end runs against a live PostgreSQL. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
+> **Project status:** Partial implementation. The core library is implemented — audio loading + mono downmix, the `Feature` enum (`genreguru/audio/features.py`), 8-feature DSP extraction (`feature_extract.py`) and arithmetic-mean collapse (`feature_collapse.py`), Deezer search client + snippet fetcher with retry, SQLAlchemy engine/models/repository with ISRC dedup, `FingerprintService` orchestration, and the shared error hierarchy — with passing unit tests. The Django `search` + `confirm` API endpoints and the 2-click browser UI (`web/fingerprint_app/ts/` modules + `pages/` bootstrap, bundled by esbuild to the served ES module, contract-tested with Vitest/jsdom) are wired. Still pending: DSP visualization (US3), custom recommendations (US4), benchmarks, and end-to-end runs against a live PostgreSQL. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
 
 ## What GenreGuru Does
 
@@ -44,7 +44,7 @@ flowchart TD
 
 ## Features
 
-- **Song search** — Search by title, select from top 5 candidates with a 2-click confirmation UX. (Search + confirm API and 2-click browser UI implemented; covered by Vitest DOM contract tests in `frontend/tests/`.)
+- **Song search** — Search by title, select from top 5 candidates with a 2-click confirmation UX. (Search + confirm API and 2-click browser UI implemented; covered by Vitest DOM contract tests in `web/tests/`.)
 - **Acoustic fingerprinting** — Extracts 8 features capturing brightness (spectral centroid), energy (RMS), bandwidth, contrast, noisiness (spectral flatness), rolloff, timbre (MFCC), and harmonic content (zero crossing rate).
 - **Database persistence** — Stores fingerprints with full song metadata in PostgreSQL.
 - **ISRC-based deduplication** — Prevents duplicate records. Reuses stored fingerprints automatically.
@@ -72,7 +72,7 @@ cd AgenticGenreGuru
 uv sync
 
 # Install the frontend JS toolchain dependencies (eslint, prettier, vitest, typescript)
-cd frontend
+cd web
 npm ci
 
 # Build the TypeScript browser bundle (esbuild) — the served app.js is a generated artifact
@@ -101,7 +101,7 @@ py -m genreguru.db.init_db
 ### Run
 
 ```bash
-python frontend/manage.py runserver 0.0.0.0:8000
+python web/manage.py runserver 0.0.0.0:8000
 ```
 
 Open [http://localhost:8000](http://localhost:8000) in your browser.
@@ -127,7 +127,7 @@ uv run pytest tests/unit tests/integration
 Frontend checks run the whole toolchain — build (esbuild: TypeScript → minified ESM bundle), lint (ESLint 10 flat config), format (Prettier 3), typecheck (tsc strict on TypeScript sources, no emit), and Vitest 5 DOM contract tests against the TS source (jsdom):
 
 ```bash
-cd frontend
+cd web
 npm run check            # build + lint + format:check + typecheck + test in sequence
 
 # Coverage report (HTML + LCOV) written to coverage/; enforces >=75% on all metrics
@@ -143,7 +143,7 @@ npm run typecheck        # tsc --noEmit (strict tsconfig.json on .ts sources)
 
 The served `static/fingerprint_app/app.js` is a **generated, gitignored artifact** — the source of truth is the `fingerprint_app/ts/` modules + the per-page `ts/pages/*-page.ts` bootstrap. A fresh `git clone` must run `npm run build` before `runserver`, and any deploy that runs `collectstatic` must execute `npm ci && npm run build` first.
 
-Build, lint, format, typecheck, tests, and coverage are also wired into CI (`tests.yml`, `frontend` job: `npm run check` + `npm run test:coverage` with artifact upload).
+Build, lint, format, typecheck, tests, and coverage are also wired into CI (`tests.yml`, `web` job: `npm run check` + `npm run test:coverage` with artifact upload).
 
 ## Architecture
 
@@ -172,7 +172,7 @@ flowchart LR
 - **`genreguru/audio/`** — Signal processing (librosa, numpy, scipy). Independent of Django.
 - **`genreguru/deezer/`** — Deezer API client with retry logic. Isolated for easy mocking.
 - **`genreguru/db/`** — PostgreSQL schemas, SQLAlchemy engine, repository pattern.
-- **`frontend/`** — Django views, templates, and static assets. Thin UI layer.
+- **`web/`** — Django views, templates, and static assets. Thin UI layer.
 
 ### Data Model
 
@@ -251,7 +251,7 @@ src/genreguru/              # Standalone core library (import root `genreguru`)
 ├── deezer/                # Deezer API client & retry logic
 └── db/                    # SQLAlchemy models, engine & repositories
 
-frontend/                  # Django web application
+web/                     # Django web application
 ├── genreguru_web/         # Project settings, URL routing
 ├── fingerprint_app/       # Views, templates, static assets (built app.js)
 │   ├── templates/.../partials/  # Reusable fragments: page_header, search_form, match_list, fingerprint_panel
@@ -271,7 +271,7 @@ docs/                      # API flow diagrams, config reports
 
 ## Configuration
 
-All non-secret settings live in the Hydra `config/` tree and are overridable from the CLI. Secrets resolve via `${oc.env:...}` interpolation. Django settings (in `genreguru_web/settings/`) contain no environment-specific values — they read the Hydra `django` and `db` groups through `genreguru/config.py`, selected by the `GENREGURU_ENV` variable (`dev` default; `prod` for production). Django and the core library share one DB connection source — the core library uses programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`) via `genreguru/db/engine.py`, and Django settings are built from the same components (`frontend/genreguru_web/settings/base.py`).
+All non-secret settings live in the Hydra `config/` tree and are overridable from the CLI. Secrets resolve via `${oc.env:...}` interpolation. Django settings (in `genreguru_web/settings/`) contain no environment-specific values — they read the Hydra `django` and `db` groups through `genreguru/config.py`, selected by the `GENREGURU_ENV` variable (`dev` default; `prod` for production). Django and the core library share one DB connection source — the core library uses programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`) via `genreguru/db/engine.py`, and Django settings are built from the same components (`web/genreguru_web/settings/base.py`).
 
 ```bash
 # Override any config key from the CLI

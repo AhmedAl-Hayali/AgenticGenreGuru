@@ -115,7 +115,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["D100", "D104"]
-"frontend/genreguru_web/settings/*.py" = ["F401", "F403", "F405"]
+"web/genreguru_web/settings/*.py" = ["F401", "F403", "F405"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -134,7 +134,7 @@ max-complexity = 10
 include = [
     "src",
     "tests",
-    "frontend",
+    "web",
 ]
 
 [tool.ty.rules]
@@ -145,5 +145,5 @@ possibly-missing-import = "warn"
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "genreguru_web.settings.test"
 testpaths = ["tests"]
-pythonpath = ["frontend", "src"]
+pythonpath = ["web", "src"]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]

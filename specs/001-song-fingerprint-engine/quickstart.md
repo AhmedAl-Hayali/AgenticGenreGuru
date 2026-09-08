@@ -30,17 +30,17 @@ python -m genreguru.db.init_db logging.level=DEBUG     # any config key is overr
 
 ```bash
 # Start Django dev server
-python frontend/manage.py runserver 0.0.0.0:8000
+python web/manage.py runserver 0.0.0.0:8000
 ```
 
 Open browser to `http://localhost:8000`.
 
 ## Frontend JS Toolchain
 
-The browser UI source of truth is `frontend/fingerprint_app/ts/` — reusable modules (`dto`, `config`, `api`, `messages`, `render`, `page-controller`, `errors`) plus a thin per-page bootstrap (`ts/pages/index-page.ts`). esbuild bundles the bootstrap to the served ES module `frontend/fingerprint_app/static/fingerprint_app/app.js` — a generated, gitignored artifact, so a fresh checkout must run `npm run build` before `runserver` or any `collectstatic` deploy. The source is checked by ESLint 10 (flat config, `eslint.config.ts`), formatted with Prettier 3, typechecked with `tsc` (strict, no emit), and unit-tested with Vitest 5 + jsdom contract tests in `frontend/tests/`.
+The browser UI source of truth is `web/fingerprint_app/ts/` — reusable modules (`dto`, `config`, `api`, `messages`, `render`, `page-controller`, `errors`) plus a thin per-page bootstrap (`ts/pages/index-page.ts`). esbuild bundles the bootstrap to the served ES module `web/fingerprint_app/static/fingerprint_app/app.js` — a generated, gitignored artifact, so a fresh checkout must run `npm run build` before `runserver` or any `collectstatic` deploy. The source is checked by ESLint 10 (flat config, `eslint.config.ts`), formatted with Prettier 3, typechecked with `tsc` (strict, no emit), and unit-tested with Vitest 5 + jsdom contract tests in `web/tests/`.
 
 ```bash
-cd frontend
+cd web
 
 # Install the JS toolchain from the lockfile
 npm ci
@@ -52,7 +52,7 @@ npm run build
 npm run check
 ```
 
-All checks run in CI (`tests.yml`, `frontend` job: `npm ci` → `npm run check` (which builds) → `npm run test:coverage` with artifact upload), so they must pass before merge.
+All checks run in CI (`tests.yml`, `web` job: `npm ci` → `npm run check` (which builds) → `npm run test:coverage` with artifact upload), so they must pass before merge.
 
 ## Validation Workflows
 
@@ -74,7 +74,7 @@ pytest tests/
 ### Scenario 3: Frontend JS Checks
 
 ```bash
-cd frontend
+cd web
 npm run check            # build + eslint + prettier + tsc strict + vitest
 npm run build:watch      # rebuild the bundle on change (dev)
 npm run test:coverage    # coverage report + 90% threshold gate

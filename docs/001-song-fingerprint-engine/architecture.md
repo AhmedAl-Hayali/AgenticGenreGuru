@@ -28,7 +28,7 @@
 
 ## 1. Architectural Style & Governing Principles
 
-GenreGuru uses a **modular layered architecture**: a standalone, framework-agnostic core library (`genreguru/`) consumed by a Django web presentation layer (`frontend/`). The two are decoupled by design.
+GenreGuru uses a **modular layered architecture**: a standalone, framework-agnostic core library (`genreguru/`) consumed by a Django web presentation layer (`web/`). The two are decoupled by design.
 
 - **Constitution I (Standalone Library-First)**: DSP, Deezer client, and database repositories are independent modules with no dependency on Django UI state. Reusable headless (CLI/script) without a web layer.
 - **Constitution IV (Simplicity & Modular Adaptability)**: clean boundaries between fetcher, extractor, repository, and UI controller. No over-engineered abstractions.
@@ -36,9 +36,9 @@ GenreGuru uses a **modular layered architecture**: a standalone, framework-agnos
 - **Explicit Interfaces & Contracts**: internal API surface defined by `contracts/search-api.md`; external surface by `contracts/deezer-api.md`. Payload shapes are single-source-of-truth contracts, not implicit Django views.
 - **Dual ORM exception**: Django uses its own project scaffolds; the core library uses SQLAlchemy. This is a deliberate, recorded trade-off (`plan.md` Complexity Tracking) to keep the DSP/db core free of Django framework coupling.
 
-**Key consequence**: `genreguru/` must run and test without Django; `frontend/` only shells into the core library through repository/service boundaries.
+**Key consequence**: `genreguru/` must run and test without Django; `web/` only shells into the core library through repository/service boundaries.
 
-**Dual ORM Connection Strategy**: Both SQLAlchemy (core) and Django ORM (frontend) share a **single PostgreSQL connection pool** via `psycopg`. SQLAlchemy `engine` created in `genreguru/db/engine.py` from Hydra `db` group using programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`); Django `DATABASES['default']` configured from the same components via `frontend/genreguru_web/settings/base.py` (single source, `plan.md` line 89). Migrations: **Django owns schema** (`makemigrations`/`migrate`); SQLAlchemy models are **read-only reflections** of Django-managed tables (no `create_all` in production). Core library uses `SessionLocal` for transactions; Django uses its ORM within request scope. Connection pool sizing via Hydra `db.pool_size`/`max_overflow` shared by both.
+**Dual ORM Connection Strategy**: Both SQLAlchemy (core) and Django ORM (frontend) share a **single PostgreSQL connection pool** via `psycopg`. SQLAlchemy `engine` created in `genreguru/db/engine.py` from Hydra `db` group using programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`); Django `DATABASES['default']` configured from the same components via `web/genreguru_web/settings/base.py` (single source, `plan.md` line 89). Migrations: **Django owns schema** (`makemigrations`/`migrate`); SQLAlchemy models are **read-only reflections** of Django-managed tables (no `create_all` in production). Core library uses `SessionLocal` for transactions; Django uses its ORM within request scope. Connection pool sizing via Hydra `db.pool_size`/`max_overflow` shared by both.
 
 ---
 
@@ -47,7 +47,7 @@ GenreGuru uses a **modular layered architecture**: a standalone, framework-agnos
 ```mermaid
 flowchart LR
     U["User\n(producer, hobbyist, theorist,\nengineer, educator, listener)"]
-    UI["Django Web App\n`frontend/genreguru_web`\n+ `frontend/fingerprint_app`"]
+    UI["Django Web App\n`web/genreguru_web`\n+ `web/fingerprint_app`"]
     CORE["GenreGuru Core Library\n`genreguru`"]
     DZ["Deezer API\n`api.deezer.com`"]
     DB[("PostgreSQL\nlocal `songs` + `song_fingerprints`")]
@@ -94,7 +94,7 @@ genreguru/
 │       ├── errors.py        # shared exception hierarchy (task T006)
 │       ├── fingerprint_service.py   # US1 orchestration (task T025)
 │       └── recommendations.py       # US4 cosine-similarity service (planned, task T044)
-├── frontend/                # Django web application
+├── web/                     # Django web application
 │   ├── manage.py
 │   ├── genreguru_web/       # project: settings/ package (base+dev+prod+test), runtime.py, urls.py, asgi.py, wsgi.py
 │   ├── fingerprint_app/     # app: views.py, urls.py, templates/ (+ partials/), static/, ts/ (browser source)
@@ -121,7 +121,7 @@ genreguru/
 └── reports/                 # generated reports (gitignored store)
 ```
 
-> **State note**: Phase 1 (T001, T005a/b) and the US1 core-library bodies are implemented: config tree, `genreguru/config.py`, `gglogging.py`, `errors.py`, `audio/{loader,features,feature_extract,feature_collapse}`, `deezer/{client,snippets}`, `db/{engine,base,models,repositories,init_db}`, `fingerprint_service.py`, the search + confirm Django views/routes, the frontend `index.html` (blocks + `partials/`) + `ts/` modules 2-click UI (T029-030, bundled to a served ES module by esbuild; contract-tested via Vitest/jsdom in `frontend/tests/`), and the `tests/{unit,integration,contract}` suites + `factories.py`/`conftest.py` + `init_db`. Still pending per `tasks.md`: `audio/visualization.py` (T039), `recommendations.py` (T044), `tests/benchmarks/` (T052-053), and end-to-end validation against a live PostgreSQL.
+> **State note**: Phase 1 (T001, T005a/b) and the US1 core-library bodies are implemented: config tree, `genreguru/config.py`, `gglogging.py`, `errors.py`, `audio/{loader,features,feature_extract,feature_collapse}`, `deezer/{client,snippets}`, `db/{engine,base,models,repositories,init_db}`, `fingerprint_service.py`, the search + confirm Django views/routes, the frontend `index.html` (blocks + `partials/`) + `ts/` modules 2-click UI (T029-030, bundled to a served ES module by esbuild; contract-tested via Vitest/jsdom in `web/tests/`), and the `tests/{unit,integration,contract}` suites + `factories.py`/`conftest.py` + `init_db`. Still pending per `tasks.md`: `audio/visualization.py` (T039), `recommendations.py` (T044), `tests/benchmarks/` (T052-053), and end-to-end validation against a live PostgreSQL.
 
 ### 3.2 Core library (`genreguru/`) — layers
 
@@ -146,7 +146,7 @@ genreguru/
 |                   | `genreguru/config.py`                 | `get_config()` compose helper (cached), cwd-independent via `initialize_config_dir`                                                                                                                                                                         | T005a      |
 |                   | `genreguru/gglogging.py`              | `LoggingManager` (one active owner per process; `setup()`/`teardown()`), `JsonFormatter`, `NonErrorFilter`, `QueueHandler`/`QueueListener`, `FingerprintContextAdapter`, dev `RichHandler`                                                                  | T011       |
 
-### 3.3 Frontend (`frontend/`) — Django presentation layer
+### 3.3 Frontend (`web/`) — Django presentation layer
 
 | Component                                                                                                                                              | Responsibility                                                                                                                                                                                                                                                                                                | Tasks                            |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------|
@@ -163,7 +163,7 @@ genreguru/
 | `index.html` template                                                                                                                                  | Search bar, top-5 candidates, result/catalog/detail/visualization sections                                                                                                                                                                                                                                    | T029 (impl), T036/T041/T046      |
 
 **Theming**: `style.css` is the single global stylesheet, organized into tokens / reset+base / layout / components / utilities. Colors, radii, fonts, spacing, and timing are design tokens on `:root` (`--bg`, `--radius-md`, `--font-body`, `--space-*`, `--transition-fast`, `--max-w-content`) — a theme swap is a token override, not a rule edit. A page with a different aesthetic drops its own sheet in `{% block head_extras %}` (it loads after `style.css`, so equal-specificity rules win) and tags `<body class="themed-*">` to scope element-level divergences (`.themed-retro .wrap { max-width: none; }`); `--max-w-content` on `.wrap` is the one layout token a full-bleed page flips. This is what makes mixed page aesthetics possible without touching the shared partials or their id contract. Convention: keep `style.css` single-filed until a second page actually exists, then consider splitting tokens/base/layout/components.
-| JS toolchain (dev)                                  | esbuild (TS→ESM bundle), ESLint 10 flat config, Prettier 3, `tsc` strict typecheck, Vitest 5 + jsdom contract tests (`frontend/tests/`), v8 coverage ≥90% gate (`npm run build`, `npm run check`, `npm run test:coverage`) | companion to T029-030         |
+| JS toolchain (dev)                                  | esbuild (TS→ESM bundle), ESLint 10 flat config, Prettier 3, `tsc` strict typecheck, Vitest 5 + jsdom contract tests (`web/tests/`), v8 coverage ≥90% gate (`npm run build`, `npm run check`, `npm run test:coverage`) | companion to T029-030         |
 
 UI files `index.html` + `partials/` + `ts/pages/` are the serial bottleneck shared by all stories; tasks touching them must run on one workstream (hard constraint from `tasks.md`).
 
@@ -322,8 +322,8 @@ Exception hierarchy with structured attributes (`isrc`, `deezer_id`, `code`, `at
 - Test-first: each task's tests written and confirmed failing before implementation.
 - Suites: `tests/unit/` (DSP, Deezer parsing, models), `tests/integration/` (DB, retry, repositories, recommendations, FactoryBoy fixtures), `tests/contract/` (internal API vs contracts), `tests/benchmarks/` (SC-002/005).
 - Assert no partial `Song`/`SongFingerprint` rows on error paths (contract tests T018/T019).
-- Gate: `ruff check src/ frontend/ tests/` + `ty check` before each story checkpoint; final sweep with `prek.toml` hooks, bandit, radon (cyclomatic ≤ 10), coverage (T048-T053).
-- Frontend JS gate: `cd frontend && npm run check` (esbuild build → ESLint 10 flat config → Prettier → `tsc` strict → Vitest/jsdom contract tests) plus `npm run test:coverage` (v8, ≥90% statements/branches/functions/lines, `coverage/` HTML + LCOV). Enforced in CI as the `frontend` job of `tests.yml` (`npm ci` + `npm run check` + `npm run test:coverage` with artifact upload). Fresh checkouts/deploys must run `npm ci && npm run build` before serving/`collectstatic` — the served `app.js` is a gitignored build artifact.
+- Gate: `ruff check src/ web/ tests/` + `ty check` before each story checkpoint; final sweep with `prek.toml` hooks, bandit, radon (cyclomatic ≤ 10), coverage (T048-T053).
+- Frontend JS gate: `cd web && npm run check` (esbuild build → ESLint 10 flat config → Prettier → `tsc` strict → Vitest/jsdom contract tests) plus `npm run test:coverage` (v8, ≥90% statements/branches/functions/lines, `coverage/` HTML + LCOV). Enforced in CI as the `web` job of `tests.yml` (`npm ci` + `npm run check` + `npm run test:coverage` with artifact upload). Fresh checkouts/deploys must run `npm ci && npm run build` before serving/`collectstatic` — the served `app.js` is a gitignored build artifact.
 
 ---
 
@@ -331,7 +331,7 @@ Exception hierarchy with structured attributes (`isrc`, `deezer_id`, `code`, `at
 
 | Decision                                                            | Why                                                                                   | Rejected alternative                                                                 |
 |---------------------------------------------------------------------|---------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
-| `src/` core + `frontend/` Django                                    | Enforces Constitution I; DSP/db testable headless; single `pyproject.toml` simplicity | Monolithic Django app (framework coupling); multi-package monorepo (over-engineered) |
+| `src/` core + `web/` Django                                         | Enforces Constitution I; DSP/db testable headless; single `pyproject.toml` simplicity | Monolithic Django app (framework coupling); multi-package monorepo (over-engineered) |
 | SQLAlchemy backend + Django frontend                                | User-specified split; keeps core free of Django ORM                                   | Direct Django ORM for core                                                           |
 | Deezer public search + 30 s previews                                | No OAuth needed for V1; preview MP3s sized for <10 s DSP target                       | Spotify (OAuth + mostly dead previews), YouTube Data (keys + extraction overhead)    |
 | librosa/numpy/scipy                                                 | Standard Python audio stack; MP3/WAV/FLAC via soundfile/audioread                     | pyAudioAnalysis (dormant), raw scipy wav (no MP3/FLAC)                               |

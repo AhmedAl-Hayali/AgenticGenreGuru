@@ -42,7 +42,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Append to PYTHONPATH
-        run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src:$GITHUB_WORKSPACE/frontend" >> $GITHUB_ENV
+        run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src:$GITHUB_WORKSPACE/web" >> $GITHUB_ENV
 
       - name: build docs
         run: uv run pdoc -o docs/pdoc/ -d google --mermaid -t docs/pdoc_templates genreguru genreguru_web fingerprint_app

@@ -1,5 +1,10 @@
 # Tasks: Song Fingerprint Engine
 
+> **Note (post-record):** the Django web application directory `frontend/` was
+> renamed to `web/` after this record. All `frontend/` path references in this
+> document and in `plan.md` map to `web/` — see the Resolved bullet under
+> `docs/idea.md` Infrastructure.
+
 **Input**: Design documents from `/specs/001-song-fingerprint-engine/`
 
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/

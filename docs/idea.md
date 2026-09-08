@@ -68,7 +68,7 @@ out to specs/roadmap.
 7. **`docs/DECISION_LOG.md`** (ADR log) — track why specific technologies were chosen (Django vs Flask, SQLAlchemy vs Django ORM, Hydra vs env vars), record rejected alternatives, prevent re-litigation. Already partially documented in `architecture.md` §8.
 8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations; phase/pass history currently only in git history (the old `phase_3_notes.md` scratch file has been discarded).
 9. **`SECURITY.md`** — secret handling, Django security headers, CSRF protection, dependency scanning (bandit).
-10. **`frontend/README.md`** — frontend dev instructions: running dev server, adding tests (module-mirrored test files in `tests/` — `api.test.ts`/`render.test.ts`/`page-controller.test.ts` cover the `ts/` modules, `bootstrap.test.ts` the boot layer, `a11y.test.ts` cross-cutting — with shared `helpers.ts`/`setup.ts`), ESLint/Prettier/Vitest config, JS architecture (DOM-free TS modules + per-page `ts/pages/*-page.ts` bootstrap, 2-click state machine, `api-config` blob pattern).
+10. **`web/README.md`** — web dev instructions: running dev server, adding tests (module-mirrored test files in `tests/` — `api.test.ts`/`render.test.ts`/`page-controller.test.ts` cover the `ts/` modules, `bootstrap.test.ts` the boot layer, `a11y.test.ts` cross-cutting — with shared `helpers.ts`/`setup.ts`), ESLint/Prettier/Vitest config, JS architecture (DOM-free TS modules + per-page `ts/pages/*-page.ts` bootstrap, 2-click state machine, `api-config` blob pattern).
 11. **`tests/README.md`** — test structure, naming conventions (module-mirrored frontend files; `dto.ts`/`messages.ts`/`errors.ts` intentionally fileless — covered transitively via their callers), TDD workflow (Constitution III), fixture usage (`conftest.py`, `factories.py`), benchmark test patterns.
 12. **`config/README.md`** — Hydra config tree explanation: environment switching (`GENREGURU_ENV`), `${oc.env:...}` interpolation, feature flag gating, adding new config groups.
 13. **Module docstrings** — add missing docstrings to `genreguru/config.py`, `genreguru/errors.py`, `genreguru/dto.py`, `genreguru/__init__.py` (also needs `NullHandler` per logging-report Rule 11), `fingerprint_service.py`. Required for complete pdoc API output.
@@ -83,7 +83,7 @@ out to specs/roadmap.
 20. **Docs-in-PR policy** — a feature PR ships its docs with the code: contract → traceability → status docs (`tasks.md`), `architecture.md` decision/tree rows, README/quickstart, and pdoc template purpose rows change in the SAME PR as the code. Review enforces; never land a docs/impl mismatch.
 21. **Per-folder README strategy** — GitHub renders a folder's `README.md` as
     its directory landing page; give the 7 content folders one (`src/`,
-    `frontend/`, `tests/`, `config/`, `specs/`, `docs/`, `.github/`) so the
+    `web/`, `tests/`, `config/`, `specs/`, `docs/`, `.github/`) so the
     root README headline stays clean and each folder reads in full when
     browsed. Folds in items #4, #10, #11, #12, #19. When implementing:
     collapse the root `Project Structure` prose (README.md:246-270) to
@@ -146,7 +146,7 @@ out to specs/roadmap.
 - Add a `<meta name="description">` snippet — a non-functional page summary
   used in search-result listings and preview cards (browser tabs show the
   `<title>`; the description is what external surfaces quote).
-- **Accessibility testing beyond unit context** — `frontend/tests/a11y.test.ts`
+- **Accessibility testing beyond unit context** — `web/tests/a11y.test.ts`
   pins keyboard/click + ARIA contract tests, but there's no programmatic WCAG
   audit. Add axe-core scans in Vitest/jsdom (cheap, fast) and/or a Playwright
   end-to-end pass on the served app; pair with a manual WCAG checklist step
@@ -241,10 +241,15 @@ Verify when implementing (not yet run): `ruff check` + `ruff format --check`
 clean; `python -m pytest tests/unit -q` all existing + new green.
 
 ## Infrastructure
-- Rename `frontend/` → `web/` to resolve confusion (Django project root named
-  "frontend"). Blast radius: `.gitignore` (~5 entries), README tree+commands,
-  architecture.md paths, quickstart.md paths, CI `tests.yml` working-directory,
-  any `cd frontend` in scripts/docs, `pyproject.toml` tool configs.
+- **Done — `frontend/` → `web/` rename** (resolves the Django project root
+  named "frontend" confusion). Executed: dir moved + `.gitignore` paths,
+  README tree/commands, architecture.md + config-report.md paths,
+  quickstart.md paths, CI `tests.yml`/`docs.yml` PYTHONPATH +
+  working-directory + artifact paths, prek.toml hook, pyproject.toml tool
+  configs. Identifiers renamed too: `tests.yml` job/artifact →
+  `web`/`web-coverage`, package `genreguru-frontend` → `genreguru-web`.
+  Historical specs (`plan.md`, `tasks.md`) left as-recorded with a mapping
+  note; prose "frontend" kept as the abstraction/layer name.
 - **Deployment & containerization** — ship the app to a prod-grade environment.
   Directions settled (decisions D1–D5; each records its future-proof path so a
   later scale-up slots in with minimal churn). None implemented yet.
