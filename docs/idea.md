@@ -238,7 +238,7 @@ Behavioral output (sine, N=3): frame groups [(1,15),(16,30),(31,44)]; rms
 −21.4269, −18.8719].
 
 Verify when implementing (not yet run): `ruff check` + `ruff format --check`
-clean; `python -m pytest tests/unit -q` all existing + new green.
+clean; `uv run pytest tests/unit -q` all existing + new green.
 
 ## Infrastructure
 - **Done — `frontend/` → `web/` rename** (resolves the Django project root
@@ -277,7 +277,7 @@ clean; `python -m pytest tests/unit -q` all existing + new green.
   - **D4 — DB reliability: compose PG18 + named volume + healthcheck +
     release-step schema job + `pg_dump` backup.** Native `uuidv7()` requires
     PG18+ (CI already pins `postgres:18`). Schema via one-off `migrate`
-    compose service running `python -m genreguru.db.init_db`, gated
+    compose service running `uv run python -m genreguru.db.init_db`, gated
     `service_completed_successfully`; no racing on-boot mutations.
     Future-proof: swap db service for managed Postgres (Fly/Render/Neon) with
     PITR — same `DB_*` env contract; pgbouncer/read-replica when load grows;

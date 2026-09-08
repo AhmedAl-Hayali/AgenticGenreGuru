@@ -2,8 +2,9 @@
 
 Covers Hydra `db` group ingestion, psycopg URL construction, engine type,
 pool settings, and fail-fast behavior when the prod group is selected
-without a `DATABASE_URL` environment variable (config/db/prod.yaml resolves
-`${oc.env:DATABASE_URL}` with no fallback).
+without the required `DB_*` environment variables (config/db/prod.yaml
+resolves `${oc.env:DB_USER}`/`${oc.env:DB_PASSWORD}`/`${oc.env:DB_HOST}`/`${oc.env:DB_PORT}`
+with no fallback).
 
 These tests are written first (Constitution III TDD) and target the
 engine factory contract; live connections are exercised by the integration

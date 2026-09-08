@@ -19,7 +19,7 @@
                     "genreguru.config": "Hydra config composition (Django-safe, cwd-independent).",
                     "genreguru.db.base": "Declarative base, `TimestampedMixin`, `UuidMixin`.",
                     "genreguru.db.engine": "SQLAlchemy engine creation and session-factory lifecycle.",
-                    "genreguru.db.init_db": "Idempotent table-creation entrypoint (`python -m genreguru.db.init_db`).",
+                    "genreguru.db.init_db": "Idempotent table-creation entrypoint (`uv run python -m genreguru.db.init_db`).",
                     "genreguru.db.models": "`Song` and `SongFingerprint` ORM models (PostgreSQL 18 `uuidv7()`).",
                     "genreguru.db.repositories": "`SongRepository` persistence with deduplication-by-ISRC.",
                     "genreguru.deezer": "Deezer API integration: search client + snippet fetcher with retry.",

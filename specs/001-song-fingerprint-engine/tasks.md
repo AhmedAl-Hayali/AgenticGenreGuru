@@ -4,6 +4,11 @@
 > renamed to `web/` after this record. All `frontend/` path references in this
 > document and in `plan.md` map to `web/` — see the Resolved bullet under
 > `docs/idea.md` Infrastructure.
+>
+> **Note (post-record):** the database connection configuration moved from a
+> single `DATABASE_URL` (referenced in T005a/T012a below) to per-component
+> `DB_*` env vars (`DB_DIALECT`/`DB_DRIVER`/`DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT`/`DB_NAME`),
+> resolved via `${oc.env:DB_*}` in `config/db/prod.yaml`.
 
 **Input**: Design documents from `/specs/001-song-fingerprint-engine/`
 

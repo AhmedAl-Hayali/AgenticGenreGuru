@@ -1,4 +1,4 @@
-"""Table-creation entrypoint: `python -m genreguru.db.init_db`.
+"""Table-creation entrypoint: `uv run python -m genreguru.db.init_db`.
 
 Creates all tables declared on the SQLAlchemy [`DeclarativeBase`](https://docs.sqlalchemy.org/en/20/orm/mapping_api.html#sqlalchemy.orm.DeclarativeBase)
 against the active Hydra `db` group. Safe to rerun without error (idempotent).
@@ -14,7 +14,7 @@ Prerequisites
 
 Usage
 -----
-- `python -m genreguru.db.init_db` — create tables (idempotent).
+- `uv run python -m genreguru.db.init_db` — create tables (idempotent).
 - `.create_all_tables(engine)` — programmatic entry point.
 
 Logging contract (docs/001-song-fingerprint-engine/logging-report.md §T010):

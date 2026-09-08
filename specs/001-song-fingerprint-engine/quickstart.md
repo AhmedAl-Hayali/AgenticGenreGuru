@@ -12,25 +12,28 @@
 Configuration is driven by Hydra config groups in `config/` (see [config-report.md](../../docs/001-song-fingerprint-engine/config-report.md)). The dev database group is the default:
 
 ```bash
-# Optional: override the dev DB connection (secrets resolved via ${oc.env:...}, never committed)
-export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/genreguru"
+# Optional: override the dev DB connection (secrets resolved via ${oc.env:DB_*}, never committed)
+export DB_USER="postgres"
+export DB_PASSWORD="postgres"
+export DB_HOST="localhost"
+export DB_PORT="5432"
 
 # Run database migrations / table creation script (Hydra loads config automatically)
-python -m genreguru.db.init_db
+uv run python -m genreguru.db.init_db
 ```
 
 Switch environments or settings from the command line without editing files:
 
 ```bash
-python -m genreguru.db.init_db db=prod                 # use config/db/prod.yaml
-python -m genreguru.db.init_db logging.level=DEBUG     # any config key is overridable
+uv run python -m genreguru.db.init_db db=prod                 # use config/db/prod.yaml
+uv run python -m genreguru.db.init_db logging.level=DEBUG     # any config key is overridable
 ```
 
 ## Running the Application
 
 ```bash
 # Start Django dev server
-python web/manage.py runserver 0.0.0.0:8000
+uv run python web/manage.py runserver 0.0.0.0:8000
 ```
 
 Open browser to `http://localhost:8000`.
@@ -68,7 +71,7 @@ All checks run in CI (`tests.yml`, `web` job: `npm ci` → `npm run check` (whic
 
 ```bash
 # Run test suite
-pytest tests/
+uv run pytest tests/
 ```
 
 ### Scenario 3: Frontend JS Checks

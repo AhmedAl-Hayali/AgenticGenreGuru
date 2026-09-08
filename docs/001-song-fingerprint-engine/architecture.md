@@ -139,7 +139,7 @@ genreguru/
 |                   | `genreguru/db/base.py`                | Declarative `Base`                                                                                                                                                                                                                                          | T008       |
 |                   | `genreguru/db/models.py`              | `Song`, `SongFingerprint` per `data-model.md`                                                                                                                                                                                                               | T009       |
 |                   | `genreguru/db/repositories.py`        | `find_by_isrc`, `create_song_and_fingerprint` (implemented); `list_songs`, `get_fingerprint_by_isrc` (planned, US2)                                                                                                                                         | T024, T033 |
-|                   | `genreguru/db/init_db.py`             | `python -m genreguru.db.init_db` table-creation entrypoint                                                                                                                                                                                                  | T010       |
+|                   | `genreguru/db/init_db.py`             | `uv run python -m genreguru.db.init_db` table-creation entrypoint                                                                                                                                                                                           | T010       |
 | **Application**   | `genreguru/fingerprint_service.py`    | US1 orchestration: ISRC reuse short-circuit; else fetch → extract → store; `reused=true/false` log flag                                                                                                                                                     | T025       |
 |                   | `genreguru/recommendations.py`        | US4 `RecommendationService`: cosine similarity over 8-dim vectors, top-N=5                                                                                                                                                                                  | T044       |
 | **Cross-cutting** | `genreguru/errors.py`                 | Shared hierarchy: `NetworkDisconnectedError`, `AudioProcessingError`, `TrackNotFoundError`, `MissingISRCError`, `PreviewUnavailableError`; structured attrs                                                                                                 | T006       |
@@ -173,12 +173,12 @@ UI files `index.html` + `partials/` + `ts/pages/` are the serial bottleneck shar
 config/
 ├── config.yaml               # defaults: [logging: dev, db: dev, features: default, _self_]
 ├── logging/dev.yaml, prod.yaml
-├── db/dev.yaml, prod.yaml    # prod URL via ${oc.env:DATABASE_URL}
+├── db/dev.yaml, prod.yaml    # prod DB components via ${oc.env:DB_*}
 └── features/default.yaml  (visualization: false, recommendations: false)
     features/all.yaml     (both true)
 ```
 
-- Two loading modes: `@hydra.main` for standalone scripts (`python -m genreguru.db.init_db`); compose API through `genreguru/config.py` for Django (`settings.py`) because `@hydra.main` hijacks `argv`/CWD.
+- Two loading modes: `@hydra.main` for standalone scripts (`uv run python -m genreguru.db.init_db`); compose API through `genreguru/config.py` for Django (`settings.py`) because `@hydra.main` hijacks `argv`/CWD.
 - Secrets never committed; `${oc.env:VAR}` interpolation resolves at load; missing vars fail fast.
 - Planned future groups: `audio/`, `deezer/`, `retry/`, `recommend/` (per `config-report.md` §2).
 - Feature flags gate optional stories: `features.visualization.enabled` (US3/REQ-018) and `features.recommendations.enabled` (US4/REQ-019). Disabled → endpoints 404/omitted.
@@ -290,10 +290,10 @@ Confirm path MUST log `reused=true` (fingerprint replayed from DB) or `reused=fa
 
 ### 7.1 Configuration management (Hydra)
 
-- All non-secret settings in `config/`, overridable at CLI: `python -m genreguru.db.init_db db=prod logging.level=DEBUG`.
+- All non-secret settings in `config/`, overridable at CLI: `uv run python -m genreguru.db.init_db db=prod logging.level=DEBUG`.
 - Compose API for Django (`hydra.initialize_config_dir` + `hydra.compose`) wrapped in cached `genreguru/config.py` — cwd-independent, `argv`-safe.
 - `@hydra.main` reserved for standalone scripts; never in Django path.
-- Secrets via `${oc.env:VAR}`; `DATABASE_URL` + `SECRET_KEY` documented in `.env.example`. Never echo resolved secrets in logs.
+- Secrets via `${oc.env:VAR}`; `DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT` (prod) + `SECRET_KEY` documented in `.env.example`. Never echo resolved secrets in logs.
 
 ### 7.2 Logging (stdlib `logging`)
 

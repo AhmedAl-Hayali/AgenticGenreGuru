@@ -65,8 +65,8 @@ defaults:
 ```text
 config/logging/dev.yaml      # level: DEBUG, formatters/console + json, handlers, queue on, rich: true
 config/logging/prod.yaml     # level: INFO/WARNING, JSONL-centric, tighter rotation, rich: false
-config/db/dev.yaml           # url: postgresql://postgres:postgres@localhost:5432/genreguru
-config/db/prod.yaml          # url: ${oc.env:DATABASE_URL}  (secret stays out of YAML/repo)
+config/db/dev.yaml           # user/password/host/port local defaults; DB_* overrides via ${oc.env:}
+config/db/prod.yaml          # DB_USER/PASSWORD/HOST/PORT via ${oc.env:DB_*} (fail-closed); DB_DIALECT/DRIVER/NAME defaulted
 config/features/default.yaml # visualization.enabled: false, recommendations.enabled: false (REQ-018/019 OFF)
 config/features/all.yaml     # visualization.enabled: true, recommendations.enabled: true
 config/django/dev.yaml       # debug: true, allowed_hosts: [localhost, 127.0.0.1, 0.0.0.0], secret_key with dev fallback, secure flags off
@@ -80,12 +80,12 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${oc.env:DJANGO_ALLO
 1. **Secrets via env interpolation, never committed.** Use OmegaConf `${oc.env:VAR}` interpolation so credentials resolve at load time and are never written to YAML (matches the CodeCut security point and Constitution Rule "no secrets in source"). `.env.example` documents which variables are required (see T005a).
 2. **Dot-notation access.** Code reads `cfg.logging.level`, `cfg.db.password`, `cfg.django.secret_key`, etc. Convert to a plain object when a stdlib consumer needs it: `OmegaConf.to_container(cfg, resolve=True)` (e.g. the `dictConfig` dict in `genreguru/gglogging.py`, `FEATURES` in Django `settings/base.py`).
 3. **Override from the CLI, no code edits.** Examples:
-   - `python -m genreguru.db.init_db logging.level=DEBUG`
-   - `python -m genreguru.db.init_db db=prod`
-   - `python -m genreguru.db.init_db logging.handlers.file_all.maxBytes=20971520`
+   - `uv run python -m genreguru.db.init_db logging.level=DEBUG`
+   - `uv run python -m genreguru.db.init_db db=prod`
+   - `uv run python -m genreguru.db.init_db logging.handlers.file_all.maxBytes=20971520`
 4. **Environment groups via `defaults` + `GENREGURU_ENV`.** Following the CodeCut `database=dev/prod` pattern, `logging`, `db`, and `django` are Hydra config groups so dev vs prod is a single group switch. The Django settings entry points (`development.py`/`production.py`/`test.py`) set `GENREGURU_ENV` before importing shared settings, and `get_config()` composes `logging={env} db={env} django={env}` accordingly using f-string resolution — so every Django layer reads the same groups as the core library. No layer ships hard-coded env-specific values.
 5. **`@hydra.main` for standalone scripts, compose API for Django.**
-   - Standalone CLI (`python -m genreguru.db.init_db`) uses `@hydra.main(config_path="../../../config", config_name="config", version_base=None)`.
+   - Standalone CLI (`uv run python -m genreguru.db.init_db`) uses `@hydra.main(config_path="../../../config", config_name="config", version_base=None)`.
    - The Django application MUST NOT use `@hydra.main` (it changes the working directory and hijacks `argv`). It uses the compose API — `hydra.initialize(version_base=None, config_path=...)` + `hydra.compose(config_name="config")` — wrapped in `genreguru/config.py` and invoked once from Django `settings.py`.
 6. **Security hygiene.** Never commit `*.yaml` containing raw credentials; secret-bearing values live behind `${oc.env:...}` in a group file. `config/*.yaml` are plain project files (committed); secrets come from the environment only.
 
@@ -115,7 +115,7 @@ config/django/prod.yaml      # debug: false, allowed_hosts: ${oc.env:DJANGO_ALLO
 
 ## 5. Security & Environment
 
-- Required env vars are documented in `.env.example` (created by T005a): `DATABASE_URL`, Django `SECRET_KEY` and `ALLOWED_HOSTS` (prod group), and `GENREGURU_ENV` (dev default). Future: `DEEZER_API_KEY` (none needed for public V1 search).
+- Required env vars are documented in `.env.example` (created by T005a): `DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT` (prod group, fail-closed), Django `SECRET_KEY` and `ALLOWED_HOSTS` (prod group), and `GENREGURU_ENV` (dev default). Future: `DEEZER_API_KEY` (none needed for public V1 search).
 - YAML values that reference the environment use `${oc.env:VAR}`; missing variables fail fast at load time rather than silently.
 - No logging/error message may echo the resolved secret value (see [logging-report.md](logging-report.md) Rule 10).
 

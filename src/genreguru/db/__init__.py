@@ -4,6 +4,6 @@ Submodules:
 
 - `.base` — Declarative base, `.base.TimestampedMixin`, `.base.UuidMixin`.
 - `.engine` — Engine creation and session-factory lifecycle.
-- `.init_db` — Idempotent table-creation entrypoint (`python -m genreguru.db.init_db`).
+- `.init_db` — Idempotent table-creation entrypoint (`uv run python -m genreguru.db.init_db`).
 - `.models` — `.models.Song` and `.models.SongFingerprint` ORM models.
 """

@@ -40,7 +40,7 @@ config/logging/*.yaml        # dev/prod logging groups — see config-report.md 
 
 ### `LoggingManager.setup()` — claim the root and build the `dictConfig`
 
-`LoggingManager.setup()` does NOT hard-code a Python dict. It loads the active logging configuration from the Hydra tree (`config/logging/dev.yaml` or `prod.yaml`, selected by the `defaults` list in `config/config.yaml`), converts it with `OmegaConf.to_container(cfg.logging, resolve=True)`, and feeds it to `logging.config.dictConfig`. Command-line overrides therefore reach the logging setup without touching code (e.g. `python -m genreguru.db.init_db logging.level=DEBUG logging.file.maxBytes=10485760`).
+`LoggingManager.setup()` does NOT hard-code a Python dict. It loads the active logging configuration from the Hydra tree (`config/logging/dev.yaml` or `prod.yaml`, selected by the `defaults` list in `config/config.yaml`), converts it with `OmegaConf.to_container(cfg.logging, resolve=True)`, and feeds it to `logging.config.dictConfig`. Command-line overrides therefore reach the logging setup without touching code (e.g. `uv run python -m genreguru.db.init_db logging.level=DEBUG logging.file.maxBytes=10485760`).
 
 One manager owns the root per process; later `setup()` calls on other instances defer silently. `teardown()` releases ownership and removes only the owning instance's handler.
 
@@ -71,13 +71,13 @@ Rich ships a logging handler (`rich.logging.RichHandler`) that colorizes and for
 Two details matter for integration with the rest of this design:
 
 - **Markup is off by default.** Rich does not interpret Console Markup in log messages unless `markup=True` is set on the handler, because most libraries (including ours) are not careful to escape literal square brackets. The safe pattern is to leave `markup=False` globally and opt in per message via `extra={"markup": True}` only where a hand-authored, deliberately formatted message is emitted. The highlighter can likewise be overridden per message with `extra={"highlighter": None}`.
-- **Rich output is ANSI-colored, not structured.** It is a human-facing dev artifact, not a machine/aggregator format. Therefore, the Rich console handlers are driven by the `logging.dev.rich` YAML flag (enabled in the `dev` config group, `false` in `prod`; never enabled in `python -m genreguru.db.init_db` or CI where plain `console` text is expected), and they operate strictly as the console pair — one RichHandler writing to `sys.stdout` carrying the `non_error` filter, one writing to `sys.stderr` at `ERROR` — preserving the stdout/stderr split while leaving the rotating JSONL `file_all` handler untouched as the canonical structured sink for production observability.
+- **Rich output is ANSI-colored, not structured.** It is a human-facing dev artifact, not a machine/aggregator format. Therefore, the Rich console handlers are driven by the `logging.dev.rich` YAML flag (enabled in the `dev` config group, `false` in `prod`; never enabled in `uv run python -m genreguru.db.init_db` or CI where plain `console` text is expected), and they operate strictly as the console pair — one RichHandler writing to `sys.stdout` carrying the `non_error` filter, one writing to `sys.stderr` at `ERROR` — preserving the stdout/stderr split while leaving the rotating JSONL `file_all` handler untouched as the canonical structured sink for production observability.
 
 Because Rule 9 already mandates `logger.exception(...)` in every `except` block, Rich's `rich_tracebacks=True` renders those records with full highlighted frames for free; no additional exception handling is required in application code. Add `rich` to `pyproject.toml` runtime dependencies (task T002) and wire the handler selection inside `LoggingManager.setup()` (task T011).
 
 ### `LoggingManager._install_queue_handler()` — non-blocking fan-out
 
-After `dictConfig`, wrap the root handlers behind a named `QueueHandler` (`logging.handlers.QueueHandler` over `queue.Queue()`), name it `"queue_handler"` for `logging.getHandlerByName(...)`, and start a `QueueListener` (`respect_handler_level=True`). This keeps audio fetch + DSP on the request path non-blocking and scales with any future HTTP/syslog sink added to the same dict. Claim logging once at the app entrypoint with a `LoggingManager` (Django `settings.py`/`manage.py`, or `__main__` of standalone `python -m` scripts); never call `basicConfig()` afterward.
+After `dictConfig`, wrap the root handlers behind a named `QueueHandler` (`logging.handlers.QueueHandler` over `queue.Queue()`), name it `"queue_handler"` for `logging.getHandlerByName(...)`, and start a `QueueListener` (`respect_handler_level=True`). This keeps audio fetch + DSP on the request path non-blocking and scales with any future HTTP/syslog sink added to the same dict. Claim logging once at the app entrypoint with a `LoggingManager` (Django `settings.py`/`manage.py`, or `__main__` of standalone `uv run python -m` scripts); never call `basicConfig()` afterward.
 
 ### `NullHandler` for standalone-library safety
 
@@ -93,7 +93,7 @@ Attach `logging.NullHandler()` to the `genreguru` package logger in `genreguru/_
 
 ### Context-vs-secrets rule
 
-Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, or PII through any formatter.
+Never emit the database connection password (`DB_PASSWORD`, whether set directly or embedded in a URL), Deezer/OAuth tokens, full binary audio, or PII through any formatter.
 
 ---
 
@@ -113,7 +113,7 @@ Never emit the `DATABASE_URL` password, Deezer/OAuth tokens, full binary audio, 
 
 ### T010 — `genreguru/db/init_db.py`
 
-- Standalone `python -m genreguru.db.init_db` entrypoint: claim logging with a `LoggingManager` in `__main__`.
+- Standalone `uv run python -m genreguru.db.init_db` entrypoint: claim logging with a `LoggingManager` in `__main__`.
 - INFO: table-creation start + completion with created-table count.
 - ERROR: `logger.exception` on migration/DDL failure, re-raise.
 

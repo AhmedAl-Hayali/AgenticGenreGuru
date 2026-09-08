@@ -82,26 +82,32 @@ cd ..
 ## Linux / macOS
 
 # Set environment variables
-export DATABASE_URL="postgresql://user:pass@host:port/db"
-export SECRET_KEY="django-secret-key"
+export DB_USER="database-user"
+export DB_PASSWORD="database-password"
+export DB_HOST="localhost"
+export DB_PORT="5432"
+# SECRET_KEY is optional for local dev (dev group ships a fallback); required in prod.
 
 # Initialize the database
-python -m genreguru.db.init_db
+uv run python -m genreguru.db.init_db
 
 ## Windows (PowerShell)
 
 # Set environment variables
-$env:DATABASE_URL="postgresql://user:pass@host:port/db"
-$env:SECRET_KEY="django-secret-key"
+$env:DB_USER="database-user"
+$env:DB_PASSWORD="database-password"
+$env:DB_HOST="localhost"
+$env:DB_PORT="5432"
+# SECRET_KEY is optional for local dev (dev group ships a fallback); required in prod.
 
 # Initialize the database
-py -m genreguru.db.init_db
+uv run python -m genreguru.db.init_db
 ```
 
 ### Run
 
 ```bash
-python web/manage.py runserver 0.0.0.0:8000
+uv run python web/manage.py runserver 0.0.0.0:8000
 ```
 
 Open [http://localhost:8000](http://localhost:8000) in your browser.
@@ -275,8 +281,8 @@ All non-secret settings live in the Hydra `config/` tree and are overridable fro
 
 ```bash
 # Override any config key from the CLI
-python -m genreguru.db.init_db db=prod
-python -m genreguru.db.init_db logging.level=DEBUG
+uv run python -m genreguru.db.init_db db=prod
+uv run python -m genreguru.db.init_db logging.level=DEBUG
 ```
 
 ### Feature Flags
