@@ -10,14 +10,14 @@ via pytest's `monkeypatch`.
 
 import httpx
 
-from genreguru.deezer import client as _client
+from genreguru.deezer._retry import _RETRYABLE_CODES
 
 _JSON_HEADERS = {"content-type": "application/json"}
 _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
 
 # Deezer retryable error codes (QUOTA, SERVICE_BUSY) — sourced from the client's
 # own set so the retry suites can't drift from the implementation.
-RETRYABLE_CODES = tuple(sorted(_client._RETRYABLE_CODES))
+RETRYABLE_CODES = tuple(sorted(_RETRYABLE_CODES))
 
 
 def no_sleep(monkeypatch, module: str) -> None:

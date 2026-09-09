@@ -15,12 +15,17 @@ private transient-failure signal raised here that never escapes the budget.
 """
 
 import logging
-from typing import Literal, NoReturn
+from typing import NoReturn
 
 import httpx
 
 from genreguru.deezer._retry import RetryableError, retry_until_success
 from genreguru.dto import DeezerTrack
+from genreguru.deezer._retry import (
+    RetryableError,
+    is_retryable_code,
+    retry_until_success,
+)
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -222,16 +227,4 @@ def _raise_for_error_code(
             code=code,
             attempts=attempt,
         ) from exc
-    raise GenreguruError(f"non-retryable deezer error code={code}", code=code)
-
-
-def classify_error(code: int) -> Literal[True]:
-    """Classify a Deezer error code.
-
-    Returns `True` for retryable codes (QUOTA=4, SERVICE_BUSY=700).
-    Raises `GenreguruError` for non-retryable codes (including 800, which the
-    search path special-cases to an empty result before it reaches here).
-    """
-    if code in _RETRYABLE_CODES:
-        return True
     raise GenreguruError(f"non-retryable deezer error code={code}", code=code)

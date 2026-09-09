@@ -15,8 +15,11 @@ import logging
 
 import httpx
 
-from genreguru.deezer._retry import RetryableError, retry_until_success
-from genreguru.deezer.client import classify_error
+from genreguru.deezer._retry import (
+    RetryableError,
+    classify_error,
+    retry_until_success,
+)
 from genreguru.errors import GenreguruError, NetworkDisconnectedError
 from genreguru.gglogging import timer
 

@@ -22,6 +22,7 @@ import httpx
 import pytest
 
 from genreguru.deezer import client
+from genreguru.deezer._retry import classify_error
 from genreguru.dto import DeezerTrack
 from genreguru.errors import (
     GenreguruError,
@@ -351,11 +352,11 @@ class TestErrorCodeMapping:
     @pytest.mark.parametrize("code", RETRYABLE_CODES)
     def test_retryable(self, code):
         """QUOTA (4) / SERVICE_BUSY (700) must be classified as retryable."""
-        assert client.classify_error(code) is True
+        assert classify_error(code) is True
 
     @pytest.mark.parametrize("code", [100, 200, 300, 500, 501, 600, 800, 901])
     def test_non_retryable_raises(self, code):
         """Non-retryable codes must raise GenreguruError and preserve the code."""
         with pytest.raises(GenreguruError) as exc_info:
-            client.classify_error(code)
+            classify_error(code)
         assert exc_info.value.code == code

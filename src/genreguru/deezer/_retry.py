@@ -16,10 +16,36 @@ Module logger: WARNING per retry, ERROR on an exhausted budget.
 import logging
 import time
 from collections.abc import Callable
+from typing import Literal
 
-from genreguru.errors import NetworkDisconnectedError
+from genreguru.errors import GenreguruError, NetworkDisconnectedError
 
 logger = logging.getLogger(__name__)
+
+_RETRYABLE_CODES = {4, 700}  # QUOTA, SERVICE_BUSY
+
+
+def is_retryable_code(code: int | None) -> bool:
+    """Check whether a Deezer error code is retryable (QUOTA=4, SERVICE_BUSY=700)."""
+    return code in _RETRYABLE_CODES
+
+
+def classify_error(code: int) -> Literal[True]:
+    """Classify a Deezer error code for retry eligibility.
+
+    Args:
+        code: Deezer error code to evaluate.
+
+    Returns:
+        True if the code is retryable (QUOTA=4, SERVICE_BUSY=700).
+
+    Raises:
+        GenreguruError: If the code is non-retryable (including 800, which the
+            search path special-cases to an empty result before it reaches here).
+    """
+    if is_retryable_code(code):
+        return True
+    raise GenreguruError(f"non-retryable deezer error code={code}", code=code)
 
 
 class RetryableError(Exception):
@@ -45,13 +71,12 @@ def retry_until_success[T](
     """Run *attempt* up to *max_retries* times, retrying `RetryableError`.
 
     Args:
-        attempt: One attempt, ``attempt(n)`` with *n* 1-based; see the module
+        attempt: One attempt, `attempt(n)` with *n* 1-based; see the module
             docstring for the return/raise contract.
         max_retries: Total attempts before the budget is exhausted.
         delay: Fixed seconds to sleep between attempts.
         operation_label: Used in the exhausted-budget log and message, e.g.
-            ``"deezer search"`` yields ``"deezer search failed after N
-            attempts"``.
+            `"deezer search"` yields `"deezer search failed after N attempts"`.
 
     Returns:
         The first successful *attempt* value.
@@ -59,7 +84,7 @@ def retry_until_success[T](
     Raises:
         ValueError: If *max_retries* < 1 or *delay* < 0.
         NetworkDisconnectedError: If the budget is exhausted; carries
-            ``attempts=max_retries`` and the last retryable error ``code``.
+            `attempts=max_retries` and the last retryable error `code`.
         Any exception raised by *attempt* other than `RetryableError`
             propagates unchanged.
     """
