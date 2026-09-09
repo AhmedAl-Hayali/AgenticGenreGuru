@@ -131,3 +131,9 @@ Per the official Deezer [API errors](`https://developers.deezer.com/api/errors`)
 > `NetworkDisconnectedError` (503), maps
 > `DATA_NOT_FOUND` (800) to an empty result, and fails loud on every other code
 > while preserving the `code`.
+> `DeezerClient().get_track()` applies the same retry/envelope rules to §2; there,
+> `DATA_NOT_FOUND` (800) or HTTP 404 raises `TrackNotFoundError`, and
+> contributors/covers are normalized per §1.
+> `DeezerClient().get_track()` applies the same retry/envelope rules to §2; there,
+> `DATA_NOT_FOUND` (800) or HTTP 404 raises `TrackNotFoundError`, and
+> contributors/covers are normalized per §1.

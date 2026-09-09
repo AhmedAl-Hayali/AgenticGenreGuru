@@ -46,14 +46,20 @@ class Album(TypedDict):
 class DeezerTrack(TypedDict):
     """An upstream Deezer track shape (`DeezerTrack`/`confirm` payload input).
 
-    `artist`/`album` may arrive as objects (`Artist`/`Album`) or, when the
-    payload was built from already-normalized data, as plain strings. The
-    fingerprint service flattens them to strings on entry before persisting.
+    `artists` is the canonical ordered contributor list with the main artist
+    first: search matches carry a single main artist, `/track/{id}` responses
+    the full `contributors` roster (main-first per Deezer). `album` may
+    arrive as an object (`Album`) or, when the payload was built from
+    already-normalized data, as a plain string; the fingerprint service
+    flattens it on entry before persisting.
 
     The `album` key is always present in a validated `DeezerTrack` — a raw
-    track missing `album` fails loud at the client boundary (mirroring
-    `artist`). Its value may be `None`. `isrc`/`preview` are likewise
+    track missing `album` fails loud at the client boundary (mirroring the
+    main artist). Its value may be `None`. `isrc`/`preview` are likewise
     guaranteed present and non-empty after client-side validation.
+    `cover` is
+    the display-only art URL derived from Deezer's `md5_image`; consumers
+    that persist songs ignore it.
     """
 
     deezer_id: int
@@ -62,6 +68,7 @@ class DeezerTrack(TypedDict):
     duration: int
     preview: str
     artist: Artist | str
+    artists: list[Artist]
     album: Album | str | None
 
 
@@ -71,12 +78,15 @@ class SongData(TypedDict):
     Uses persistence names (`preview_url`) and always carries `artist`/`album`
     as plain strings. The `album` key is always present; its value may be
     `None`. The service maps from `DeezerTrack` to this shape.
+    Uses persistence names (`preview_url`) and carries `artists` as the
+    canonical `Artist` list (main first) plus `album` as a plain string. The
+    `album` key is always present; its value may be `None`.
     """
 
     deezer_id: int
     isrc: str
     title: str
-    artist: str
+    artists: list[Artist]
     album: str | None
     preview_url: str
     duration: int

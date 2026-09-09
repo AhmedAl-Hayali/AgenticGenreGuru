@@ -1,15 +1,17 @@
-"""Deezer search client.
+"""Deezer API client (search + track lookup).
 
-`GET https://api.deezer.com/search?q={query}&limit=5` with field
-mapping, fail-loud on missing ISRC / empty preview, and retry-with-backoff
-for the retryable Deezer error codes (QUOTA 4, SERVICE_BUSY 700) per
-`contracts/deezer-api.md`. `DATA_NOT_FOUND` (800) yields an empty result,
-not an error, and a non-2xx/network failure raises
+`GET https://api.deezer.com/search?q={query}&limit=5` for candidate matches
+and `GET https://api.deezer.com/track/{id}` for a single track's full
+`contributors` roster, with field mapping, fail-loud on missing ISRC / empty
+preview, and retry-with-backoff for the retryable Deezer error codes (QUOTA
+4, SERVICE_BUSY 700) per `contracts/deezer-api.md`. `DATA_NOT_FOUND` (800)
+yields an empty search result and a `TrackNotFoundError` on track lookup,
+not a generic error, and a non-2xx/network failure raises
 `NetworkDisconnectedError` so the API layer can map it to 503.
 
-Module logger: INFO request query+limit and response `total`, DEBUG counts
-only (no payload dumps), ERROR `logger.error` on missing ISRC / empty
-preview. The retry budget and its WARNING/ERROR logs live in
+Module logger: INFO request query+limit / track id and response `total`,
+DEBUG counts only (no payload dumps), ERROR `logger.error` on missing ISRC /
+empty preview. The retry budget and its WARNING/ERROR logs live in
 `genreguru.deezer._retry.retry_until_success`; `RetryableError` is the
 private transient-failure signal raised here that never escapes the budget.
 """
@@ -24,7 +26,7 @@ from genreguru.deezer._retry import (
     is_retryable_code,
     retry_until_success,
 )
-from genreguru.dto import DeezerTrack
+from genreguru.dto import Artist, DeezerTrack
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -38,9 +40,56 @@ _SEARCH_URL = "https://api.deezer.com/search"
 _LIMIT = 5
 
 _RETRYABLE_CODES = {4, 700}  # QUOTA, SERVICE_BUSY
+# Defensive fallback artist so the canonical `artists` list is never empty,
+# even for a malformed upstream `artist`/`contributors` payload.
+_UNKNOWN_ARTIST: Artist = {"id": 0, "name": "Unknown artist"}
+
 _DATA_NOT_FOUND = 800
 _MAX_RETRIES = 3
 _RETRY_DELAY = 5  # seconds
+
+
+def _norm_artist(raw: object) -> Artist | None:
+    """Normalize a Deezer artist object to `Artist`, or `None` if malformed.
+
+    Malformed entries (non-dict, missing/blank `name`, non-int `id`) are
+    skipped, never propagated, per the tolerant `contributors` boundary.
+    """
+    if not isinstance(raw, dict):
+        return None
+    artist_id = raw.get("id")
+    name = raw.get("name")
+    if not isinstance(artist_id, int) or not isinstance(name, str) or not name:
+        return None
+    return {"id": artist_id, "name": name}
+
+
+def _map_artists(raw_artist: object, contributors: object) -> list[Artist]:
+    """Build the canonical main-first `artists` list for a Deezer track.
+
+    The main `artist` always leads: Deezer's `/track/{id}` `contributors`
+    carry the same id first when present (verified), so the main entry is
+    deduplicated out of the roster. Malformed contributors are skipped; at
+    least the main artist (or `_UNKNOWN_ARTIST`) is guaranteed, so the list
+    is never empty.
+    """
+    artists: list[Artist] = []
+    seen: set[int] = set()
+
+    main_artist = _norm_artist(raw_artist)
+    if main_artist is not None:
+        artists.append(main_artist)
+        seen.add(main_artist["id"])
+
+    if isinstance(contributors, list):
+        for entry in contributors:
+            artist = _norm_artist(entry)
+            if artist is None or artist["id"] in seen:
+                continue
+            artists.append(artist)
+            seen.add(artist["id"])
+
+    return artists or [_UNKNOWN_ARTIST]
 
 
 def _map_track(raw: dict) -> DeezerTrack:
@@ -52,6 +101,7 @@ def _map_track(raw: dict) -> DeezerTrack:
         "duration": raw["duration"],
         "preview": raw.get("preview", ""),
         "artist": raw["artist"],
+        "artists": _map_artists(raw.get("artist"), raw.get("contributors")),
         "album": raw["album"],
     }
 
@@ -103,12 +153,12 @@ def _build_tracks(body: dict) -> list[DeezerTrack]:
 
 
 class DeezerClient:
-    """Deezer `/search` client with retry-with-backoff.
+    """Deezer API client (search + track lookup) with retry-with-backoff.
 
-    Owns the endpoint, per-request limit/timeout, and retry budget so
+    Owns the endpoints, per-request limit/timeout, and retry budget so
     callers can tune them per instance. Holds only immutable configuration
     and the retry loop keeps per-call state in locals, so instances are safe
-    for concurrent searches.
+    for concurrent use.
 
     Args:
         base_url: Search API endpoint URL.
@@ -125,6 +175,7 @@ class DeezerClient:
         self,
         *,
         base_url: str = _SEARCH_URL,
+        track_url: str = _TRACK_URL,
         limit: int = _LIMIT,
         request_timeout: float = 30.0,
         max_retries: int = _MAX_RETRIES,
@@ -132,6 +183,7 @@ class DeezerClient:
         session: httpx.Client | None = None,
     ) -> None:
         self._base_url = base_url
+        self._track_url = track_url
         self._limit = limit
         self._request_timeout = request_timeout
         self._max_retries = max_retries
@@ -259,6 +311,69 @@ class DeezerClient:
         )
         if err_code == _DATA_NOT_FOUND:
             return []
+
+        total = body.get("total", 0)
+        logger.info("deezer search response total=%d", total)
+        results = _build_tracks(body)
+        logger.debug("mapped %d tracks", len(results))
+        return results
+
+    def get_track(self, track_id: int) -> DeezerTrack:
+        """Fetch one track by id, including the full `contributors` roster.
+
+        Uses the same retry-with-backoff budget and validation as `search`.
+        `DATA_NOT_FOUND` (800) raises `TrackNotFoundError` so the caller can
+        skip the missing track (best-effort enrichment) without aborting.
+
+        Args:
+            track_id: Deezer track identifier.
+
+        Returns:
+            Mapped and validated Deezer track with full contributor roster.
+
+        Raises:
+            TrackNotFoundError: If Deezer returns `DATA_NOT_FOUND` for the id.
+            MissingISRCError: If the track lacks an ISRC.
+            PreviewUnavailableError: If the track has an empty/None preview URL.
+            NetworkDisconnectedError: If the retry budget is exhausted or the
+                response is not a valid track payload.
+            GenreguruError: If a non-retryable Deezer error code is returned.
+        """
+        return retry_until_success(
+            lambda attempt: self._try_get_track(track_id, attempt),
+            max_retries=self._max_retries,
+            delay=self._retry_delay,
+            operation_label="deezer track lookup",
+        )
+
+    def _try_get_track(self, track_id: int, attempt: int) -> DeezerTrack:
+        """Execute one track lookup under the caller's retry budget.
+
+        Args:
+            track_id: Deezer track identifier.
+            attempt: Current attempt number (1-indexed).
+
+        Returns:
+            Mapped Deezer track payload.
+
+        Raises:
+            RetryableError: If a retryable rate/busy code was seen.
+            TrackNotFoundError: If `DATA_NOT_FOUND` (800) was returned.
+            NetworkDisconnectedError: If the response is a non-retryable
+                HTTP/network failure or an unparseable body.
+            GenreguruError: If a non-retryable Deezer error code was returned.
+        """
+        logger.info("deezer track lookup attempt=%d track_id=%s", attempt, track_id)
+        url = f"{self._track_url}/{track_id}"
+        body, err_code = self._request_json(url, None, attempt, "track lookup")
+        if err_code == _DATA_NOT_FOUND:
+            return []
+            raise TrackNotFoundError(f"track not found: {track_id}", deezer_id=track_id)
+
+        track = _map_track(body)
+        _validate_track(track)
+        return track
+
 
         total = body.get("total", 0)
         logger.info("deezer search response total=%d", total)
