@@ -16,7 +16,12 @@
       "isrc": "GBDUW0000059",
       "duration": 226,
       "preview": "https://cdnt-preview.dzcdn.net/api/...",
+      "md5_image": "f45e3a22e120b4ab6f0a9d2b...",
       "artist": { "id": 27, "name": "Daft Punk" },
+      "contributors": [
+        { "id": 27, "name": "Daft Punk" },
+        { "id": 11, "name": "Stardust" }
+      ],
       "album": { "id": 302127, "title": "Discovery" }
     }
   ],
@@ -28,35 +33,50 @@
 
 Per the official Deezer API reference (`https://developers.deezer.com/api/search`), each item in `data` is a Track object. Only the fields consumed by GenreGuru are listed.
 
-| Field      | Type    | Description                                                                     |
-|------------|---------|---------------------------------------------------------------------------------|
-| `id`       | integer | Deezer track ID (persisted as `deezer_id`)                                      |
-| `title`    | string  | Track title                                                                     |
-| `isrc`     | string  | ISO 39075 International Standard Recording Code (mandatory)                     |
-| `duration` | integer | Track duration in seconds                                                       |
-| `preview`  | string  | HTTPS URL of the 30-second MP3 preview; may be an empty string when unavailable |
-| `artist`   | object  | Artist object: `id` (integer), `name` (string)                                  |
-| `album`    | object  | Album object: `id` (integer), `title` (string)                                  |
+| Field          | Type    | Description                                                                                                  |
+|----------------|---------|--------------------------------------------------------------------------------------------------------------|
+| `id`           | integer | Deezer track ID (persisted as `deezer_id`)                                                                   |
+| `title`        | string  | Track title                                                                                                  |
+| `isrc`         | string  | ISO 39075 International Standard Recording Code (mandatory)                                                  |
+| `duration`     | integer | Track duration in seconds                                                                                    |
+| `preview`      | string  | HTTPS URL of the 30-second MP3 preview; may be an empty string when unavailable                              |
+| `md5_image`    | string  | Cover-art md5 token; derives the CDN cover URL `https://cdn-images.dzcdn.net/images/cover/{md5}/300x300.jpg` |
+| `artist`       | object  | Artist object: `id` (integer), `name` (string) — the denormalized main artist                                |
+| `contributors` | array   | Contribution list of Artist objects (`id`, `name`), **main artist first**; the canonical contributor source  |
+| `album`        | object  | Album object: `id` (integer), `title` (string)                                                               |
 
+> **Cover URL normalization**: The client derives the display `cover` from `md5_image` (300×300 CDN form). A missing/invalid `md5_image` yields an empty `cover` (display-only; never persisted).
+>
+> **Contributor normalization**: `contributors` is the canonical, main-first contributor list. If it is missing or malformed, the client falls back on `artist`; if nothing valid remains, it uses `{ "id": 0, "name": "Unknown artist" }` so no surface ever renders an empty artist. Deezer search responses carry only the main artist short form (`artists[0]`); the track lookup (§2) serves the full list and is invoked best-effort per match by search to enrich candidate matches.
+>
 > **ISRC Persistence**: The Deezer track response MUST include an `isrc` field; it is captured and persisted to the database alongside the platform track ID (`id`, stored as `deezer_id`). If `isrc` is absent in the external response, the system MUST fail loudly and throw an error rather than persisting the track without it.
 
 > **Preview URL Persistence**: The Deezer track response MUST include a `preview` field for every track returned in `data`. If `preview` is absent or an empty string, a snippet is unavailable and the track cannot be fingerprinted; the system MUST fail loudly and throw an error rather than persisting the track or proceeding to the snippet fetch, and MUST surface a user-friendly error message (e.g., `"audio preview unavailable for this track"`) to the UI so the user receives actionable feedback instead of a silent failure. This guard keeps the `preview_url` column on the `songs` table **Not Null** (see [data-model.md](../data-model.md)). The displayed search candidate may still be surfaced in the UI, but any confirm-and-fingerprint attempt on a track without a `preview` MUST not succeed.
 
-## 2. Audio Snippet Download Contract
+## 2. Track Lookup Endpoint
+
+- **Endpoint**: `GET https://api.deezer.com/track/{track_id}`
+- **Purpose**: Full contributor + cover enrichment for candidate match selections (see [search-api.md](search-api.md)). Returns a single Track object with the schema of §1.
+- **Errors**:
+  - HTTP `404` or an embedded `DATA_NOT_FOUND` (800) envelope → the client raises `TrackNotFoundError` (caller skips the id best-effort).
+  - `QUOTA` (4) / `SERVICE_BUSY` (700) and network `ConnectTimeout`/`ReadTimeout` are retried under the same 3×/5 s budget, then propagate `NetworkDisconnectedError` (503).
+  - Every other code fails loud, preserving the Deezer `type`/`message`/`code`.
+
+## 3. Audio Snippet Download Contract
 
 - **URL**: `preview` field from track response (HTTP GET)
 - **Missing Preview**: If `preview` is absent or an empty string in the query request, raise the same fail-loud error as §1.
 - **Expected Formats**: MP3 audio stream (30 seconds)
 - **Retry Rule**: 3 retries, 5-second interval on network failure before raising `NetworkDisconnectedError`.
 
-## 3. Integration Scope & Future Evolution
+## 4. Integration Scope & Future Evolution
 
-- **Current Scope**: User-independent. Operates via public unauthenticated endpoints solely for song catalog search and 30-second audio preview snippet retrieval.
+- **Current Scope**: User-independent. Operates via public unauthenticated endpoints solely for song catalog search, 30-second audio preview snippet retrieval, and single-track lookups.
 - **Future Scope**:
   - **Deezer**: Future versions may incorporate the `deezer-python` package for user authentication (OAuth) to access personal Deezer libraries and playlists.
   - **Multi-Provider Support**: This integration pattern will extend to other major music services (e.g., Spotify, YouTube Music, Apple Music, Amazon Music) to support user library access and authenticated catalog features.
 
-## 4. Error Responses
+## 5. Error Responses
 
 Per the official Deezer [API errors](`https://developers.deezer.com/api/errors`) reference, the API returns an error envelope when a request fails.
 
@@ -88,22 +108,22 @@ Per the official Deezer [API errors](`https://developers.deezer.com/api/errors`)
 
 ### Scope Mapping
 
-| Code | Constant                         | Relevance in GenreGuru                                                                          |
-|------|----------------------------------|-------------------------------------------------------------------------------------------------|
-| 4    | `QUOTA`                          | Current. Search quota exhausted → retry with backoff, then propagate `NetworkDisconnectedError` |
-| 100  | `ITEMS_LIMIT_EXCEEDED`           | Current. `limit` param (5) too high / result cap hit → reduce request limit                     |
-| 200  | `PERMISSION`                     | Current. Resource access denied → fail loudly with code preserved                               |
-| 300  | `TOKEN_INVALID`                  | Future (OAuth). Public endpoints unauthenticated, not applicable now                            |
-| 500  | `PARAMETER`                      | Current. Wrong param in request → developer bug, fail loudly                                    |
-| 501  | `PARAMETER_MISSING`              | Current. Missing param (e.g., `q`) → developer bug, fail loudly                                 |
-| 600  | `QUERY_INVALID`                  | Current. Malformed search query → fail loudly, log query                                        |
-| 700  | `SERVICE_BUSY`                   | Current. Server overload → retry with backoff before failing                                    |
-| 800  | `DATA_NOT_FOUND`                 | Current. No matching track → return empty result, not an error                                  |
-| 901  | `INDIVIDUAL_ACCOUNT_NOT_ALLOWED` | Not applicable. Individual account restriction, out of public search scope                      |
+| Code | Constant                         | Relevance in GenreGuru                                                                                           |
+|------|----------------------------------|------------------------------------------------------------------------------------------------------------------|
+| 4    | `QUOTA`                          | Current. Search quota exhausted → retry with backoff, then propagate `NetworkDisconnectedError`                  |
+| 100  | `ITEMS_LIMIT_EXCEEDED`           | Current. `limit` param (5) too high / result cap hit → reduce request limit                                      |
+| 200  | `PERMISSION`                     | Current. Resource access denied → fail loudly with code preserved                                                |
+| 300  | `TOKEN_INVALID`                  | Future (OAuth). Public endpoints unauthenticated, not applicable now                                             |
+| 500  | `PARAMETER`                      | Current. Wrong param in request → developer bug, fail loudly                                                     |
+| 501  | `PARAMETER_MISSING`              | Current. Missing param (e.g., `q`) → developer bug, fail loudly                                                  |
+| 600  | `QUERY_INVALID`                  | Current. Malformed search query → fail loudly, log query                                                         |
+| 700  | `SERVICE_BUSY`                   | Current. Server overload → retry with backoff before failing                                                     |
+| 800  | `DATA_NOT_FOUND`                 | Current. Search: no matching track → empty result. Track lookup (§2): unknown track → `TrackNotFoundError` (404) |
+| 901  | `INDIVIDUAL_ACCOUNT_NOT_ALLOWED` | Not applicable. Individual account restriction, out of public search scope                                       |
 
-> **Handling Rule**: On `QUOTA` (4) and `SERVICE_BUSY` (700), retry with backoff before propagating `NetworkDisconnectedError`. `DATA_NOT_FOUND` (800) yields empty search results. All other codes fail loudly, preserving the Deezer error `type`/`message`/`code`.
+> **Handling Rule**: On `QUOTA` (4) and `SERVICE_BUSY` (700), retry with backoff before propagating `NetworkDisconnectedError`. `DATA_NOT_FOUND` (800) yields empty search results on search; on track lookup it raises `TrackNotFoundError`. All other codes fail loudly, preserving the Deezer error `type`/`message`/`code`.
 
-> **Implementation note**: The handling rule is implemented on **both** paths.
+> **Implementation note**: The handling rule is implemented on **all** paths.
 > `snippets.fetch_snippet` parses the error envelope, calls `classify_error`,
 > and preserves the Deezer `code` on the exhausted `NetworkDisconnectedError`.
 > `DeezerClient().search()` likewise parses the non-2xx/envelope body, retries QUOTA (4) /

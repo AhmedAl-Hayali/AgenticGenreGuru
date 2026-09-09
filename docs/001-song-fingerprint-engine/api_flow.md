@@ -10,15 +10,15 @@
 
 ## 1. Actors & Components
 
-| Component                              | Role                                                                                  |
-|----------------------------------------|---------------------------------------------------------------------------------------|
-| **User**                               | Submits a song title, confirms a match via the web UI                                 |
-| **Django Frontend**                    | Serves UI; hosts internal `/api/search/` and `/api/confirm/` endpoints                |
-| **backend core (`genreguru/deezer/`)** | Calls Deezer `/search`; fetches the 30s preview MP3                                   |
-| **backend core (`genreguru/audio/`)**  | Runs librosa DSP feature extraction on the preview                                    |
-| **backend core (`genreguru/db/`)**     | SQLAlchemy repositories; dedup lookup by ISRC; persists `songs` + `song_fingerprints` |
-| **Deezer API**                         | External catalog + preview source (`api.deezer.com/search`)                           |
-| **PostgreSQL**                         | Local relational store (`songs`, `song_fingerprints`)                                 |
+| Component                              | Role                                                                                                   |
+|----------------------------------------|--------------------------------------------------------------------------------------------------------|
+| **User**                               | Submits a song title, confirms a match via the web UI                                                  |
+| **Django Frontend**                    | Serves UI; hosts internal `/api/search/` and `/api/confirm/` endpoints; renders candidate matches      |
+| **backend core (`genreguru/deezer/`)** | Calls Deezer `/search`; fetches the 30s preview MP3; `GET /track/{id}` for artist/cover enrichment     |
+| **backend core (`genreguru/audio/`)**  | Runs librosa DSP feature extraction on the preview                                                     |
+| **backend core (`genreguru/db/`)**     | SQLAlchemy repositories; dedup lookup by ISRC; persists `songs` + `song_artists` + `song_fingerprints` |
+| **Deezer API**                         | External catalog + preview source (`api.deezer.com/search`, `/track`)                                  |
+| **PostgreSQL**                         | Local relational store (`songs`, `song_artists`, `song_fingerprints`)                                  |
 
 ---
 
@@ -28,11 +28,11 @@
 flowchart TD
     U["User types song title"] --> A["GET /api/search/?query=..."]
     A --> D["Deezer /search?q=...&limit=5"]
-    D --> A2["Return top 5 matches (id, title, isrc, duration, preview, artist, album)"]
-    A2 --> UI["UI lists top 5 candidates"]
-    UI --> C["User Click 1: select candidate"]
-    C --> C2["Click 2: confirm selection"]
-    C2 --> POST["POST /api/confirm/ (body = selected match)"]
+    D --> DT["Deezer /track/{id} per match (contributors + cover best-effort)"]
+    DT --> A2["Return top 5 enriched matches (id, title, isrc, duration, preview, album, artists, cover)"]
+    A2 --> UI["UI lists top 5 candidates with cover + full artists"]
+    UI --> C["User selects & confirms candidate"]
+    C --> POST["POST /api/confirm/ (body = selected match)"]
     POST --> LOC["Local DB lookup by isrc"]
     LOC -->|"no match"| FETCH["Fetch preview MP3 from Deezer"]
     FETCH --> DSP["DSP feature extraction (8 collapsed features)"]
@@ -43,16 +43,16 @@ flowchart TD
 ### Step-by-step expectation
 
 1. **User input** → `GET /api/search/?query={song_title}` (Django internal endpoint).
-2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. GenreGuru keeps only `id`, `title`, `isrc`, `duration`, `preview`, `artist {id, name}`, `album {id, title}` (see the Track Object Field Reference in [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
-3. **Search response returns top 5** → UI renders candidates and waits for the user.
-4. **2-click confirmation** → `POST /api/confirm/` with the selected match in the request body (`deezer_id`, `title`, `isrc`, `duration`, `preview`, `artist`, `album`).
+2. **Backend → Deezer** → `GET api.deezer.com/search?q={song_title}&limit=5` returns a Track array. Backend core enriches candidates best-effort via `GET /track/{id}` for full contributor rosters (`artists`) and cover art (`cover`). GenreGuru keeps `id`, `title`, `isrc`, `duration`, `preview`, `artists` (main-first contributor list), `album {id, title}`, and display `cover` (see [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md)).
+3. **Search response returns top 5** → UI renders candidate match selections (artists, album, cover art) and waits for user selection.
+4. **User select & confirm** → `POST /api/confirm/` with the selected match in the request body (`deezer_id`, `title`, `isrc`, `duration`, `preview`, `artists`, `album`).
 5. **Local ISRC lookup** → `genreguru/db/` queries `songs` by `isrc`.
-6. **No local match**  → fetch the 30s preview MP3 from `preview` via `genreguru/deezer/` (3 retries, 5s delay).
+6. **No local match** → fetch the 30s preview MP3 from `preview` via `genreguru/deezer/` (3 retries, 5s delay).
 7. **DSP extraction** → `genreguru/audio/` computes 8 features (`spectral_centroid`, `rms`, `spectral_bandwidth`, `spectral_contrast`, `spectral_flatness`, `spectral_rolloff`, `zero_crossing_rate`, `mfcc`), mono downmix, arithmetic-mean collapse to one scalar per feature.
-8. **Persist** → writes `songs` (row: `id`, `deezer_id`, `isrc`, `title`, `artist`, `album`, `preview_url`, `duration`, `created_at`) and `song_fingerprints` (row: `id`, FK `song_id`, 8 feature columns, `audio_format`, `sample_rate`, `created_at`) — see [data-model.md](../../specs/001-song-fingerprint-engine/data-model.md).
+8. **Persist** → writes `songs` (row: `id`, `deezer_id`, `isrc`, `title`, `artist` (main, denormalized), `album`, `preview_url`, `duration`, `created_at`), `song_artists` (one row per artist, `position` 0 = main), and `song_fingerprints` (row: `id`, FK `song_id`, 8 feature columns, `audio_format`, `sample_rate`, `created_at`) — see [data-model.md](../../specs/001-song-fingerprint-engine/data-model.md).
 9. **Return** → UI displays success + fingerprint metrics with `deezer_id`, `isrc`, and `status` (confirm response shape in [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md)).
 
-> **Already-stored track (reuse path)**: Local ISRC lookup finds a match → returns the stored fingerprint without generating a new feature vector (dedup per spec REQ-008).
+> **Already-stored track (reuse path)**: Local ISRC lookup finds a match → returns the stored fingerprint without generating a new feature vector (dedup per spec REQ-008). Also backfills any missing `song_artists` rows from the confirm body (best-effort; never errors the reuse).
 
 ### API Abstract
 - The flow is **read-retrieve-write-read**: internal `/api/search` → Deezer, UI confirmation → `/api/confirm` → local lookup / fetch / extract / write → response.
@@ -98,6 +98,13 @@ These interrupt the happy path and must surface an expected error instead of pro
 | `POST /api/confirm/` with missing `isrc` in body                         | ISRC is mandatory → reject request and fail loud ([search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) dedup note, REQ-008) |
 | Internal error anywhere in the pipeline                                  | transport as `status: "error"` with a message; do not fabricate a feature vector                                                                        |
 
+### 3.5 Artist & cover enrichment (search pipeline)
+
+| Fault                                             | Expected Behavior                                                                                                            |
+|---------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| Single track lookup fails (404/800/network/parse) | `GenreguruError` caught per-id in `search_view` → INFO `artist enrichment skipped track_id=…`; match uses search-form fields |
+| All track lookups fail                            | search endpoint still 200 with matches; candidates fall back to search-form fields, confirm flow unaffected                  |
+
 ---
 
 ## 4. Expected API Interactions (Sequence)
@@ -113,30 +120,32 @@ sequenceDiagram
     UI->>Core: GET /api/search?query=...
     Core->>DZ: GET /search?q=...&limit=5
     DZ-->>Core: track[] {id, title, isrc, duration, preview, link, artist, album}
-    Core-->>UI: top-5 matches
-    UI-->>User: render candidates
-    User->>UI: 2-click confirm
-    UI->>Core: POST /api/confirm {deezer_id, isrc, title, artist, preview_url}
+    Core->>DZ: GET /track/{id} per match (best-effort contributors + cover)
+    DZ-->>Core: full track details
+    Core-->>UI: top-5 enriched matches (artists, cover, album)
+    UI-->>User: render candidate match selections
+    User->>UI: Select & confirm candidate
+    UI->>Core: POST /api/confirm {deezer_id, isrc, title, artists, album, preview}
     Core->>DB: lookup songs by isrc
     alt isrc match
         DB-->>Core: stored song + fingerprint
-        Core->>Core: reuse looked-up song + fingerprint
+        Core->>Core: reuse + backfill song_artists
     else no isrc match
         DB-->>Core: no record
         Core->>DZ: GET preview MP3 (3 retries, 5s)
         DZ-->>Core: preview MP3 bytes
         Core->>Core: DSP extract 8 features
-        Core->>DB: INSERT songs + song_fingerprints (isrc + deezer_id)
+        Core->>DB: INSERT songs + song_artists + song_fingerprints (isrc + deezer_id)
     end
     Core-->>UI: {status, song_id, fingerprint}
     UI-->>User: display result
 ```
 
 ### Key contract touchpoints
-| Step    | Internal route       | External call                                       | Outcome on happy path              |
-|---------|----------------------|-----------------------------------------------------|------------------------------------|
-| Search  | `GET /api/search/`   | Deezer `/search`                                    | top-5 matches serialized           |
-| Confirm | `POST /api/confirm/` | Deezer preview fetch (only when not already stored) | `deezer_id` + `isrc` + fingerprint |
+| Step    | Internal route            | External call                                       | Outcome on happy path              |
+|---------|---------------------------|-----------------------------------------------------|------------------------------------|
+| Search  | `GET /api/search/`        | Deezer `/search` + `/track/{id}`                    | top-5 enriched matches serialized  |
+| Confirm | `POST /api/confirm/`      | Deezer preview fetch (only when not already stored) | `deezer_id` + `isrc` + fingerprint |
 
 ---
 
@@ -144,6 +153,7 @@ sequenceDiagram
 
 - If the incoming `isrc` already exists locally → **no** Deezer preview fetch, no DSP run, no new row; the stored fingerprint is returned immediately.
 - This is the primary optimized branch and the only one that skips `genreguru/audio`.
+- `song_artists` rows are still normalized on reuse: `backfill_artists` writes missing contributor rows from the confirm body (best-effort; flush failure → WARNING + rollback, never errors the reuse path).
 
 ---
 

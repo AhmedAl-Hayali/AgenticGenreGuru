@@ -14,8 +14,9 @@
       "isrc": "GBDUW0000059",
       "duration": 226,
       "preview": "https://cdnt-preview.dzcdn.net/api/...",
-      "artist": { "id": 27, "name": "Daft Punk" },
-      "album": { "id": 302127, "title": "Discovery" }
+      "artists": [{ "id": 27, "name": "Daft Punk" }],
+      "album": { "id": 302127, "title": "Discovery" },
+      "cover": "https://cdn-images.dzcdn.net/images/cover/f45e3a22e120b4ab6f0a9d2b/300x300.jpg"
     }
   ]
 }
@@ -23,7 +24,7 @@
 
 ### Search Response Field Reference
 
-Each item in `matches` mirrors the Deezer Track object schema and field order (see [deezer-api.md](deezer-api.md) §1).
+Each item in `matches` mirrors the Deezer Track object schema and field order (see [deezer-api.md](deezer-api.md) §1) with two GenreGuru transformations:
 
 | Field                 | Type    | Format / Notes                                                                               |
 |-----------------------|---------|----------------------------------------------------------------------------------------------|
@@ -34,8 +35,13 @@ Each item in `matches` mirrors the Deezer Track object schema and field order (s
 | `matches[].isrc`      | string  | ISO 39075 ISRC; mandatory, mirrors Deezer Track `isrc`                                       |
 | `matches[].duration`  | integer | Track duration in seconds; mirrors Deezer Track `duration`                                   |
 | `matches[].preview`   | string  | HTTPS URL of the 30-second MP3 preview; mirrors Deezer Track `preview` (may be empty string) |
-| `matches[].artist`    | object  | Artist object: `id` (integer), `name` (string); mirrors Deezer `artist`                      |
+| `matches[].artists`   | array   | Full main-first contributor list of `{id, name}` (best-effort enriched server-side)          |
 | `matches[].album`     | object  | Album object: `id` (integer), `title` (string); mirrors Deezer `album`                       |
+| `matches[].cover`     | string  | 300×300 CDN cover URL derived from `md5_image`; empty string when unavailable (display-only) |
+
+- `artist` (a single artist object) is renamed `artists` (a main-first list). Each candidate match is best-effort enriched server-side with its full contributor roster and display `cover` URL before returning search results.
+- `cover` is derived from Deezer `md5_image` and is **display-only** — it is
+  never present in the confirm payload and is never persisted.
 
 ### Search Error Responses
 
@@ -46,7 +52,7 @@ Raised when the search request is invalid or the search dependency fails:
 | `404 Not Found`           | Empty/whitespace `query` param (client error) → return `TrackNotFoundError`                                                                      | `{"status": "error", "error": "TrackNotFoundError"}`                                        |
 | `503 Service Unavailable` | Deezer `/search` unreachable (Deezer / DNS / network), incl. QUOTA(4)/SERVICE_BUSY(700) exhausting the retry budget → `NetworkDisconnectedError` | `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}` |
 
-> **Zero-match semantics**: A valid query with zero Deezer matches returns HTTP **200** with an empty `matches` array (`{"status":"success","matches":[]}`), not an error. This mirrors the external contract — Deezer `DATA_NOT_FOUND` (800) yields an empty result, never an error (see [deezer-api.md](deezer-api.md) §4). The `TrackNotFoundError` 404 above is reserved for the invalid/empty-query client error.
+> **Zero-match semantics**: A valid query with zero Deezer matches returns HTTP **200** with an empty `matches` array (`{"status":"success","matches":[]}`), not an error. This mirrors the external contract — Deezer `DATA_NOT_FOUND` (800) yields an empty result, never an error (see [deezer-api.md](deezer-api.md) §5). The `TrackNotFoundError` 404 above is reserved for the invalid/empty-query client error.
 
 > **Zero-match UX**: On a 200-empty result the UI must not leave the user hanging. Show a clear no-results message for the submitted query, e.g. `"No results found.\nMake sure everything is spelled correctly, or try searching for something different."`
 
@@ -54,7 +60,7 @@ Raised when the search request is invalid or the search dependency fails:
 
 - **Path**: `POST /api/confirm/`
 - **CSRF**: The confirm mutation is CSRF-protected (`CsrfViewMiddleware` in the global `MIDDLEWARE`). Clients must send the session's `csrftoken` cookie value as the `X-CSRFToken` request header; a POST without a matching token is rejected with **403** before the handler runs. (The token cookie is issued on `GET /` via the rendered `{% csrf_token %}`.)
-- **Request Body**: Selected match object (same schema as `matches[]` in the search response):
+- **Request Body**: Selected match object (same schema as `matches[]` in the search response, minus the display-only `cover`):
 ```json
 {
   "deezer_id": 3135556,
@@ -62,7 +68,7 @@ Raised when the search request is invalid or the search dependency fails:
   "isrc": "GBDUW0000059",
   "duration": 226,
   "preview": "https://cdnt-preview.dzcdn.net/api/...",
-  "artist": { "id": 27, "name": "Daft Punk" },
+  "artists": [{ "id": 27, "name": "Daft Punk" }],
   "album": { "id": 302127, "title": "Discovery" }
 }
 ```
@@ -76,8 +82,14 @@ Raised when the search request is invalid or the search dependency fails:
 | `isrc`      | string  | ISO 39075 ISRC; mandatory when interfacing with external platforms |
 | `duration`  | integer | Track duration in seconds                                          |
 | `preview`   | string  | HTTPS URL of the 30-second MP3 preview                             |
-| `artist`    | object  | Artist object: `id` (integer), `name` (string)                     |
+| `artists`   | array   | Main-first contributor list of `{id, name}` (non-empty)            |
 | `album`     | object  | Album object: `id` (integer), `title` (string)                     |
+
+> **Validation**: `artists` MUST be a non-empty list of `{id: int, name: non-empty str}`
+> maps; anything else (missing list, empty list, malformed entries) is rejected
+> with `400 invalid request body` before the service runs. `cover` is excluded
+> from the confirm payload entirely (display-only; not among the server's
+> required fields).
 
 - **Response**:
 ```json
@@ -128,12 +140,12 @@ Raised when the search request is invalid or the search dependency fails:
 > - All audio snippets are processed as single-channel (mono) audio, downmixing multichannel audio by averaging channels. 
 > - Each feature's temporal vector is collapsed (downsampled) to a single scalar feature value. Future editions may retain temporal dimensions with less downsampling (e.g., MFCC frames as many `n_mfcc` scalars).*
 
-> **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored). If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
+> **Deduplication**: On confirm, the backend checks whether a song with the same `isrc` exists in the database. If a match is found, the stored fingerprint is reused and returned (no new feature vector is generated or stored); the dequeue carries the full contributor list in the body, so the stored song's `song_artists` rows are **backfilled** on the reuse path. If no local record matches the `isrc`, the backend fetches the audio snippet, generates a new feature vector, and stores it with both `isrc` and `deezer_id` written to the database.
 
 > **Fingerprint reuse vs. fresh generation**: To aid developer debugging, the backend shall set a logging flag (e.g., `reused=true` / `reused=false`) in the request logs to distinguish between fingerprints that are freshly generated or reused from an existing database record — the caller is not informed which path was taken.
 
 - **Error Responses**:
-  - `400 Bad Request`: `{"status": "error", "error": "invalid JSON body"}` (malformed JSON) or `{"status": "error", "error": "invalid request body"}` (valid JSON but missing required fields: deezer_id, title, isrc, duration, preview, artist, album)
+  - `400 Bad Request`: `{"status": "error", "error": "invalid JSON body"}` (malformed JSON) or `{"status": "error", "error": "invalid request body"}` (valid JSON but missing required fields: deezer_id, title, isrc, duration, preview, artists, album — or an invalid `artists` list)
   - `400 Bad Request`: `{"status": "error", error: "AudioProcessingError", "message": "audio file cannot be processed"}`
   - `503 Service Unavailable`: `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}`
   - `500 Internal Server Error`: `{"status": "error", "error": "internal server error"}` (unexpected failure; session rolled back)
@@ -142,10 +154,10 @@ Raised when the search request is invalid or the search dependency fails:
 
 Performance targets quantified per the [spec.md](../spec.md) Success Criteria:
 
-| Endpoint / Path                       | Scenario                                    | Target                                                                                                                                                 | Source       |
-|---------------------------------------|---------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
-| `GET /api/search/`                    | Return top 5 matches via Deezer `/search`   | Turnaround bounded by the upstream Deezer round-trip; no internal sub-second target defined (coverage target: 95% of valid mainstream queries succeed) | Spec §SC-001 |
-| `POST /api/confirm/`                  | Local ISRC match → reuse stored fingerprint | Stored fingerprint retrieval MUST return in **under 500 ms**                                                                                           | Spec §SC-005 |
-| `POST /api/confirm/` (no local match) | Fetch snippet + generate new fingerprint    | End-to-end (snippet fetch + DSP extraction) MUST complete **within 10 seconds** per audio snippet on standard consumer hardware                        | Spec §SC-002 |
+| Endpoint / Path                       | Scenario                                                                            | Target                                                                                                                                              | Source       |
+|---------------------------------------|-------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------|--------------|
+| `GET /api/search/`                    | Return top 5 matches via Deezer `/search` (best-effort enriched with artists/cover) | Turnaround bounded by upstream Deezer round-trips; no internal sub-second target defined (coverage target: 95% of valid mainstream queries succeed) | Spec §SC-001 |
+| `POST /api/confirm/`                  | Local ISRC match → reuse stored fingerprint                                         | Stored fingerprint retrieval MUST return in **under 500 ms**                                                                                        | Spec §SC-005 |
+| `POST /api/confirm/` (no local match) | Fetch snippet + generate new fingerprint                                            | End-to-end (snippet fetch + DSP extraction) MUST complete **within 10 seconds** per audio snippet on standard consumer hardware                     | Spec §SC-002 |
 
 *Note: The reuse path (under 500 ms) applies only when no audio fetch or DSP is required. The fresh-generation path target (10 s) covers the entire snippet-fetch → fingerprint-extraction pipeline, matching plan.md Performance Goals.
