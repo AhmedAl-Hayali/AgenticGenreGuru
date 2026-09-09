@@ -50,7 +50,7 @@ flowchart LR
     UI["Django Web App\n`web/genreguru_web`\n+ `web/fingerprint_app`"]
     CORE["GenreGuru Core Library\n`genreguru`"]
     DZ["Deezer API\n`api.deezer.com`"]
-    DB[("PostgreSQL\nlocal `songs` + `song_fingerprints`")]
+    DB[("PostgreSQL\nlocal `songs` + `song_fingerprints`\n+ `song_artists`")]
 
     U -->|song title / 2-click confirm / queries| UI
     UI -->|internal REST\n/api/*| CORE
@@ -137,8 +137,7 @@ genreguru/
 |                   | `genreguru/deezer/_retry.py`          | Shared `retry_until_success` backoff loop (WARNING per retry, exhausted-budget ERROR → `NetworkDisconnectedError` with `attempts` + code); used by client + snippets                                                                                        | T022, T023 |
 | **DB**            | `genreguru/db/engine.py`              | SQLAlchemy engine + `SessionLocal` from Hydra `db` group; pool logging                                                                                                                                                                                      | T007       |
 |                   | `genreguru/db/base.py`                | Declarative `Base`                                                                                                                                                                                                                                          | T008       |
-|                   | `genreguru/db/models.py`              | `Song`, `SongFingerprint` per `data-model.md`                                                                                                                                                                                                               | T009       |
-|                   | `genreguru/db/repositories.py`        | `find_by_isrc`, `create_song_and_fingerprint` (implemented); `list_songs`, `get_fingerprint_by_isrc` (planned, US2)                                                                                                                                         | T024, T033 |
+|                   | `genreguru/db/models.py`              | `Song`, `SongArtist`, `SongFingerprint` per `data-model.md`                                                                                                                                                                                                 | T009       |
 |                   | `genreguru/db/repositories.py`        | `find_by_isrc`, `create_song_and_fingerprint` (+ `SongArtist` rows), `backfill_artists` (reuse path); `list_songs`, `get_fingerprint_by_isrc` (planned, US2)                                                                                                | T024, T033 |
 |                   | `genreguru/db/init_db.py`             | `uv run python -m genreguru.db.init_db` table-creation entrypoint                                                                                                                                                                                           | T010       |
 | **Application**   | `genreguru/fingerprint_service.py`    | US1 orchestration: ISRC reuse short-circuit (+ `backfill_artists`); else fetch → extract → store (artists/cover carried through); `reused=true/false` log flag                                                                                              | T025       |
@@ -192,10 +191,11 @@ config/
 
 ### Key Entities
 
-| Table               | PK            | Unique Keys            | Notable Columns                                                                          |
-|---------------------|---------------|------------------------|------------------------------------------------------------------------------------------|
-| `songs`             | `id` (UUIDv7) | `deezer_id`, `isrc`    | `title`, `artist`, `album` (String(255)), `preview_url` (Text), `duration`               |
-| `song_fingerprints` | `id` (UUIDv7) | `song_id` (FK, unique) | 8 collapsed features (float), `audio_format` (String(10)), `sample_rate` (default 22050) |
+| Table               | PK            | Unique Keys            | Notable Columns                                                                                      |
+|---------------------|---------------|------------------------|------------------------------------------------------------------------------------------------------|
+| `songs`             | `id` (UUIDv7) | `deezer_id`, `isrc`    | `title`, `artist` (main name, denormalized), `album` (String(255)), `preview_url` (Text), `duration` |
+| `song_artists`      | `id` (UUIDv7) | `(song_id, position)`  | `song_id` FK CASCADE, `deezer_id` (artist), `name` (String(255)), `position` (0 = main)              |
+| `song_fingerprints` | `id` (UUIDv7) | `song_id` (FK, unique) | 8 collapsed features (float), `audio_format` (String(10)), `sample_rate` (default 22050)             |
 
 ### Design Rules (from data-model.md)
 
@@ -231,13 +231,13 @@ sequenceDiagram
     SVC->>DB: find by isrc
     alt isrc match found
         DB-->>SVC: stored song + fingerprint
-        SVC->>SVC: reuse (reused=true logged)
+        SVC->>SVC: reuse (reused=true logged) + backfill missing song_artists
     else no isrc match
         DB-->>SVC: miss
         SVC->>DZ: GET preview MP3 (3 retries, 5s)
         DZ-->>SVC: preview bytes
         SVC->>SVC: mono downmix -> 8 features -> arithmetic-mean collapse
-        SVC->>DB: INSERT songs + song_fingerprints (isrc + deezer_id)
+        SVC->>DB: INSERT songs + song_artists + song_fingerprints (isrc + deezer_id)
     end
     SVC-->>UI: {status, song_id, deezer_id, isrc, fingerprint (vector_length: 8)}
     UI-->>U: display result
