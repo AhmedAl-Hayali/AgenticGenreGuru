@@ -3,10 +3,14 @@
 Submodules:
 
 - `.client` — `DeezerClient().search()`: song-title search against
-  `GET https://api.deezer.com/search?q=...&limit=5`, Track field mapping,
+  `GET https://api.deezer.com/search?q=...&limit=5`, Track field mapping
+  (artist + contributors → `artists`, cover from `md5_image`),
   fail-loud on missing `isrc` (`MissingISRCError`) / empty `preview`
   (`PreviewUnavailableError`), and error-code classification
   (`classify_error`: `QUOTA`(4) / `SERVICE_BUSY`(700) retryable).
+  `get_track()` / `enrich_artists()`: single-track lookup against
+  `GET https://api.deezer.com/track/{id}` → `TrackNotFoundError` on
+  404/`DATA_NOT_FOUND`(800).
 - `.snippets` — `snippets.fetch_snippet()`: 30-second audio preview
   download with 3 attempts / 5 s delay, raising
   `NetworkDisconnectedError` after exhausting the budget.

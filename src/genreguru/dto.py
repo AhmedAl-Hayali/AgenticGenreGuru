@@ -20,6 +20,7 @@ __all__ = [
     "FeatureScalars",
     "Artist",
     "Album",
+    "ArtistEnrichment",
     "DeezerTrack",
     "SongData",
     "FingerprintResponse",
@@ -34,6 +35,13 @@ class Artist(TypedDict):
 
     id: int
     name: str
+
+
+class ArtistEnrichment(TypedDict):
+    """Result of a per-track contributor and cover art enrichment lookup."""
+
+    artists: list[Artist]
+    cover: str
 
 
 class Album(TypedDict):
@@ -56,10 +64,9 @@ class DeezerTrack(TypedDict):
     The `album` key is always present in a validated `DeezerTrack` — a raw
     track missing `album` fails loud at the client boundary (mirroring the
     main artist). Its value may be `None`. `isrc`/`preview` are likewise
-    guaranteed present and non-empty after client-side validation.
-    `cover` is
-    the display-only art URL derived from Deezer's `md5_image`; consumers
-    that persist songs ignore it.
+    guaranteed present and non-empty after client-side validation. `cover`
+    is the display-only art URL derived from Deezer's `md5_image`;
+    consumers that persist songs ignore it.
     """
 
     deezer_id: int
@@ -67,7 +74,7 @@ class DeezerTrack(TypedDict):
     isrc: str
     duration: int
     preview: str
-    artist: Artist | str
+    cover: str
     artists: list[Artist]
     album: Album | str | None
 
@@ -75,12 +82,11 @@ class DeezerTrack(TypedDict):
 class SongData(TypedDict):
     """The song fields the repository persists (`create_song_and_fingerprint`).
 
-    Uses persistence names (`preview_url`) and always carries `artist`/`album`
-    as plain strings. The `album` key is always present; its value may be
-    `None`. The service maps from `DeezerTrack` to this shape.
     Uses persistence names (`preview_url`) and carries `artists` as the
     canonical `Artist` list (main first) plus `album` as a plain string. The
-    `album` key is always present; its value may be `None`.
+    `album` key is always present; its value may be `None`. `cover` is not
+    persisted (display-only), so it is absent here. The service maps from
+    `DeezerTrack` to this shape.
     """
 
     deezer_id: int

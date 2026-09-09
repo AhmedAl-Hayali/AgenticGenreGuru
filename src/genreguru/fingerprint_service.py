@@ -44,7 +44,7 @@ def _to_song_data(track: DeezerTrack) -> SongData:
     Carries the canonical ordered `artists` list (main first) through for the
     `song_artists` rows, flattens `album` from an object (`Album`) to a plain
     string, and renames `preview` to the persistence field `preview_url` —
-    all in one pass.
+    all in one pass. `cover` is display-only and is not persisted.
     """
     return {
         "deezer_id": track["deezer_id"],

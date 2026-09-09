@@ -26,20 +26,24 @@ from genreguru.deezer._retry import (
     is_retryable_code,
     retry_until_success,
 )
-from genreguru.dto import Artist, DeezerTrack
+from genreguru.dto import Artist, ArtistEnrichment, DeezerTrack
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
     NetworkDisconnectedError,
     PreviewUnavailableError,
+    TrackNotFoundError,
 )
 
 logger = logging.getLogger(__name__)
 
 _SEARCH_URL = "https://api.deezer.com/search"
+_TRACK_URL = "https://api.deezer.com/track"
 _LIMIT = 5
 
-_RETRYABLE_CODES = {4, 700}  # QUOTA, SERVICE_BUSY
+_COVER_TEMPLATE = "https://cdn-images.dzcdn.net/images/cover/{md5}/{size}x{size}.jpg"
+_COVER_SIZE = 300
+
 # Defensive fallback artist so the canonical `artists` list is never empty,
 # even for a malformed upstream `artist`/`contributors` payload.
 _UNKNOWN_ARTIST: Artist = {"id": 0, "name": "Unknown artist"}
@@ -47,6 +51,16 @@ _UNKNOWN_ARTIST: Artist = {"id": 0, "name": "Unknown artist"}
 _DATA_NOT_FOUND = 800
 _MAX_RETRIES = 3
 _RETRY_DELAY = 5  # seconds
+
+
+def _cover_url(md5_image: object) -> str:
+    """Build the cover-art URL from Deezer's `md5_image`, or `""` when absent.
+
+    Requires the rightmost 32 hex chars (Deezer's `md5_image` is exactly
+    that); malformed values yield `""` so callers render no art.
+    """
+    md5 = md5_image if isinstance(md5_image, str) else ""
+    return _COVER_TEMPLATE.format(md5=md5, size=_COVER_SIZE) if md5 else ""
 
 
 def _norm_artist(raw: object) -> Artist | None:
@@ -100,7 +114,7 @@ def _map_track(raw: dict) -> DeezerTrack:
         "isrc": raw.get("isrc", ""),
         "duration": raw["duration"],
         "preview": raw.get("preview", ""),
-        "artist": raw["artist"],
+        "cover": _cover_url(raw.get("md5_image")),
         "artists": _map_artists(raw.get("artist"), raw.get("contributors")),
         "album": raw["album"],
     }
@@ -367,19 +381,39 @@ class DeezerClient:
         url = f"{self._track_url}/{track_id}"
         body, err_code = self._request_json(url, None, attempt, "track lookup")
         if err_code == _DATA_NOT_FOUND:
-            return []
             raise TrackNotFoundError(f"track not found: {track_id}", deezer_id=track_id)
 
         track = _map_track(body)
         _validate_track(track)
         return track
 
+    def enrich_artists(self, track_ids: list[int]) -> dict[int, ArtistEnrichment]:
+        """Fetch full contributor/cover detail for multiple tracks (best effort).
 
-        total = body.get("total", 0)
-        logger.info("deezer search response total=%d", total)
-        results = _build_tracks(body)
-        logger.debug("mapped %d tracks", len(results))
-        return results
+        Used by the search flow to enrich candidate matches with their full
+        contributor roster + display cover before the response leaves the
+        server: maps each Deezer track id to `{"artists": [...], "cover": "..."}`.
+        Each track is resolved independently; individual lookup failures are logged
+        and skipped so valid matches retain their enrichments.
+
+        Args:
+            track_ids: List of Deezer track identifiers to enrich.
+
+        Returns:
+            Dictionary mapping each successfully enriched track ID to its
+            `ArtistEnrichment` containing `artists` and `cover`.
+        """
+        enriched: dict[int, ArtistEnrichment] = {}
+        for track_id in track_ids:
+            try:
+                track = self.get_track(track_id)
+                enriched[track_id] = {
+                    "artists": track["artists"],
+                    "cover": track["cover"],
+                }
+            except GenreguruError:
+                logger.info("artist enrichment skipped track_id=%s", track_id)
+        return enriched
 
 
 def _raise_for_error_code(
