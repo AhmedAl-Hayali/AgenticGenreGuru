@@ -21,7 +21,6 @@ from genreguru.db.repositories import SongRepository
 from genreguru.deezer.snippets import fetch_snippet
 from genreguru.dto import (
     Album,
-    Artist,
     DeezerTrack,
     FeatureScalars,
     FingerprintResponse,
@@ -30,11 +29,6 @@ from genreguru.dto import (
 from genreguru.gglogging import log_fingerprint_outcome, timer
 
 logger = logging.getLogger(__name__)
-
-
-def _artist_name(artist: Artist | str) -> str:
-    """Return the artist's `name` if it is an object, else the string."""
-    return artist["name"] if isinstance(artist, dict) else cast(str, artist)
 
 
 def _album_title(album: Album | str | None) -> str | None:
@@ -47,15 +41,16 @@ def _album_title(album: Album | str | None) -> str | None:
 def _to_song_data(track: DeezerTrack) -> SongData:
     """Map an upstream `DeezerTrack` into the repo's `SongData` shape.
 
-    Flattens `artist`/`album` from objects (`Artist`/`Album`) to plain
-    strings and renames `preview` to the persistence field `preview_url`,
+    Carries the canonical ordered `artists` list (main first) through for the
+    `song_artists` rows, flattens `album` from an object (`Album`) to a plain
+    string, and renames `preview` to the persistence field `preview_url` —
     all in one pass.
     """
     return {
         "deezer_id": track["deezer_id"],
         "isrc": track["isrc"],
         "title": track["title"],
-        "artist": _artist_name(track["artist"]),
+        "artists": track["artists"],
         "album": _album_title(track["album"]),
         "preview_url": track["preview"],
         "duration": track["duration"],

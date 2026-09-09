@@ -1,18 +1,42 @@
-"""Repository layer for Song and SongFingerprint persistence.
+"""Repository layer for Song, SongArtist, and SongFingerprint persistence.
 
-Implements deduplication-by-ISRC per data-model.md.
+Implements deduplication-by-ISRC per data-model.md. `song_artists` rows are
+written on first insert (cascade-managed via `Song.artists`).
 """
 
 import logging
+import uuid
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from genreguru.audio.features import Feature
-from genreguru.db.models import AudioFormat, Song, SongFingerprint
-from genreguru.dto import FeatureScalars, SongData
+from genreguru.db.models import AudioFormat, Song, SongArtist, SongFingerprint
+from genreguru.dto import Artist, FeatureScalars, SongData
 
 logger = logging.getLogger(__name__)
+
+
+def _main_artist_name(artists: list[Artist]) -> str:
+    """Return the main (first) artist's `name`, feeding the `songs.artist` column."""
+    main = artists[0] if artists else None
+    return main["name"] if main is not None else ""
+
+
+def _build_song_artists(
+    artists: list[Artist], song_id: uuid.UUID | None = None
+) -> list[SongArtist]:
+    """Construct SongArtist model instances from a canonical main-first Artist list."""
+    kwargs = {"song_id": song_id} if song_id is not None else {}
+    return [
+        SongArtist(
+            deezer_id=artist["id"],
+            name=artist["name"],
+            position=pos,
+            **kwargs,
+        )
+        for pos, artist in enumerate(artists)
+    ]
 
 
 class SongRepository:
@@ -48,9 +72,9 @@ class SongRepository:
         is logged at WARNING and the existing song is returned.
 
         Args:
-            song_data: `SongData` with deezer_id, isrc, title, artist, album,
+            song_data: `SongData` with deezer_id, isrc, title, artists, album,
                 preview_url, duration (album key always present, value may be
-                None).
+                None; `artists` is the canonical main-first list, non-empty).
             features: The 8 collapsed feature scalars keyed by `Feature`.
             audio_format: Encoding format of the snippet (default MP3).
             sample_rate: Sampling rate in Hz (default 22050).
@@ -74,11 +98,12 @@ class SongRepository:
             deezer_id=song_data["deezer_id"],
             isrc=isrc,
             title=song_data["title"],
-            artist=song_data["artist"],
+            artist=_main_artist_name(song_data["artists"]),
             album=song_data["album"],
             preview_url=song_data["preview_url"],
             duration=song_data["duration"],
         )
+        song.artists = _build_song_artists(song_data["artists"])
         try:
             with self._session.begin_nested():
                 self._session.add(song)
