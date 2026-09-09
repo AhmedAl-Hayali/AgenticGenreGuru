@@ -19,13 +19,12 @@ from typing import NoReturn
 
 import httpx
 
-from genreguru.deezer._retry import RetryableError, retry_until_success
-from genreguru.dto import DeezerTrack
 from genreguru.deezer._retry import (
     RetryableError,
     is_retryable_code,
     retry_until_success,
 )
+from genreguru.dto import DeezerTrack
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -58,7 +57,7 @@ def _map_track(raw: dict) -> DeezerTrack:
 
 
 def _error_code(resp: httpx.Response) -> int | None:
-    """Extract the Deezer error `code` from an error response body, or ``None``."""
+    """Extract the Deezer error `code` from an error response body, or `None`."""
     try:
         payload = resp.json()
     except ValueError:
@@ -70,7 +69,12 @@ def _error_code(resp: httpx.Response) -> int | None:
 
 
 def _validate_track(track: DeezerTrack) -> None:
-    """Fail loud when a mapped *track* lacks a valid ISRC or preview URL."""
+    """Validate that a mapped track contains a valid ISRC and preview URL.
+
+    Raises:
+        MissingISRCError: If the track is missing an ISRC.
+        PreviewUnavailableError: If the track preview URL is empty.
+    """
     if not track["isrc"]:
         logger.error("missing isrc for deezer_id=%s", track["deezer_id"])
         raise MissingISRCError(
@@ -105,6 +109,16 @@ class DeezerClient:
     callers can tune them per instance. Holds only immutable configuration
     and the retry loop keeps per-call state in locals, so instances are safe
     for concurrent searches.
+
+    Args:
+        base_url: Search API endpoint URL.
+        track_url: Track lookup API endpoint base URL.
+        limit: Default number of candidate tracks per search query.
+        request_timeout: Seconds before HTTP request timeout.
+        max_retries: Total request attempts allowed before budget exhaustion.
+        retry_delay: Fixed delay in seconds between retry attempts.
+        session: HTTPX client instance to use for requests, or None to use
+            module-level default.
     """
 
     def __init__(
@@ -115,42 +129,35 @@ class DeezerClient:
         request_timeout: float = 30.0,
         max_retries: int = _MAX_RETRIES,
         retry_delay: float = _RETRY_DELAY,
+        session: httpx.Client | None = None,
     ) -> None:
         self._base_url = base_url
         self._limit = limit
         self._request_timeout = request_timeout
         self._max_retries = max_retries
         self._retry_delay = retry_delay
+        self._session = session or httpx
 
-    def search(self, query: str) -> list[DeezerTrack]:
-        """Search Deezer for *query*, returning up to `limit` mapped tracks.
+    def _request_json(
+        self,
+        url: str,
+        params: dict | None,
+        attempt: int,
+        label: str,
+    ) -> tuple[dict, int | None]:
+        """Execute an HTTP GET request and parse JSON payload / error envelope.
 
-        Retries QUOTA (4) / SERVICE_BUSY (700) up to the configured attempt
-        budget with a fixed delay before raising `NetworkDisconnectedError`.
-        `DATA_NOT_FOUND` (800) returns an empty list. Other Deezer error
-        codes fail loudly, preserving the code; a non-2xx status or
-        unparseable body raises `NetworkDisconnectedError` so the caller can
-        map it to 503.
-
-        Raises:
-            MissingISRCError: If any returned track is missing an ISRC.
-            PreviewUnavailableError: If any track has an empty/None preview URL.
-            NetworkDisconnectedError: If the retry budget is exhausted or the
-                response is not a valid search payload.
-        """
-        return retry_until_success(
-            lambda attempt: self._try_search(query, attempt),
-            max_retries=self._max_retries,
-            delay=self._retry_delay,
-            operation_label="deezer search",
-        )
-
-    def _try_search(self, query: str, attempt: int) -> list[DeezerTrack]:
-        """Execute one search attempt under the caller's retry budget.
+        Args:
+            url: Target endpoint URL.
+            params: Query parameters dictionary, or None if no parameters.
+            attempt: Current retry attempt number (1-indexed).
+            label: Human-readable operation label for logging context.
 
         Returns:
-            list[DeezerTrack]: The mapped tracks on success, or an empty list
-            on `DATA_NOT_FOUND` (800).
+            Tuple of `(body_dict, deezer_error_code)`. On an embedded or
+            HTTP 404 `DATA_NOT_FOUND` (800) code, returns `({}, _DATA_NOT_FOUND)`
+            so the caller can choose whether to return an empty list (search)
+            or raise `TrackNotFoundError` (lookup).
 
         Raises:
             RetryableError: If a retryable rate/busy code was seen.
@@ -158,13 +165,10 @@ class DeezerClient:
                 HTTP/network failure or an unparseable body.
             GenreguruError: If a non-retryable Deezer error code was returned.
         """
-        logger.info(
-            "deezer search attempt=%d query=%s limit=%d", attempt, query, self._limit
-        )
         try:
-            resp = httpx.get(
-                self._base_url,
-                params={"q": query, "limit": self._limit},
+            resp = self._session.get(
+                url,
+                params=params,
                 timeout=self._request_timeout,
             )
             resp.raise_for_status()
@@ -177,24 +181,84 @@ class DeezerClient:
             ) from exc
         except httpx.HTTPStatusError as exc:
             if (code := _error_code(exc.response)) == _DATA_NOT_FOUND:
-                return []
+                return {}, _DATA_NOT_FOUND
             _raise_for_error_code(code, attempt, exc, exc.response.status_code)
         except ValueError:
             raise NetworkDisconnectedError(
-                "deezer search returned a non-JSON response", attempts=attempt
+                f"deezer {label} returned a non-JSON response", attempts=attempt
             ) from None
 
         if not isinstance(body, dict):
             raise NetworkDisconnectedError(
-                "deezer search returned a non-object response body",
+                f"deezer {label} returned a non-object response body",
                 attempts=attempt,
             ) from None
 
         error = body.get("error")
         if isinstance(error, dict):
             if (code := error.get("code")) == _DATA_NOT_FOUND:
-                return []
+                return {}, _DATA_NOT_FOUND
             _raise_for_error_code(code, attempt, None, None)
+
+        return body, None
+
+    def search(self, query: str) -> list[DeezerTrack]:
+        """Search Deezer for candidate tracks matching a query.
+
+        Retries QUOTA (4) / SERVICE_BUSY (700) up to the configured attempt
+        budget with a fixed delay before raising `NetworkDisconnectedError`.
+        `DATA_NOT_FOUND` (800) returns an empty list. Other Deezer error
+        codes fail loudly, preserving the code; a non-2xx status or
+        unparseable body raises `NetworkDisconnectedError` so the caller can
+        map it to 503.
+
+        Args:
+            query: Free-text search query string.
+
+        Returns:
+            List of validated Deezer tracks matching the query, up to `limit`.
+
+        Raises:
+            MissingISRCError: If any returned track is missing an ISRC.
+            PreviewUnavailableError: If any track has an empty/None preview URL.
+            NetworkDisconnectedError: If the retry budget is exhausted or the
+                response is not a valid search payload.
+            GenreguruError: If a non-retryable Deezer error code is returned.
+        """
+        return retry_until_success(
+            lambda attempt: self._try_search(query, attempt),
+            max_retries=self._max_retries,
+            delay=self._retry_delay,
+            operation_label="deezer search",
+        )
+
+    def _try_search(self, query: str, attempt: int) -> list[DeezerTrack]:
+        """Execute one search attempt under the caller's retry budget.
+
+        Args:
+            query: Free-text search query string.
+            attempt: Current attempt number (1-indexed).
+
+        Returns:
+            Mapped tracks on success, or an empty list on `DATA_NOT_FOUND` (800).
+
+        Raises:
+            RetryableError: If a retryable rate/busy code was seen.
+            NetworkDisconnectedError: If the response is a non-retryable
+                HTTP/network failure or an unparseable body.
+            GenreguruError: If a non-retryable Deezer error code was returned.
+        """
+        logger.info(
+            "deezer search attempt=%d query=%s limit=%d", attempt, query, self._limit
+        )
+        body, err_code = self._request_json(
+            self._base_url,
+            {"q": query, "limit": self._limit},
+            attempt,
+            "search",
+        )
+        if err_code == _DATA_NOT_FOUND:
+            return []
 
         total = body.get("total", 0)
         logger.info("deezer search response total=%d", total)
@@ -209,21 +273,32 @@ def _raise_for_error_code(
     exc: Exception | None,
     status: int | None,
 ) -> NoReturn:
-    """Map a non-`DATA_NOT_FOUND` Deezer error *code* to a raise.
+    """Map a non-`DATA_NOT_FOUND` Deezer error code to an exception raise.
 
     Retryable codes raise `RetryableError`; anything else raises the
-    permanent failure the caller should propagate (*exc*/*status* when the
+    permanent failure the caller should propagate (`exc`/`status` when the
     failure came from the HTTP layer, `GenreguruError` for an embedded
     envelope).
+
+    Args:
+        code: Deezer error code, or None if no code present.
+        attempt: Current retry attempt number (1-indexed).
+        exc: Underlying exception if raised during request, or None.
+        status: HTTP status code, or None if response body error.
+
+    Raises:
+        RetryableError: If the error code is retryable.
+        NetworkDisconnectedError: If the error is an HTTP/network failure.
+        GenreguruError: If the error is a non-retryable Deezer error envelope.
     """
-    if code in _RETRYABLE_CODES:
+    if is_retryable_code(code):
         last = exc or NetworkDisconnectedError(
-            f"deezer search error code={code}", code=code, attempts=attempt
+            f"deezer error code={code}", code=code, attempts=attempt
         )
         raise RetryableError(code=code, last_exc=last)
     if exc is not None:
         raise NetworkDisconnectedError(
-            f"deezer search failed http_status={status} code={code}",
+            f"deezer request failed http_status={status} code={code}",
             code=code,
             attempts=attempt,
         ) from exc
