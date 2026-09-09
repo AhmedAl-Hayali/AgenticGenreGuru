@@ -17,7 +17,7 @@ private transient-failure signal raised here that never escapes the budget.
 """
 
 import logging
-from typing import NoReturn
+from typing import NoReturn, cast
 
 import httpx
 
@@ -26,7 +26,7 @@ from genreguru.deezer._retry import (
     is_retryable_code,
     retry_until_success,
 )
-from genreguru.dto import Artist, ArtistEnrichment, DeezerTrack
+from genreguru.dto import Artist,Track
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -43,6 +43,27 @@ _LIMIT = 5
 
 _COVER_TEMPLATE = "https://cdn-images.dzcdn.net/images/cover/{md5}/{size}x{size}.jpg"
 _COVER_SIZE = 300
+
+# Search-match wire shape: exactly the `Track` schema keys. Derived from
+# the DTO so the wire can't drift from the schema.
+SEARCH_FIELDS = tuple(Track.__annotations__)
+
+# The full input-key set `_map_track`/`_map_artists`/`_cover_url` read off a
+# raw track — the input-side mirror of `SEARCH_FIELDS`. Anchored by
+# `tests.unit.test_deezer_mapping` against the committed golden corpus, so
+# every read is backed by a real upstream snapshot and any other upstream key
+# is consciously acknowledged.
+_RAW_READS = (
+    "id",
+    "title",
+    "duration",
+    "isrc",
+    "preview",
+    "md5_image",
+    "artist",
+    "contributors",
+    "album",
+)
 
 # Defensive fallback artist so the canonical `artists` list is never empty,
 # even for a malformed upstream `artist`/`contributors` payload.
@@ -75,7 +96,7 @@ def _norm_artist(raw: object) -> Artist | None:
     name = raw.get("name")
     if not isinstance(artist_id, int) or not isinstance(name, str) or not name:
         return None
-    return {"id": artist_id, "name": name}
+    return Artist(id=artist_id, name=name)
 
 
 def _map_artists(raw_artist: object, contributors: object) -> list[Artist]:
@@ -106,8 +127,8 @@ def _map_artists(raw_artist: object, contributors: object) -> list[Artist]:
     return artists or [_UNKNOWN_ARTIST]
 
 
-def _map_track(raw: dict) -> DeezerTrack:
-    """Map a raw Deezer Track object to the internal schema."""
+def _map_track(raw: dict) -> Track:
+    """Map a raw Deezer Track object to the normalized `Track` schema."""
     return {
         "deezer_id": raw["id"],
         "title": raw["title"],
@@ -132,7 +153,7 @@ def _error_code(resp: httpx.Response) -> int | None:
     return error.get("code")
 
 
-def _validate_track(track: DeezerTrack) -> None:
+def _validate_track(track: Track) -> None:
     """Validate that a mapped track contains a valid ISRC and preview URL.
 
     Raises:
@@ -158,7 +179,7 @@ def _validate_track(track: DeezerTrack) -> None:
         )
 
 
-def _build_tracks(body: dict) -> list[DeezerTrack]:
+def _build_tracks(body: dict) -> list[Track]:
     """Map raw `data` tracks to the internal schema, validating each."""
     tracks = [_map_track(raw) for raw in body.get("data", [])]
     for track in tracks:
@@ -268,7 +289,7 @@ class DeezerClient:
 
         return body, None
 
-    def search(self, query: str) -> list[DeezerTrack]:
+    def search(self, query: str) -> list[Track]:
         """Search Deezer for candidate tracks matching a query.
 
         Retries QUOTA (4) / SERVICE_BUSY (700) up to the configured attempt
@@ -298,7 +319,7 @@ class DeezerClient:
             operation_label="deezer search",
         )
 
-    def _try_search(self, query: str, attempt: int) -> list[DeezerTrack]:
+    def _try_search(self, query: str, attempt: int) -> list[Track]:
         """Execute one search attempt under the caller's retry budget.
 
         Args:
@@ -332,7 +353,7 @@ class DeezerClient:
         logger.debug("mapped %d tracks", len(results))
         return results
 
-    def get_track(self, track_id: int) -> DeezerTrack:
+    def get_track(self, track_id: int) -> Track:
         """Fetch one track by id, including the full `contributors` roster.
 
         Uses the same retry-with-backoff budget and validation as `search`.
@@ -360,7 +381,7 @@ class DeezerClient:
             operation_label="deezer track lookup",
         )
 
-    def _try_get_track(self, track_id: int, attempt: int) -> DeezerTrack:
+    def _try_get_track(self, track_id: int, attempt: int) -> Track:
         """Execute one track lookup under the caller's retry budget.
 
         Args:

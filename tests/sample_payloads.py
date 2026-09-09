@@ -5,19 +5,47 @@ confirm contract suites, so a field edit lands in one place and both
 endpoints exercise the same realistic payload.
 """
 
-from genreguru.dto import DeezerTrack
+from genreguru.dto import Artist, ConfirmTrack, Track
 
-DEEZER_MATCH: DeezerTrack = {
+
+def make_sample_artist(artist_id: int = 27, name: str = "Daft Punk") -> Artist:
+    """Helper to build a strongly typed Artist dict fixture."""
+    return {"id": artist_id, "name": name}
+
+
+# Cover built from the 32-hex `md5_image` via the client's bare-suffix form
+# (`contracts/deezer-api.md`): https://cdn-images.dzcdn.net/images/cover/{md5}/300x300.jpg
+DEEZER_COVER_URL = (
+    "https://cdn-images.dzcdn.net/images/cover/"
+    "950fd2a2d0f5f80e3b5f1e9f0b2a3c4d/300x300.jpg"
+)
+
+DEEZER_MATCH: Track = {
     "deezer_id": 3135556,
     "title": "Harder, Better, Faster, Stronger",
     "isrc": "GBDUW0000059",
     "duration": 226,
     "preview": "https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
-    "artist": {"id": 27, "name": "Daft Punk"},
+    "cover": DEEZER_COVER_URL,
+    "artists": [make_sample_artist(27, "Daft Punk")],
     "album": {"id": 302127, "title": "Discovery"},
 }
 
-DEEZER_MATCHES: list[DeezerTrack] = [DEEZER_MATCH]
+DEEZER_MATCHES: list[Track] = [DEEZER_MATCH]
+
+# Confirm request body: the search match minus the display-only `cover` —
+# exactly the backend's 7 required fields (`ConfirmTrack`, contracts/
+# search-api.md §2). The frontend strips `cover` on POST, and the confirm
+# endpoint rejects extras.
+DEEZER_CONFIRM_BODY: ConfirmTrack = {
+    "deezer_id": DEEZER_MATCH["deezer_id"],
+    "title": DEEZER_MATCH["title"],
+    "isrc": DEEZER_MATCH["isrc"],
+    "duration": DEEZER_MATCH["duration"],
+    "preview": DEEZER_MATCH["preview"],
+    "artists": DEEZER_MATCH["artists"],
+    "album": DEEZER_MATCH["album"],
+}
 
 SUCCESS_RESPONSE = {
     "status": "success",

@@ -20,13 +20,11 @@ __all__ = [
     "FeatureScalars",
     "Artist",
     "Album",
-    "ArtistEnrichment",
-    "DeezerTrack",
+    "Track",
     "SongData",
     "FingerprintResponse",
 ]
 
-#: The 8 collapsed DSP feature scalars (keyed by `Feature`).
 FeatureScalars = dict[Feature, float]
 
 
@@ -37,13 +35,6 @@ class Artist(TypedDict):
     name: str
 
 
-class ArtistEnrichment(TypedDict):
-    """Result of a per-track contributor and cover art enrichment lookup."""
-
-    artists: list[Artist]
-    cover: str
-
-
 class Album(TypedDict):
     """Deezer album object as it appears in an upstream track (`id`+`title`)."""
 
@@ -51,22 +42,18 @@ class Album(TypedDict):
     title: str
 
 
-class DeezerTrack(TypedDict):
-    """An upstream Deezer track shape (`DeezerTrack`/`confirm` payload input).
+class Track(TypedDict):
+    """The normalized GenreGuru track — what the client returns and the search wire.
 
-    `artists` is the canonical ordered contributor list with the main artist
-    first: search matches carry a single main artist, `/track/{id}` responses
-    the full `contributors` roster (main-first per Deezer). `album` may
-    arrive as an object (`Album`) or, when the payload was built from
-    already-normalized data, as a plain string; the fingerprint service
-    flattens it on entry before persisting.
-
-    The `album` key is always present in a validated `DeezerTrack` — a raw
-    track missing `album` fails loud at the client boundary (mirroring the
-    main artist). Its value may be `None`. `isrc`/`preview` are likewise
-    guaranteed present and non-empty after client-side validation. `cover`
-    is the display-only art URL derived from Deezer's `md5_image`;
-    consumers that persist songs ignore it.
+    NOT the raw upstream object (see `RawDeezerTrack`): `deezer_id` renames
+    Deezer's `id`, `artists` is the canonical ordered contributor list with
+    the main artist first (a single main artist on search matches, the full
+    `contributors` roster on `/track/{id}`), and `cover` is derived from
+    `md5_image`. `album` is the Deezer album object; its key is always
+    present in a validated track and its value may be `None`. `isrc`/`preview`
+    are guaranteed present and non-empty after client-side validation.
+    `cover` is display-only, always present on search matches, and never part
+    of the confirm payload (see `ConfirmTrack`).
     """
 
     deezer_id: int
@@ -74,9 +61,9 @@ class DeezerTrack(TypedDict):
     isrc: str
     duration: int
     preview: str
-    cover: str
     artists: list[Artist]
-    album: Album | str | None
+    album: Album | None
+    cover: str
 
 
 class SongData(TypedDict):
@@ -86,7 +73,7 @@ class SongData(TypedDict):
     canonical `Artist` list (main first) plus `album` as a plain string. The
     `album` key is always present; its value may be `None`. `cover` is not
     persisted (display-only), so it is absent here. The service maps from
-    `DeezerTrack` to this shape.
+    `Track` to this shape.
     """
 
     deezer_id: int

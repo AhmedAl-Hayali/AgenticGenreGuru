@@ -1,11 +1,15 @@
-"""Unit tests for Deezer search client.
+"""Unit tests for the Deezer client (search + track lookup).
 
 Covers:
-- request construction (`GET /search` with `q` + `limit=5` params),
+- request construction (`GET /search` with `q` + `limit=5` params, `GET
+  /track/{id}`),
 - field mapping from Deezer Track objects, incl. multiple tracks per response,
+- canonical `artists` mapping: main-first with `contributors` dedupe, tolerant
+  skip of malformed rosters, and an `Unknown artist` fallback (list never empty),
 - fail-loud on missing ISRC (MissingISRCError) / empty preview
   (PreviewUnavailableError),
-- empty results for DATA_NOT_FOUND (per contracts/deezer-api.md),
+- empty results for DATA_NOT_FOUND search (per contracts/deezer-api.md) and
+  `TrackNotFoundError` for a DATA_NOT_FOUND track lookup,
 - non-2xx status / unparseable body → `NetworkDisconnectedError` (503), and
 - error-code mapping per contracts/deezer-api.md incl. QUOTA(4)/SERVICE_BUSY(700)
   retry classification.
@@ -23,7 +27,7 @@ import pytest
 
 from genreguru.deezer import client
 from genreguru.deezer._retry import classify_error
-from genreguru.dto import DeezerTrack
+from genreguru.dto import Track
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -52,7 +56,7 @@ _SAMPLE_TRACK = {
     "isrc": "GBDUW0000059",
     "duration": 226,
     "preview": "https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
-    "artist": {"id": 27, "name": "Daft Punk"},
+    "artist": Artist(id=27, name="Daft Punk"),
     "album": {"id": 302127, "title": "Discovery"},
 }
 
@@ -73,7 +77,7 @@ def _ok_search(data: list[dict]) -> httpx.Response:
     return ok_json({"data": data, "total": len(data)}, _SEARCH_URL)
 
 
-def _search(monkeypatch, data: list[dict]) -> list[DeezerTrack]:
+def _search(monkeypatch, data: list[dict]) -> list[Track]:
     """Stub `httpx.get` with a 200 search envelope and dispatch `_CLIENT.search`."""
     stub_get(monkeypatch, _CLIENT_HTTP_GET, _ok_search(data))
     return _CLIENT.search(_QUERY)

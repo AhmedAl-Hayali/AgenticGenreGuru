@@ -22,7 +22,7 @@ import pytest
 
 from genreguru.db.models import Song, SongFingerprint
 from genreguru.deezer import client as deezer_client
-from genreguru.dto import Album, Artist, DeezerTrack
+from genreguru.dto import Album, Track
 from genreguru.errors import (
     MissingISRCError,
     NetworkDisconnectedError,
@@ -32,7 +32,7 @@ from genreguru.errors import (
 from tests.sample_payloads import DEEZER_MATCH, DEEZER_MATCHES
 
 
-def matches_of(resp) -> list[DeezerTrack]:
+def matches_of(resp) -> list[Track]:
     """Return the typed `matches` array of a search response."""
     body = resp.json()
     assert isinstance(body, dict) and isinstance(body.get("matches"), list)
@@ -51,17 +51,17 @@ def get_search(django_client, monkeypatch):
     """GET /api/search/ with a stubbed `DeezerClient.search`; returns the response.
 
     `query` is the search term to issue (required, keyword-only), `result`
-    sets the returned matches (default empty), and `error` makes the stub
-    raise.
+    sets the returned matches (default empty), and `error` makes the search
+    stub raise.
     """
 
     def _search(
         *,
         query: str,
-        result: list[DeezerTrack] | None = None,
+        result: list[Track] | None = None,
         error: BaseException | None = None,
     ):
-        def fake_search(self, q: str) -> list[DeezerTrack]:
+        def fake_search(self, q: str) -> list[Track]:
             if error is not None:
                 raise error
             return list(result or [])
@@ -87,7 +87,7 @@ class TestSearchResponseShape:
         assert isinstance(matches_of(resp), list)
 
     def test_match_has_required_fields(self, get_search):
-        """Each match must include deezer_id, title, isrc, duration, preview, artist, album."""
+        """Each match must include deezer_id, title, isrc, duration, preview, cover, artists, album."""
         resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
         match = matches_of(resp)[0]
         for field in [
@@ -96,7 +96,8 @@ class TestSearchResponseShape:
             "isrc",
             "duration",
             "preview",
-            "artist",
+            "cover",
+            "artists",
             "album",
         ]:  # Could be DEEZER_MATCH instead, but this is explicit
             assert field in match
