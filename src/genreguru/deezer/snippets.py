@@ -29,8 +29,16 @@ _MAX_RETRIES = 3
 _RETRY_DELAY = 5  # seconds
 
 
-def fetch_snippet(preview_url: str) -> bytes:
+def fetch_snippet(
+    preview_url: str,
+    *,
+    session: httpx.Client | None = None,
+) -> bytes:
     """Fetch audio bytes from *preview_url* with retry.
+
+    Args:
+        preview_url: Audio preview URL to download.
+        session: HTTPX client instance to use for requests, or None to use default.
 
     Returns:
         Raw audio bytes on success.
@@ -41,20 +49,26 @@ def fetch_snippet(preview_url: str) -> bytes:
             or non-200 responses without an audio payload.
     """
     return retry_until_success(
-        lambda attempt: _fetch_attempt(preview_url, attempt),
+        lambda attempt: _fetch_attempt(preview_url, attempt, session=session),
         max_retries=_MAX_RETRIES,
         delay=_RETRY_DELAY,
         operation_label="fetch_snippet",
     )
 
 
-def _fetch_attempt(preview_url: str, attempt: int) -> bytes:
+def _fetch_attempt(
+    preview_url: str,
+    attempt: int,
+    *,
+    session: httpx.Client | None = None,
+) -> bytes:
     """Execute one snippet-fetch attempt under `fetch_snippet`'s retry budget."""
     logger.info("fetch_snippet attempt=%d url=%s", attempt, preview_url)
+    client = session or httpx
 
     try:
         with timer() as elapsed:
-            resp = httpx.get(preview_url, timeout=30)
+            resp = client.get(preview_url, timeout=30)
     except (httpx.ConnectTimeout, httpx.ReadTimeout) as exc:
         raise RetryableError(code=None, last_exc=exc) from None
     except (httpx.ConnectError, httpx.ReadError) as exc:
