@@ -8,7 +8,7 @@ logging-free (SRP): persistence logging lives in the repository layer.
 Mixins from `..db.base` provide audit columns and UUID primary keys.
 """
 
-__all__ = ["AudioFormat", "Song", "SongFingerprint"]
+__all__ = ["AudioFormat", "Song", "SongArtist", "SongFingerprint"]
 
 import enum
 import uuid
@@ -18,6 +18,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    SmallInteger,
     String,
     Text,
     UniqueConstraint,
@@ -68,6 +69,12 @@ class Song(Base, TimestampedMixin, UuidMixin):
     fingerprint: Mapped[SongFingerprint] = relationship(
         back_populates="song", uselist=False, cascade="all, delete-orphan"
     )
+    artists: Mapped[list[SongArtist]] = relationship(
+        back_populates="song",
+        cascade="all, delete-orphan",
+        order_by="SongArtist.position",
+        passive_deletes=True,
+    )
 
     @classmethod
     def find_by_isrc(cls, session: Session, isrc: str) -> Song | None:
@@ -77,6 +84,37 @@ class Song(Base, TimestampedMixin, UuidMixin):
     def __repr__(self) -> str:
         """Return a string representation of the Song instance."""
         return f"<Song id={self.id} title={self.title!r} artist={self.artist!r}>"
+
+
+class SongArtist(Base, TimestampedMixin, UuidMixin):
+    """A Deezer contributor on a song (data-model.md `song_artists`).
+
+    One row per contributor, ordered by `position` (0 = main artist,
+    mirroring Deezer's `contributors` ordering). Deduplicated at the
+    client boundary by Deezer artist id.
+    """
+
+    __tablename__ = "song_artists"
+    __table_args__ = (UniqueConstraint("song_id", "position"),)
+
+    song_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("songs.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+    deezer_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    position: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+
+    song: Mapped[Song] = relationship(back_populates="artists")
+
+    def __repr__(self) -> str:
+        """Return a string representation of the SongArtist instance."""
+        return (
+            f"<SongArtist deezer_id={self.deezer_id} "
+            f"position={self.position} name={self.name!r}>"
+        )
 
 
 class SongFingerprint(Base, TimestampedMixin, UuidMixin):
