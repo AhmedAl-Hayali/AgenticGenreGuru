@@ -26,7 +26,12 @@ from genreguru.deezer._retry import (
     is_retryable_code,
     retry_until_success,
 )
-from genreguru.dto import Artist,Track
+from genreguru.dto import (
+    Artist,
+    DeezerSearchResponse,
+    RawDeezerTrack,
+    Track,
+)
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -127,18 +132,32 @@ def _map_artists(raw_artist: object, contributors: object) -> list[Artist]:
     return artists or [_UNKNOWN_ARTIST]
 
 
-def _map_track(raw: dict) -> Track:
-    """Map a raw Deezer Track object to the normalized `Track` schema."""
+def _map_track(raw: RawDeezerTrack) -> Track:
+    """Map a raw `RawDeezerTrack` object to the normalized `Track` schema."""
     return {
         "deezer_id": raw["id"],
         "title": raw["title"],
-        "isrc": raw.get("isrc", ""),
+        "isrc": raw.get("isrc") or "",
         "duration": raw["duration"],
-        "preview": raw.get("preview", ""),
+        "preview": raw.get("preview") or "",
         "cover": _cover_url(raw.get("md5_image")),
         "artists": _map_artists(raw.get("artist"), raw.get("contributors")),
-        "album": raw["album"],
+        "album": raw.get("album"),
     }
+
+
+def _require_raw_track(raw: object) -> RawDeezerTrack:
+    """Narrow an untyped JSON object to the `RawDeezerTrack` claim.
+
+    The runtime gate between the opaque JSON layer and the typed upstream-track
+    layer. A non-object element is malformed wire data and fails loud; the
+    required keys (`id`, `title`, `duration`) remain enforced by `_map_track`'s
+    indexing (tolerant keys — `album`, `isrc`, `preview`, rosters — degrade
+    or fail loud with domain errors as documented per-key).
+    """
+    if not isinstance(raw, dict):
+        raise TypeError("deezer track body must be a JSON object")
+    return cast(RawDeezerTrack, raw)
 
 
 def _error_code(resp: httpx.Response) -> int | None:
@@ -179,9 +198,9 @@ def _validate_track(track: Track) -> None:
         )
 
 
-def _build_tracks(body: dict) -> list[Track]:
+def _build_tracks(resp: DeezerSearchResponse) -> list[Track]:
     """Map raw `data` tracks to the internal schema, validating each."""
-    tracks = [_map_track(raw) for raw in body.get("data", [])]
+    tracks = [_map_track(raw) for raw in resp.get("data", [])]
     for track in tracks:
         _validate_track(track)
     return tracks
@@ -349,7 +368,7 @@ class DeezerClient:
 
         total = body.get("total", 0)
         logger.info("deezer search response total=%d", total)
-        results = _build_tracks(body)
+        results = _build_tracks(cast(DeezerSearchResponse, body))
         logger.debug("mapped %d tracks", len(results))
         return results
 
@@ -404,7 +423,7 @@ class DeezerClient:
         if err_code == _DATA_NOT_FOUND:
             raise TrackNotFoundError(f"track not found: {track_id}", deezer_id=track_id)
 
-        track = _map_track(body)
+        track = _map_track(_require_raw_track(body))
         _validate_track(track)
         return track
 

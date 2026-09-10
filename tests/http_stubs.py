@@ -8,9 +8,12 @@ them on a dotted `target` path (e.g. `"genreguru.deezer.client.httpx.get"`)
 via pytest's `monkeypatch`.
 """
 
+from collections.abc import Mapping
+
 import httpx
 
 from genreguru.deezer._retry import _RETRYABLE_CODES
+from genreguru.dto import RawDeezerTrack
 
 _JSON_HEADERS = {"content-type": "application/json"}
 _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
@@ -50,7 +53,7 @@ def repeat(item, times: int):
 def response(
     status_code: int,
     *,
-    json: dict | None = None,
+    json: object | None = None,
     content: bytes | None = None,
     headers: dict | None = None,
     url: str,
@@ -66,9 +69,19 @@ def response(
     )
 
 
-def ok_json(body: dict, url: str) -> httpx.Response:
-    """A 200 response carrying *body* as JSON."""
+def ok_json(body: object, url: str) -> httpx.Response:
+    """A 200 response carrying *body* as JSON.
+
+    Transport-only: *body* is any JSON value (search envelope, degraded payload).
+    Track-lookup bodies should use `ok_track` to keep the `RawDeezerTrack` claim
+    at its single stub entry point.
+    """
     return response(200, json=body, url=url)
+
+
+def ok_track(track: RawDeezerTrack, url: str) -> httpx.Response:
+    """A 200 response carrying a single raw Deezer Track object as JSON."""
+    return response(200, json=track, url=url)
 
 
 def error_envelope(status_code: int, error_code: int, url: str) -> httpx.Response:

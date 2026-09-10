@@ -21,13 +21,19 @@ via pytest's function-scoped `monkeypatch`; cases are collapsed with
 """
 
 import re
+from typing import Any, cast
 
 import httpx
 import pytest
 
 from genreguru.deezer import client
 from genreguru.deezer._retry import classify_error
-from genreguru.dto import Track
+from genreguru.dto import (
+    Artist,
+    DeezerSearchResponse,
+    RawDeezerTrack,
+    Track,
+)
 from genreguru.errors import (
     GenreguruError,
     MissingISRCError,
@@ -48,15 +54,20 @@ from tests.http_stubs import (
 
 _QUERY = "Daft Punk"
 
+_MAIN_ARTIST = Artist(id=27, name="Daft Punk")
+_EXTRA_ARTIST = Artist(id=11, name="Stardust")
+_MAIN_ROSTER = [_MAIN_ARTIST]
+_FULL_ROSTER = [_MAIN_ARTIST, _EXTRA_ARTIST]
+
 # Deliberate: mirrors `DEEZER_MATCH` (tests.sample_payloads) without coupling
 # the unit suite to the contract fixtures.
-_SAMPLE_TRACK = {
+_SAMPLE_TRACK: RawDeezerTrack = {
     "id": 3135556,
     "title": "Harder, Better, Faster, Stronger",
     "isrc": "GBDUW0000059",
     "duration": 226,
     "preview": "https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
-    "artist": Artist(id=27, name="Daft Punk"),
+    "artist": _MAIN_ARTIST,
     "album": {"id": 302127, "title": "Discovery"},
 }
 
@@ -72,12 +83,31 @@ _MAX_RETRIES = client._MAX_RETRIES
 _CLIENT = client.DeezerClient()
 
 
-def _ok_search(data: list[dict]) -> httpx.Response:
+def _ok_search(data: list[RawDeezerTrack]) -> httpx.Response:
     """200 search envelope with *data* and a matching `total`."""
-    return ok_json({"data": data, "total": len(data)}, _SEARCH_URL)
+    body: DeezerSearchResponse = {"data": data, "total": len(data)}
+    return ok_json(body, _SEARCH_URL)
 
 
-def _search(monkeypatch, data: list[dict]) -> list[Track]:
+def _raw_track(contributors=None, **overrides) -> RawDeezerTrack:
+    """A `RawDeezerTrack` fixture: `_SAMPLE_TRACK` plus *contributors* overrides.
+
+    Mirrors `_SAMPLE_TRACK`'s main-artist search form by default; pass
+    `contributors=` (e.g. `_FULL_ROSTER`) when building a `/track/{id}`
+    lookup body. Any other key overrides via keyword (e.g. `id=...`,
+    `album=None`, `isrc=""`). The single `cast`/`Any` bridge for the whole
+    suite: deliberately-malformed values (non-list `contributors`, bad-typed
+    entries) aren't `RawDeezerTrack`-legal, and the JSON wire layer is
+    genuinely untyped — so this one helper owns the claim, mirroring the
+    client's tolerant `.get()` reads.
+    """
+    body: Any = {**_SAMPLE_TRACK, **overrides}
+    if contributors is not None:
+        body["contributors"] = contributors
+    return cast(RawDeezerTrack, body)
+
+### Come back, list[dict] -> list[RawDeezerTrack]
+def _search(monkeypatch, data: list[RawDeezerTrack]) -> list[Track]:
     """Stub `httpx.get` with a 200 search envelope and dispatch `_CLIENT.search`."""
     stub_get(monkeypatch, _CLIENT_HTTP_GET, _ok_search(data))
     return _CLIENT.search(_QUERY)
@@ -119,7 +149,7 @@ class TestFieldMapping:
 
     def test_multiple_tracks_all_mapped(self, monkeypatch):
         """Every track in `data` must be mapped, not just the first."""
-        second_track = {**_SAMPLE_TRACK, "id": _SECOND_TRACK_ID}
+        second_track = _raw_track(id=_SECOND_TRACK_ID)
         results = _search(monkeypatch, [_SAMPLE_TRACK, second_track])
         assert [result["deezer_id"] for result in results] == [
             _SAMPLE_TRACK["id"],
@@ -153,10 +183,15 @@ class TestEmptyResults:
 
     @pytest.mark.parametrize(
         "body",
-        [{"data": [], "total": 0}, {"total": 0}],
+        [
+            DeezerSearchResponse(data=[], total=0),
+            DeezerSearchResponse(total=0),
+        ],
         ids=["empty_data", "missing_data_key"],
     )
-    def test_empty_results_returns_empty_list(self, monkeypatch, body):
+    def test_empty_results_returns_empty_list(
+        self, monkeypatch, body: DeezerSearchResponse
+    ):
         """A response without tracks must yield an empty result, not an error."""
         stub_get(monkeypatch, _CLIENT_HTTP_GET, ok_json(body, _SEARCH_URL))
         assert _CLIENT.search(_QUERY) == []
@@ -310,18 +345,10 @@ class TestSearchRetry:
 class TestMissingISRC:
     """Verify fail-loud behaviour when a track lacks a valid ISRC."""
 
-    @pytest.mark.parametrize(
-        "track",
-        [
-            {k: v for k, v in _SAMPLE_TRACK.items() if k != "isrc"},
-            {**_SAMPLE_TRACK, "isrc": ""},
-        ],
-        ids=["missing_key", "empty_string"],
-    )
-    def test_missing_isrc_raises(self, monkeypatch, track):
+    def test_missing_isrc_raises(self, monkeypatch):
         """A track without a valid ISRC must raise MissingISRCError with its ID."""
         with pytest.raises(MissingISRCError, match=re.escape(str(_SAMPLE_TRACK["id"]))):
-            _search(monkeypatch, [track])
+            _search(monkeypatch, [_raw_track(isrc="")])
 
 
 class TestPreviewUnavailable:
@@ -331,23 +358,25 @@ class TestPreviewUnavailable:
     def test_preview_unavailable_raises(self, monkeypatch, preview):
         """A track without a preview URL must raise PreviewUnavailableError."""
         with pytest.raises(PreviewUnavailableError, match="audio preview unavailable"):
-            _search(monkeypatch, [{**_SAMPLE_TRACK, "preview": preview}])
+            _search(
+                monkeypatch,
+                [_raw_track(preview=preview)],
+            )
 
 
-class TestAlbumMissing:
-    """Verify fail-loud behaviour when a track lacks an album.
+class TestAlbumTolerance:
+    """Verify tolerant album handling on the raw-track boundary.
 
-    Unlike `isrc`/`preview` (which normalize via `.get` then fail-loud with
-    domain errors), `album` is hard-accessed in `_map_track` — mirroring
-    `artist`. A raw track missing the album key raises `KeyError`, aborting
-    the search batch. This is the deliberate strict boundary for album.
+    `album` is a nullable key (`NotRequired[Album | None]`), mirroring the
+    persisted nullable `album` column — unlike the contract-mandated `isrc`
+    and `preview`, which fail loud with domain errors, a raw track missing
+    the `album` key maps to `None`.
     """
 
-    def test_missing_album_key_raises_key_error(self, monkeypatch):
-        """A raw track without an `album` key must abort search with `KeyError`."""
-        track = {k: v for k, v in _SAMPLE_TRACK.items() if k != "album"}
-        with pytest.raises(KeyError):
-            _search(monkeypatch, [track])
+    def test_missing_album_key_maps_to_none(self, monkeypatch):
+        """A raw track without an `album` key must result in `album=None`."""
+        result = _search(monkeypatch, [_raw_track(album="")])
+        assert result[0]["album"] is None
 
 
 class TestErrorCodeMapping:

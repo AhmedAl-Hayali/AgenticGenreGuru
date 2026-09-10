@@ -12,7 +12,7 @@ the fingerprint-service normalization bridge), not in this shared file.
 (`genreguru/audio/features.py`) and is referenced here, not re-defined.
 """
 
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 from genreguru.audio.features import Feature
 
@@ -20,11 +20,14 @@ __all__ = [
     "FeatureScalars",
     "Artist",
     "Album",
+    "RawDeezerTrack",
+    "DeezerSearchResponse",
     "Track",
     "SongData",
     "FingerprintResponse",
 ]
 
+# The 8 collapsed DSP feature scalars (keyed by `Feature`).
 FeatureScalars = dict[Feature, float]
 
 
@@ -41,6 +44,43 @@ class Album(TypedDict):
     id: int
     title: str
 
+
+class RawDeezerTrack(TypedDict):
+    """The upstream Deezer Track object (`contracts/deezer-api.md` §1), unnormalized.
+
+    Raw names and shapes only — `id` (→ `deezer_id`), `artist`/`contributors`
+    (→ the canonical `artists` list), `md5_image` (→ the derived `cover`).
+
+    The strictly required keys are `id`/`title`/`duration` (structural) plus
+    `isrc` and `preview`, which the contracts mandate the wire always carries:
+    a violated `isrc`/`preview` fails loud with `MissingISRCError` /
+    `PreviewUnavailableError` (see `_validate_track`). Everything else is a
+    tolerant `.get()`-read key: `album` may be `None` or absent and maps to
+    `None` (mirroring the nullable persisted `album` column), and
+    `md5_image`/`artist`/`contributors` degrade gracefully.
+    """
+
+    id: int
+    title: str
+    duration: int
+    isrc: str
+    preview: str
+    album: NotRequired[Album | None]
+    md5_image: NotRequired[str | None]
+    artist: NotRequired[Artist | None]
+    contributors: NotRequired[list[Artist] | None]
+
+
+class DeezerSearchResponse(TypedDict):
+    """The Deezer `/search` JSON body envelope — not a track itself.
+
+    `data` holds the raw track objects and `total` the reported result count.
+    Both are tolerant (`NotRequired`) because the client reads them via
+    `.get` and a `DATA_NOT_FOUND` (800) response has no track payload.
+    """
+
+    data: NotRequired[list[RawDeezerTrack]]
+    total: NotRequired[int]
 
 class Track(TypedDict):
     """The normalized GenreGuru track — what the client returns and the search wire.
