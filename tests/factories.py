@@ -1,11 +1,15 @@
 """FactoryBoy factories for the database models.
 
-Provide realistic `Song` and `SongFingerprint` instances for tests without
-hard-coding fixture data; used by repository/service tests.
+Provide realistic `Song`, `SongArtist`, and `SongFingerprint` instances for
+tests without hard-coding fixture data; used by repository/service tests.
 UUIDv7 ids are generated server-side by the `uuidv7()` default, so
 factories leave `id` unset unless a caller overrides it. Audit columns
 `created_at` / `updated_at` are also server-defaulted (`func.now()`)
 and likewise omitted.
+
+Contributors are never auto-attached (`SongFactory` builds a plain song);
+compose via `SongArtistFactory.build_contributors`. A bare `SongArtist`
+defaults to main (`position=0`) and syncs `Song.artist` to its name.
 """
 
 import random
@@ -14,7 +18,8 @@ import factory
 from faker import Faker
 
 from genreguru.db.engine import make_scoped_session
-from genreguru.db.models import AudioFormat, Song, SongFingerprint
+from genreguru.db.models import AudioFormat, Song, SongArtist, SongFingerprint
+from genreguru.dto import Artist
 
 fake = Faker()
 
@@ -67,6 +72,58 @@ class SongFactory(factory.alchemy.SQLAlchemyModelFactory):
     duration = factory.LazyAttribute(lambda _: random.randint(60, 600))
 
 
+class SongArtistFactory(factory.alchemy.SQLAlchemyModelFactory):
+    """Build a SongArtist instance (position 0 = main artist)."""
+
+    class Meta:
+        """Factory metadata: model and session binding."""
+
+        model = SongArtist
+        sqlalchemy_session = sc_session
+
+    song: Song = factory.SubFactory(SongFactory)  # ty: ignore[invalid-assignment]
+    deezer_id = factory.Sequence(lambda n: 50_000 + n)
+    name: str = factory.Faker("name")  # ty: ignore[invalid-assignment]
+    # A bare contributor is the main artist; composed lists must pass distinct
+    # positions explicitly (see `build_contributors`).
+    position = 0
+
+    @factory.post_generation
+    def _sync_main_artist_name(self, create, extracted, **kwargs) -> None:
+        """Sync the parent song's main-artist column.
+
+        A position-0 contributor writes its name to `Song.artist`, mirroring
+        `SongRepository`. Deliberately overwrites a manually-set parent name.
+        """
+        if self.position == 0 and self.name:
+            self.song.artist = self.name
+
+    @classmethod
+    def build_contributors(cls, song: Song, *, count: int = 1) -> list[SongArtist]:
+        """Build `count` distinct synthetic contributors for *song*.
+
+        Positions `0..count-1` main-first; distinct auto `deezer_id` (factory
+        Sequence), arbitrary Faker `name`. The position-0 member syncs
+        `song.artist`. Returns built instances for assertions.
+
+        Args:
+            song: The song the contributors belong to.
+            count: Number of contributors (>= 1).
+
+        Raises:
+            ValueError: If *count* is less than 1 (a song has no zero-artist
+                form; an empty roster would persist `artist=""`).
+        """
+        if count < 1:
+            raise ValueError("count must be >= 1")
+        return [cls.build(song=song, position=pos) for pos in range(count)]
+
+    @staticmethod
+    def to_artist(contributor: SongArtist) -> Artist:
+        """Project a built contributor onto the `Artist` DTO (wire shape)."""
+        return Artist(id=contributor.deezer_id, name=contributor.name)
+
+
 class SongFingerprintFactory(factory.alchemy.SQLAlchemyModelFactory):
     """Build a SongFingerprint instance linked to a Song."""
 
@@ -85,7 +142,5 @@ class SongFingerprintFactory(factory.alchemy.SQLAlchemyModelFactory):
     spectral_rolloff = factory.Faker("pyfloat", min_value=100.0, max_value=8000.0)
     zero_crossing_rate = factory.Faker("pyfloat", min_value=0.0, max_value=1.0)
     mfcc = factory.Faker("pyfloat", min_value=-1000.0, max_value=1000.0)
-    audio_format = factory.LazyAttribute(
-        lambda _: random.choice(list(AudioFormat)).value
-    )
+    audio_format = factory.LazyAttribute(lambda _: random.choice(list(AudioFormat)))
     sample_rate = factory.LazyAttribute(lambda _: random.choice([22050, 44100]))
