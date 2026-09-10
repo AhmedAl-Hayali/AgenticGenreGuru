@@ -17,8 +17,9 @@ import numpy as np
 from genreguru.audio.features import Feature
 from genreguru.db.models import SongFingerprint
 from genreguru.db.repositories import SongRepository
-from genreguru.dto import ConfirmTrack, Artist
+from genreguru.dto import Album
 from genreguru.fingerprint_service import process_fingerprint
+from tests.factories import SongArtistFactory, SongFactory
 from tests.repo_payloads import (
     EXPECTED_FINGERPRINT_KEYS,
     build_repo_payloads,
@@ -69,18 +70,6 @@ def _stub_audio(monkeypatch):
         return n_calls
 
     return fetch_calls
-
-
-def _build_track(song_data, *, artists, album) -> ConfirmTrack:
-    """Build a ``ConfirmTrack`` from repo payloads with the given artists/album.
-
-    Delegates to ``match_from_song`` for the field mapping and overrides
-    ``artists``/``album`` so each caller controls the shape.
-    """
-    track = match_from_song(song_data)
-    track["artists"] = artists
-    track["album"] = album
-    return track
 
 
 def _single_service_record(caplog):
@@ -161,32 +150,35 @@ class TestFreshPath:
 
 
 class TestFlattening:
-    """Verify artist/album handling from upstream Deezer payload shapes."""
+    """Verify artist/album persistence through the fresh pipeline."""
 
     def test_fresh_path_persists_contributors(
         self, db_session, repo: SongRepository, monkeypatch
     ):
-        """Raw object-shaped contributors must persist to SongArtist rows."""
+        """Object-shaped contributors persist to `SongArtist` rows."""
         song_data, *_ = build_repo_payloads()
         fetch_calls = _stub_audio(monkeypatch)
+        contributors = SongArtistFactory.build_contributors(
+            SongFactory.build(), count=2
+        )
 
         result = process_fingerprint(
             db_session,
-            _build_track(
+            match_from_song(
                 song_data,
-                artists=[
-                    Artist(id=27, name="Daft Punk"),
-                    Artist(id=11, name="Stardust"),
-                ],
-                album={"id": 302127, "title": "Discovery"},
+                artists=[SongArtistFactory.to_artist(c) for c in contributors],
+                album=Album(id=302127, title="Discovery"),
             ),
             repo,
         )
 
         stored = repo.find_by_isrc(song_data["isrc"])
         assert stored is not None
-        assert stored.artist == "Daft Punk"
+        assert stored.artist == contributors[0].name
         assert stored.album == "Discovery"
+        assert [(a.deezer_id, a.name, a.position) for a in stored.artists] == [
+            (c.deezer_id, c.name, c.position) for c in contributors
+        ]
 
         assert result["song_id"] == str(stored.id)
         # Smoke-signal that the full fresh pipeline ran: the stub yields 1.0
@@ -197,19 +189,29 @@ class TestFlattening:
     def test_fresh_path_album_none_flattens(
         self, db_session, repo: SongRepository, monkeypatch
     ):
-        """A DeezerTrack with album=None must persist NULL through orchestration."""
+        """`album=None` persists NULL through orchestration."""
         song_data, *_ = build_repo_payloads()
         fetch_calls = _stub_audio(monkeypatch)
+        contributors = SongArtistFactory.build_contributors(
+            SongFactory.build(), count=1
+        )
 
         result = process_fingerprint(
             db_session,
-            _build_track(song_data, artist="Daft Punk", album=None),
+            match_from_song(
+                song_data,
+                artists=[SongArtistFactory.to_artist(c) for c in contributors],
+                album=None,
+            ),
             repo,
         )
 
         stored = repo.find_by_isrc(song_data["isrc"])
         assert stored is not None
         assert stored.album is None
+        assert [(a.name, a.position) for a in stored.artists] == [
+            (contributors[0].name, 0)
+        ]
 
         assert result["song_id"] == str(stored.id)
         # Smoke-signal that the full fresh pipeline ran (see prior test).

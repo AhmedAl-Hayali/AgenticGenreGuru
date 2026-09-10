@@ -1,9 +1,8 @@
 """Unit tests for `fingerprint_service` pure mapping functions.
 
-Tests `_feature_map`, `_build_response`, `_artist_name`, `_album_title`,
-and `_to_song_data` in isolation — no monkeypatch, no network. The
-orchestration path is covered by the integration suite
-(`tests/integration/test_fingerprint_service.py`).
+Tests `_feature_map`, `_build_response`, `_album_title`, and `_to_song_data`
+in isolation — no monkeypatch, no network. The orchestration path is covered
+by the integration suite (`tests/integration/test_fingerprint_service.py`).
 """
 
 from typing import Any, cast
@@ -12,15 +11,14 @@ import pytest
 
 from genreguru.audio.features import Feature
 from genreguru.db.models import Song
-from genreguru.dto import Album, Artist, FeatureScalars, FingerprintResponse
+from genreguru.dto import Album, FeatureScalars, FingerprintResponse
 from genreguru.fingerprint_service import (
     _album_title,
-    _artist_name,
     _build_response,
     _feature_map,
     _to_song_data,
 )
-from tests.factories import SongFactory, SongFingerprintFactory
+from tests.factories import SongArtistFactory, SongFactory, SongFingerprintFactory
 from tests.repo_payloads import (
     EXPECTED_FINGERPRINT_KEYS,
     build_repo_payloads,
@@ -152,65 +150,58 @@ class TestBuildResponse:
             assert result["fingerprint"][f.value] == features[f]
 
 
-class TestArtistName:
-    """Verify `_artist_name` flattens object-shaped artist payloads."""
-
-    @pytest.mark.parametrize(
-        ("artist", "expected"),
-        [
-            (Artist(id=27, name="Daft Punk"), "Daft Punk"),
-            ("Daft Punk", "Daft Punk"),
-        ],
-    )
-    def test_artist_name_flattens(self, artist, expected):
-        """`_artist_name` flattens objects; plain strings pass through."""
-        assert _artist_name(artist) == expected
-
-
 class TestAlbumTitle:
-    """Verify `_album_title` flattens object-shaped / None / string payloads."""
+    """Verify `_album_title` flattens object-shaped / None payloads."""
 
     @pytest.mark.parametrize(
         ("album", "expected_album"),
         [
             (Album(id=302127, title="Discovery"), "Discovery"),
-            ("Discovery", "Discovery"),
             (None, None),
         ],
     )
     def test_album_title_flattens(self, album, expected_album):
-        """`_album_title` flattens objects/None/strings; `None` stays `None`."""
+        """`_album_title` flattens object albums; `None` stays `None`."""
         assert _album_title(album) is expected_album
 
 
 class TestToSongData:
-    """Verify `_to_song_data` maps a `DeezerTrack` to the `SongData` shape."""
+    """Verify `_to_song_data` maps a `ConfirmTrack` to the `SongData` shape."""
 
     @pytest.mark.parametrize(
-        ("artist", "exp_artist", "album", "exp_album"),
+        ("album", "exp_album"),
         [
-            (
-                Artist(id=27, name="Daft Punk"),
-                "Daft Punk",
-                Album(id=302127, title="Discovery"),
-                "Discovery",
-            ),
-            ("Daft Punk", "Daft Punk", None, None),
+            (Album(id=302127, title="Discovery"), "Discovery"),
+            (None, None),
         ],
     )
-    def test_flattens_artist_and_album(self, artist, exp_artist, album, exp_album):
-        """`_to_song_data` flattens object artist/album to strings; None maps to None."""
+    def test_album_flattening(self, album, exp_album):
+        """`_to_song_data` flattens object albums; None maps to None."""
         song_data, *_ = build_repo_payloads()
-        track = match_from_song(song_data)
-        track["artist"] = artist
-        track["album"] = album
+        track = match_from_song(song_data, album=album)
 
         result = _to_song_data(track)
 
-        assert result["artist"] == exp_artist
         assert result["album"] is exp_album
         assert result["deezer_id"] == song_data["deezer_id"]
         assert result["isrc"] == song_data["isrc"]
         assert result["title"] == song_data["title"]
         assert result["preview_url"] == song_data["preview_url"]
         assert result["duration"] == song_data["duration"]
+
+    def test_artists_carried_main_first(self):
+        """`artists` list passes through unchanged."""
+        song_data, *_ = build_repo_payloads()
+        contributors = SongArtistFactory.build_contributors(
+            SongFactory.build(), count=2
+        )
+        track = match_from_song(
+            song_data,
+            artists=[SongArtistFactory.to_artist(c) for c in contributors],
+        )
+
+        result = _to_song_data(track)
+
+        assert result["artists"] == [
+            SongArtistFactory.to_artist(c) for c in contributors
+        ]
