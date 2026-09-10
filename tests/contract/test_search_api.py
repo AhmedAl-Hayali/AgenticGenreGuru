@@ -111,6 +111,13 @@ class TestSearchResponseShape:
         assert "id" in artists[0]
         assert "name" in artists[0]
 
+    def test_cover_url_shape(self, get_search):
+        """The `cover` URL must carry the bare md5-image suffix at 300x300."""
+        resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
+        cover = matches_of(resp)[0]["cover"]
+        assert cover.startswith("https://cdn-images.dzcdn.net/images/cover/")
+        assert cover.endswith("/300x300.jpg")
+
     def test_album_has_id_and_title(self, get_search):
         """Album sub-object must contain `id` and `title`."""
         resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
