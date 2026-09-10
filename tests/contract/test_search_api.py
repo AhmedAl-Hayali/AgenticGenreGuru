@@ -4,9 +4,10 @@ Validates the JSON response shape, status codes (200/404/503), the real
 `[:5]` cap, and that error paths create NO partial Song/SongFingerprint rows.
 
 GREEN phase: `search_view` is exercised as the REAL view. The only mocked
-dependency is `DeezerClient.search` (the network boundary), so
-the view's own logic — empty-query 404, error-code mapping, 5-match cap,
-`matches=[]` for zero results — is genuinely under test.
+dependency is `DeezerClient.search` (the network boundary — it already
+returns enrichments: full roster + sanitized wire shape), so the view's own
+logic — empty-query 404, error-code mapping, 5-match cap, `matches=[]` for
+zero results — is genuinely under test.
 
 The module-local route resolution is skipped: tests run against the real
 `genreguru_web.urls` → `fingerprint_app.urls` routing via the default
@@ -102,12 +103,13 @@ class TestSearchResponseShape:
         ]:  # Could be DEEZER_MATCH instead, but this is explicit
             assert field in match
 
-    def test_artist_has_id_and_name(self, get_search):
-        """Artist sub-object must contain `id` and `name`."""
+    def test_artists_lead_with_main_artist(self, get_search):
+        """The `artists` list must lead with `{id, name}` of the main artist."""
         resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
-        artist = cast(Artist, matches_of(resp)[0]["artist"])
-        assert "id" in artist
-        assert "name" in artist
+        artists = matches_of(resp)[0]["artists"]
+        assert artists
+        assert "id" in artists[0]
+        assert "name" in artists[0]
 
     def test_album_has_id_and_title(self, get_search):
         """Album sub-object must contain `id` and `title`."""

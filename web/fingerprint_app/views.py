@@ -7,6 +7,7 @@ Search (`GET /api/search/?query={song_title}`) and Confirm
 
 import json
 import logging
+from typing import TypeGuard
 
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -86,6 +87,11 @@ def search_view(request):
 
     `GET /api/search/?query={song_title}`.
 
+    Matches arrive pre-assembled by `DeezerClient.search` — full main-first
+    contributor roster (best-effort) and display `cover`, sanitized to the
+    documented wire shape — so the candidates UI renders cover + all
+    contributors without a follow-up request.
+
     Returns:
         JsonResponse: Top-5 matches (status 200) or an error response:
         404 `TrackNotFoundError` / empty query, 503
@@ -132,8 +138,12 @@ def confirm_view(request):
     """Process a confirmed 2-click selection into a stored fingerprint.
 
     `POST /api/confirm/`. The request body carries the selected match
-    object (deezer_id, title, isrc, duration, preview, artist, album); no
-    id appears in the path — the body is the single source of the selection.
+    object (deezer_id, title, isrc, duration, preview, artists, album) — and
+    nothing else; extra keys (e.g. the display-only `cover`) are rejected
+    with 400 before the service runs. No id appears in the path — the body
+    is the single source of the selection. `artists` is the canonical
+    main-first contributor list; malformed values (not a non-empty list of
+    `{id: int, name: str}` maps) are likewise rejected with 400.
 
     Returns:
         JsonResponse: The fingerprint payload (status 201) or an error

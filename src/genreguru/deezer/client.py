@@ -17,7 +17,7 @@ private transient-failure signal raised here that never escapes the budget.
 """
 
 import logging
-from typing import NoReturn, cast
+from typing import Literal, NoReturn, cast
 
 import httpx
 
@@ -72,9 +72,9 @@ _RAW_READS = (
 
 # Defensive fallback artist so the canonical `artists` list is never empty,
 # even for a malformed upstream `artist`/`contributors` payload.
-_UNKNOWN_ARTIST: Artist = {"id": 0, "name": "Unknown artist"}
+_UNKNOWN_ARTIST: Artist = Artist(id=0, name="Unknown artist")
 
-_DATA_NOT_FOUND = 800
+_DATA_NOT_FOUND: Literal[800] = 800
 _MAX_RETRIES = 3
 _RETRY_DELAY = 5  # seconds
 
@@ -215,7 +215,7 @@ class DeezerClient:
     for concurrent use.
 
     Args:
-        base_url: Search API endpoint URL.
+        search_url: Search API endpoint URL.
         track_url: Track lookup API endpoint base URL.
         limit: Default number of candidate tracks per search query.
         request_timeout: Seconds before HTTP request timeout.
@@ -228,7 +228,7 @@ class DeezerClient:
     def __init__(
         self,
         *,
-        base_url: str = _SEARCH_URL,
+        search_url: str = _SEARCH_URL,
         track_url: str = _TRACK_URL,
         limit: int = _LIMIT,
         request_timeout: float = 30.0,
@@ -236,7 +236,7 @@ class DeezerClient:
         retry_delay: float = _RETRY_DELAY,
         session: httpx.Client | None = None,
     ) -> None:
-        self._base_url = base_url
+        self._search_url = search_url
         self._track_url = track_url
         self._limit = limit
         self._request_timeout = request_timeout
@@ -250,7 +250,7 @@ class DeezerClient:
         params: dict | None,
         attempt: int,
         label: str,
-    ) -> tuple[dict, int | None]:
+    ) -> tuple[DeezerSearchResponse | RawDeezerTrack, Literal[800] | None]:
         """Execute an HTTP GET request and parse JSON payload / error envelope.
 
         Args:
@@ -260,10 +260,14 @@ class DeezerClient:
             label: Human-readable operation label for logging context.
 
         Returns:
-            Tuple of `(body_dict, deezer_error_code)`. On an embedded or
-            HTTP 404 `DATA_NOT_FOUND` (800) code, returns `({}, _DATA_NOT_FOUND)`
-            so the caller can choose whether to return an empty list (search)
-            or raise `TrackNotFoundError` (lookup).
+            Tuple of `(body_dict, deezer_error_code)`. The body is either a search
+            envelope (`DeezerSearchResponse`) or, for `/track/{id}` lookups, a
+            raw track object (`RawDeezerTrack`); the error code is
+            `_DATA_NOT_FOUND`, typed as `Literal[800]` so the annotation and the
+            value cannot drift apart,  or `None`. On an embedded or HTTP 404
+            `DATA_NOT_FOUND` (800) code, returns `({}, _DATA_NOT_FOUND)` so the
+            caller can choose whether to return an empty list (search) or
+            raise `TrackNotFoundError` (lookup).
 
         Raises:
             RetryableError: If a retryable rate/busy code was seen.
@@ -287,7 +291,7 @@ class DeezerClient:
             ) from exc
         except httpx.HTTPStatusError as exc:
             if (code := _error_code(exc.response)) == _DATA_NOT_FOUND:
-                return {}, _DATA_NOT_FOUND
+                return DeezerSearchResponse(), _DATA_NOT_FOUND
             _raise_for_error_code(code, attempt, exc, exc.response.status_code)
         except ValueError:
             raise NetworkDisconnectedError(
@@ -303,10 +307,30 @@ class DeezerClient:
         error = body.get("error")
         if isinstance(error, dict):
             if (code := error.get("code")) == _DATA_NOT_FOUND:
-                return {}, _DATA_NOT_FOUND
+                return DeezerSearchResponse(), _DATA_NOT_FOUND
             _raise_for_error_code(code, attempt, None, None)
 
-        return body, None
+        return DeezerSearchResponse(**body), None
+
+    def _enrich_tracks(self, tracks: list[Track]) -> list[Track]:
+        """Best-effort splice the `/track/{id}` contributor roster per candidate.
+
+        Each candidate gets a `/track/{id}` lookup for its full main-first
+        roster (Deezer `/search` carries only the main artist short form).
+        A per-track lookup failure keeps the search-form roster and is INFO
+        logged; the search never fails because enrichment did, and one failed
+        sibling doesn't affect the others.
+        """
+        enriched: list[Track] = []
+        for match in tracks:
+            try:
+                track = self.get_track(match["deezer_id"])
+                decorated = Track(**{**match, "artists": track["artists"]})
+            except GenreguruError:
+                logger.info("artist enrichment skipped track_id=%s", match["deezer_id"])
+                decorated = match
+            enriched.append(decorated)
+        return enriched
 
     def search(self, query: str) -> list[Track]:
         """Search Deezer for candidate tracks matching a query.
@@ -318,11 +342,20 @@ class DeezerClient:
         unparseable body raises `NetworkDisconnectedError` so the caller can
         map it to 503.
 
+        Each match is best-effort enriched with its full main-first
+        contributor roster via a `/track/{id}` lookup (Deezer `/search`
+        carries only the main artist short form); every result carries
+        exactly the `SEARCH_FIELDS` keys (`_map_track` builds that set). A
+        per-track lookup failure keeps the search-form roster (INFO logged);
+        the search never fails because enrichment did.
+
         Args:
             query: Free-text search query string.
 
         Returns:
-            List of validated Deezer tracks matching the query, up to `limit`.
+            List of validated Deezer tracks matching the query, up to `limit`,
+            enriched with the full contributor roster, each carrying the
+            `SEARCH_FIELDS` wire shape.
 
         Raises:
             MissingISRCError: If any returned track is missing an ISRC.
@@ -331,12 +364,13 @@ class DeezerClient:
                 response is not a valid search payload.
             GenreguruError: If a non-retryable Deezer error code is returned.
         """
-        return retry_until_success(
+        matches = retry_until_success(
             lambda attempt: self._try_search(query, attempt),
             max_retries=self._max_retries,
             delay=self._retry_delay,
             operation_label="deezer search",
         )
+        return self._enrich_tracks(matches)
 
     def _try_search(self, query: str, attempt: int) -> list[Track]:
         """Execute one search attempt under the caller's retry budget.
@@ -358,7 +392,7 @@ class DeezerClient:
             "deezer search attempt=%d query=%s limit=%d", attempt, query, self._limit
         )
         body, err_code = self._request_json(
-            self._base_url,
+            self._search_url,
             {"q": query, "limit": self._limit},
             attempt,
             "search",
@@ -368,7 +402,7 @@ class DeezerClient:
 
         total = body.get("total", 0)
         logger.info("deezer search response total=%d", total)
-        results = _build_tracks(cast(DeezerSearchResponse, body))
+        results = _build_tracks(body)  # ty: ignore[invalid-argument-type]
         logger.debug("mapped %d tracks", len(results))
         return results
 
@@ -426,34 +460,6 @@ class DeezerClient:
         track = _map_track(_require_raw_track(body))
         _validate_track(track)
         return track
-
-    def enrich_artists(self, track_ids: list[int]) -> dict[int, ArtistEnrichment]:
-        """Fetch full contributor/cover detail for multiple tracks (best effort).
-
-        Used by the search flow to enrich candidate matches with their full
-        contributor roster + display cover before the response leaves the
-        server: maps each Deezer track id to `{"artists": [...], "cover": "..."}`.
-        Each track is resolved independently; individual lookup failures are logged
-        and skipped so valid matches retain their enrichments.
-
-        Args:
-            track_ids: List of Deezer track identifiers to enrich.
-
-        Returns:
-            Dictionary mapping each successfully enriched track ID to its
-            `ArtistEnrichment` containing `artists` and `cover`.
-        """
-        enriched: dict[int, ArtistEnrichment] = {}
-        for track_id in track_ids:
-            try:
-                track = self.get_track(track_id)
-                enriched[track_id] = {
-                    "artists": track["artists"],
-                    "cover": track["cover"],
-                }
-            except GenreguruError:
-                logger.info("artist enrichment skipped track_id=%s", track_id)
-        return enriched
 
 
 def _raise_for_error_code(
