@@ -22,6 +22,7 @@ from sqlalchemy.exc import IntegrityError
 from genreguru.audio.features import Feature
 from genreguru.db.models import AudioFormat, SongFingerprint
 from genreguru.db.repositories import Song, SongRepository
+from tests.factories import SongArtistFactory, SongFactory
 from tests.repo_payloads import build_repo_payloads
 
 
@@ -207,3 +208,24 @@ class TestFindByISRC:
             found = repo.find_by_isrc("NOSUCH0000000")
         assert found is None
         assert "isrc lookup miss isrc=NOSUCH0000000" in caplog.text
+
+
+class TestSongArtists:
+    """Verify `song_artists` rows persist on creation."""
+
+    def test_creation_writes_ordered_rows(self, db_session, repo: SongRepository):
+        """Persist one `SongArtist` row per contributor, main-first."""
+        song_data, features, audio_format, sample_rate = build_repo_payloads()
+        host = SongFactory.build()
+        contributors = SongArtistFactory.build_contributors(song=host, count=2)
+        song_data["artists"] = [SongArtistFactory.to_artist(c) for c in contributors]
+
+        song = repo.create_song_and_fingerprint(
+            song_data, features, audio_format, sample_rate
+        )
+
+        assert [(a.deezer_id, a.name, a.position) for a in song.artists] == [
+            (c.deezer_id, c.name, c.position) for c in contributors
+        ]
+        assert [a.position for a in song.artists] == [0, 1]
+        assert song.artist == contributors[0].name
