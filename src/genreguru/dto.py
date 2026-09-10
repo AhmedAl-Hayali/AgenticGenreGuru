@@ -23,6 +23,8 @@ __all__ = [
     "RawDeezerTrack",
     "DeezerSearchResponse",
     "Track",
+    "DeezerError",
+    "DeezerErrorEnvelope",
     "SongData",
     "FingerprintResponse",
 ]
@@ -81,6 +83,29 @@ class DeezerSearchResponse(TypedDict):
 
     data: NotRequired[list[RawDeezerTrack]]
     total: NotRequired[int]
+
+
+class DeezerError(TypedDict):
+    """The Deezer error sub-object embedded in an error-envelope/body.
+
+    The JSON layer stays untyped at runtime; this DTO is a claim about the
+    upstream shape, so every key is `NotRequired` and `code` may be absent.
+    """
+
+    type: NotRequired[str]
+    message: NotRequired[str]
+    code: NotRequired[int | None]
+
+
+class DeezerErrorEnvelope(TypedDict):
+    """A Deezer JSON body carrying an embedded `error` sub-object.
+
+    Covers both the documented error envelope and a 200 body embedding an
+    error (e.g. `DATA_NOT_FOUND`). The client reads only `error.code`.
+    """
+
+    error: NotRequired[DeezerError]
+
 
 class Track(TypedDict):
     """The normalized GenreGuru track — what the client returns and the search wire.

@@ -14,6 +14,7 @@ import httpx
 
 from genreguru.deezer._retry import _RETRYABLE_CODES
 from genreguru.dto import RawDeezerTrack
+from genreguru.dto import DeezerErrorEnvelope, RawDeezerTrack
 
 _JSON_HEADERS = {"content-type": "application/json"}
 _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
@@ -72,9 +73,9 @@ def response(
 def ok_json(body: object, url: str) -> httpx.Response:
     """A 200 response carrying *body* as JSON.
 
-    Transport-only: *body* is any JSON value (search envelope, degraded payload).
-    Track-lookup bodies should use `ok_track` to keep the `RawDeezerTrack` claim
-    at its single stub entry point.
+    Transport-only: *body* is any JSON value (search envelope, error shape,
+    degraded payload). Track-lookup bodies should use `ok_track` to keep the
+    `RawDeezerTrack` claim at its single stub entry point.
     """
     return response(200, json=body, url=url)
 
@@ -91,15 +92,16 @@ def error_envelope(status_code: int, error_code: int, url: str) -> httpx.Respons
     into the error branch of `snippets.fetch_snippet` (the audio branch
     requires a non-JSON content type).
     """
+    env: DeezerErrorEnvelope = {
+        "error": {
+            "type": "Exception",
+            "message": f"Error code {error_code}",
+            "code": error_code,
+        }
+    }
     return response(
         status_code,
-        json={
-            "error": {
-                "type": "Exception",
-                "message": f"Error code {error_code}",
-                "code": error_code,
-            }
-        },
+        json=env,
         headers=_JSON_HEADERS,
         url=url,
     )
