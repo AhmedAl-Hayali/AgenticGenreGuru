@@ -17,7 +17,7 @@ import numpy as np
 from genreguru.audio.features import Feature
 from genreguru.db.models import SongFingerprint
 from genreguru.db.repositories import SongRepository
-from genreguru.dto import DeezerTrack
+from genreguru.dto import ConfirmTrack, Artist
 from genreguru.fingerprint_service import process_fingerprint
 from tests.repo_payloads import (
     EXPECTED_FINGERPRINT_KEYS,
@@ -71,14 +71,14 @@ def _stub_audio(monkeypatch):
     return fetch_calls
 
 
-def _build_track(song_data, *, artist, album) -> DeezerTrack:
-    """Build a ``DeezerTrack`` from repo payloads with the given artist/album.
+def _build_track(song_data, *, artists, album) -> ConfirmTrack:
+    """Build a ``ConfirmTrack`` from repo payloads with the given artists/album.
 
     Delegates to ``match_from_song`` for the field mapping and overrides
-    ``artist``/``album`` so each caller controls the shape.
+    ``artists``/``album`` so each caller controls the shape.
     """
     track = match_from_song(song_data)
-    track["artist"] = artist
+    track["artists"] = artists
     track["album"] = album
     return track
 
@@ -161,12 +161,12 @@ class TestFreshPath:
 
 
 class TestFlattening:
-    """Verify artist/album flattening from upstream Deezer payload shapes."""
+    """Verify artist/album handling from upstream Deezer payload shapes."""
 
-    def test_fresh_path_flattens_raw_artist_and_album(
+    def test_fresh_path_persists_contributors(
         self, db_session, repo: SongRepository, monkeypatch
     ):
-        """Raw object-shaped artist/album must flatten to strings (upstream Deezer payload)."""
+        """Raw object-shaped contributors must persist to SongArtist rows."""
         song_data, *_ = build_repo_payloads()
         fetch_calls = _stub_audio(monkeypatch)
 
@@ -174,7 +174,10 @@ class TestFlattening:
             db_session,
             _build_track(
                 song_data,
-                artist={"id": 27, "name": "Daft Punk"},
+                artists=[
+                    Artist(id=27, name="Daft Punk"),
+                    Artist(id=11, name="Stardust"),
+                ],
                 album={"id": 302127, "title": "Discovery"},
             ),
             repo,

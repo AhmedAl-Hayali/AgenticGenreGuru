@@ -8,7 +8,6 @@ this module only emits structured INFO records for the reuse/fresh outcome.
 """
 
 import logging
-from typing import cast
 
 from sqlalchemy.orm import Session
 
@@ -21,7 +20,7 @@ from genreguru.db.repositories import SongRepository
 from genreguru.deezer.snippets import fetch_snippet
 from genreguru.dto import (
     Album,
-    DeezerTrack,
+    ConfirmTrack,
     FeatureScalars,
     FingerprintResponse,
     SongData,
@@ -31,20 +30,19 @@ from genreguru.gglogging import log_fingerprint_outcome, timer
 logger = logging.getLogger(__name__)
 
 
-def _album_title(album: Album | str | None) -> str | None:
-    """Return the album's `title` if it is an object, else the string."""
-    if album is None:
-        return None
-    return album["title"] if isinstance(album, dict) else cast(str, album)
+def _album_title(album: Album | None) -> str | None:
+    """Return the album's `title`, or `None` when the album is absent."""
+    return album["title"] if album else None
 
 
-def _to_song_data(track: DeezerTrack) -> SongData:
-    """Map an upstream `DeezerTrack` into the repo's `SongData` shape.
+def _to_song_data(track: ConfirmTrack) -> SongData:
+    """Map a confirmed `ConfirmTrack` into the repo's `SongData` shape.
 
     Carries the canonical ordered `artists` list (main first) through for the
     `song_artists` rows, flattens `album` from an object (`Album`) to a plain
     string, and renames `preview` to the persistence field `preview_url` —
-    all in one pass. `cover` is display-only and is not persisted.
+    all in one pass. `cover` is not part of the confirm shape and is never
+    persisted.
     """
     return {
         "deezer_id": track["deezer_id"],
@@ -84,7 +82,7 @@ def _build_response(song: Song, feature_map: FeatureScalars) -> FingerprintRespo
 def _fetch_and_store(
     repo: SongRepository,
     session: Session,
-    track: DeezerTrack,
+    track: ConfirmTrack,
 ) -> Song:
     """Fetch audio, extract features, and store the new song + fingerprint.
 
@@ -103,15 +101,14 @@ def _fetch_and_store(
 
 
 def process_fingerprint(
-    session: Session, track: DeezerTrack, repo: SongRepository
+    session: Session, track: ConfirmTrack, repo: SongRepository
 ) -> FingerprintResponse:
     """Process a confirmed Deezer track into a stored fingerprint.
 
     Args:
         session: Active SQLAlchemy session.
-        track: Upstream `DeezerTrack` with deezer_id, title, isrc, duration,
-            preview, artist, album (artist/album may be objects; flattened
-            at entry).
+        track: Confirmed `ConfirmTrack` with deezer_id, title, isrc, duration,
+            preview, artists, album (album may be `None`; flattened at entry).
         repo: Repository for song persistence, bound to *session*.
 
     Returns:

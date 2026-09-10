@@ -8,9 +8,8 @@ here instead of re-declaring payload helpers.
 from typing import Literal, cast, overload
 
 from genreguru.audio.features import Feature
-from genreguru.db.models import AudioFormat, Song, SongFingerprint
 from genreguru.dto import DeezerTrack, FeatureScalars, SongData
-from tests.factories import SongFactory, SongFingerprintFactory
+from genreguru.dto import ConfirmTrack, FeatureScalars, SongData
 
 _SONG_KEYS = (
     "deezer_id",
@@ -62,12 +61,14 @@ def build_repo_payloads(
     return song_data, features, audio_format, sample_rate
 
 
-def match_from_song(song_data: SongData) -> DeezerTrack:
-    """Shape a `DeezerTrack` input for `process_fingerprint` from repo `song_data`.
+def match_from_song(song_data: SongData) -> ConfirmTrack:
+    """Shape a `ConfirmTrack` input for `process_fingerprint` from repo `song_data`.
 
     Field names are swapped to the Deezer contract (`preview`, not
-    `preview_url`); artist/album are plain strings here, which is a valid
-    `DeezerTrack` (the upstream payload may also carry them as objects).
+    `preview_url`); the canonical main-first `artists` list carries through
+    unchanged. The persisted `album` holds only a title string, so the
+    confirm shape defaults to `album=None` (the `Album` id is not stored);
+    callers override it via `_build_track` when an object shape is needed.
     """
     return {
         "deezer_id": song_data["deezer_id"],
@@ -75,6 +76,6 @@ def match_from_song(song_data: SongData) -> DeezerTrack:
         "isrc": song_data["isrc"],
         "duration": song_data["duration"],
         "preview": song_data["preview_url"],
-        "artist": song_data["artist"],
-        "album": song_data["album"],
+        "artists": song_data["artists"],
+        "album": None,
     }

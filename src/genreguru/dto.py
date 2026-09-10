@@ -23,6 +23,7 @@ __all__ = [
     "RawDeezerTrack",
     "DeezerSearchResponse",
     "Track",
+    "ConfirmTrack",
     "DeezerError",
     "DeezerErrorEnvelope",
     "SongData",
@@ -129,6 +130,24 @@ class Track(TypedDict):
     artists: list[Artist]
     album: Album | None
     cover: str
+
+
+class ConfirmTrack(TypedDict):
+    """The confirmed selection a client posts to `/api/confirm/` (7 fields).
+
+    Exactly `Track` minus the display-only `cover`: the backend rejects any
+    body whose keys aren't exactly this set (missing field or extra key such
+    as `cover` → 400). `album` is the Deezer album object or `None`; the
+    service flattens it to the persisted title via `_album_title`.
+    """
+
+    deezer_id: int
+    title: str
+    isrc: str
+    duration: int
+    preview: str
+    artists: list[Artist]
+    album: Album | None
 
 
 class SongData(TypedDict):

@@ -18,6 +18,7 @@ from genreguru.audio.features import Feature
 from genreguru.db.engine import get_session_factory
 from genreguru.db.repositories import SongRepository
 from genreguru.deezer.client import DeezerClient
+from genreguru.dto import Artist, ConfirmTrack
 from genreguru.errors import (
     AudioProcessingError,
     MissingISRCError,
@@ -79,11 +80,6 @@ def index_view(request):
     )
 
 
-def _get_session():
-    factory = get_session_factory()
-    return factory()
-
-
 @require_GET
 def search_view(request):
     """Return top-5 Deezer matches for a song-title query.
@@ -113,6 +109,24 @@ def search_view(request):
     return JsonResponse({"status": "success", "matches": matches[:TOP_MATCHES]})
 
 
+def _get_session():
+    factory = get_session_factory()
+    return factory()
+
+
+def _artists_valid(value: object) -> TypeGuard[list[Artist]]:
+    """Return whether *value* is a non-empty list of canonical Artist maps."""
+    if not isinstance(value, list) or not value:
+        return False
+    return all(
+        isinstance(artist, dict)
+        and isinstance(artist.get("id"), int)
+        and isinstance(artist.get("name"), str)
+        and bool(artist["name"])
+        for artist in value
+    )
+
+
 @require_POST
 def confirm_view(request):
     """Process a confirmed 2-click selection into a stored fingerprint.
@@ -131,18 +145,14 @@ def confirm_view(request):
     except json.JSONDecodeError, ValueError:
         return _error_response(400, "invalid JSON body")
 
-    required_fields = (
-        "deezer_id",
-        "title",
-        "isrc",
-        "duration",
-        "preview",
-        "artist",
-        "album",
-    )
-    if not isinstance(body, dict) or any(key not in body for key in required_fields):
+    if (
+        not isinstance(body, dict)
+        or set(body) != set(ConfirmTrack.__required_keys__)
+        or not _artists_valid(body.get("artists"))
+    ):
         return _error_response(400, "invalid request body")
 
+    body = ConfirmTrack(body)
     session = _get_session()
     try:
         repo = SongRepository(session)
