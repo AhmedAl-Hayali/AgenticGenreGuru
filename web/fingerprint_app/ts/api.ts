@@ -2,13 +2,15 @@ import type { ApiConfig, Match } from "./dto.ts";
 
 export const REQUEST_TIMEOUT_MS = 15000;
 
+// Mirrors the confirm endpoint's required fields: the full contributor list,
+// never the single-artist denormalization.
 const MATCH_FIELDS = [
   "deezer_id",
   "title",
   "isrc",
   "duration",
   "preview",
-  "artist",
+  "artists",
   "album",
 ] as const satisfies ReadonlyArray<keyof Match>;
 

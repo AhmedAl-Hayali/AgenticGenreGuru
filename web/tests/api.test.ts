@@ -53,7 +53,7 @@ describe("confirmTrack", () => {
       isrc: MATCH.isrc,
       duration: MATCH.duration,
       preview: MATCH.preview,
-      artist: MATCH.artist,
+      artists: MATCH.artists,
       album: MATCH.album,
     });
   });
