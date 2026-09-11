@@ -33,7 +33,6 @@ import pytest
 from httpx import Response
 
 from genreguru.deezer import client
-from genreguru.deezer._retry import classify_error
 from genreguru.dto import (
     Album,
     Artist,
@@ -614,18 +613,3 @@ class TestAlbumTolerance:
         )
         result = _search(monkeypatch, [raw_no_album])
         assert result[0]["album"] is None
-
-class TestErrorCodeMapping:
-    """Verify Deezer error code classification for retry vs. failure."""
-
-    @pytest.mark.parametrize("code", RETRYABLE_CODES)
-    def test_retryable(self, code):
-        """QUOTA (4) / SERVICE_BUSY (700) must be classified as retryable."""
-        assert classify_error(code) is True
-
-    @pytest.mark.parametrize("code", [100, 200, 300, 500, 501, 600, 800, 901])
-    def test_non_retryable_raises(self, code):
-        """Non-retryable codes must raise GenreguruError and preserve the code."""
-        with pytest.raises(GenreguruError) as exc_info:
-            classify_error(code)
-        assert exc_info.value.code == code

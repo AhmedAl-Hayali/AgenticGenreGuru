@@ -1,9 +1,10 @@
-"""Unit tests for the shared retry-with-backoff helper `genreguru.deezer._retry`.
+"""Unit tests for the shared retry helper `genreguru.deezer._retry`.
 
-Covers the `retry_until_success` contract in isolation: parameter guards,
-control flow (success / retry / exhaustion / permanent propagation), and the
-WARNING/ERROR log records. Network-path behavior built on this helper is
-exercised by `tests.unit.test_deezer_client` and
+Covers the `retry_until_success` contract in isolation (parameter guards,
+control flow — success / retry / exhaustion / permanent propagation — and
+the WARNING/ERROR log records) plus the `classify_error` /
+`is_retryable_code` code-classification surface. Network-path behavior
+built on this helper is exercised by `tests.unit.test_deezer_client` and
 `tests.integration.test_snippet_retry`.
 """
 
@@ -12,8 +13,13 @@ import logging
 import httpx
 import pytest
 
-from genreguru.deezer._retry import RetryableError, retry_until_success
-from genreguru.errors import NetworkDisconnectedError
+from genreguru.deezer._retry import (
+    RetryableError,
+    classify_error,
+    retry_until_success,
+)
+from genreguru.errors import GenreguruError, NetworkDisconnectedError
+from tests.http_stubs import RETRYABLE_CODES
 
 _OP = "test operation"
 
@@ -156,3 +162,19 @@ class TestLogging:
 
         messages = _retry_log_records(caplog)
         assert f"{_OP} failed after {_MAX_RETRIES} attempts" in messages
+
+
+class TestClassifyError:
+    """Verify Deezer error-code classification for retry vs. failure."""
+
+    @pytest.mark.parametrize("code", RETRYABLE_CODES)
+    def test_retryable(self, code):
+        """QUOTA (4) / SERVICE_BUSY (700) must be classified as retryable."""
+        assert classify_error(code) is True
+
+    @pytest.mark.parametrize("code", [100, 200, 300, 500, 501, 600, 800, 901])
+    def test_non_retryable_raises(self, code):
+        """Non-retryable codes must raise GenreguruError and preserve the code."""
+        with pytest.raises(GenreguruError) as exc_info:
+            classify_error(code)
+        assert exc_info.value.code == code
