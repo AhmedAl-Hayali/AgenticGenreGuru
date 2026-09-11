@@ -88,6 +88,7 @@ ul#candidates { list-style: none; margin: 0; padding: 0; }
 #candidates li {
     display: flex;
     align-items: center;
+    gap: 0.75rem;
     padding: 0.75rem 1rem;
     margin-bottom: 0.5rem;
     border: var(--border-w) solid var(--border);
@@ -105,10 +106,34 @@ ul#candidates { list-style: none; margin: 0; padding: 0; }
     outline: 2px solid var(--accent);
     outline-offset: 2px;
 }
-#candidates li .title { flex: 1; font-weight: 600; }
-#candidates li .meta { color: var(--muted); font-size: 0.85rem; }
-#candidates li .badge {
-    margin-left: auto;
+#candidates li.processing { opacity: 0.6; cursor: progress; }
+
+#candidates .candidate-cover {
+    width: 56px;
+    height: 56px;
+    flex: none;
+    object-fit: cover;
+    border-radius: var(--radius-md);
+    background: var(--panel);
+    color: var(--muted);
+    font-size: 0.65rem;
+}
+#candidates .candidate-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+#candidates .candidate-title {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+#candidates .candidate-meta { color: var(--muted); font-size: 0.85rem; }
+#candidates .badge {
+    flex: none;
     font-size: 0.75rem;
     color: var(--text-on-accent);
     background: var(--accent-strong);
@@ -117,7 +142,45 @@ ul#candidates { list-style: none; margin: 0; padding: 0; }
     visibility: hidden;
 }
 #candidates li.selected .badge { visibility: visible; }
-#candidates li.processing { opacity: 0.6; cursor: progress; }
+
+/* Animate scrolling through the full contributor roster on hover/focus:
+   the track slides left to its end (translate-X transition), holds, then
+   returns; the right-edge "…" fade hints the list is clipped when it is. */
+#candidates .candidate-artists {
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 100%;
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+#candidates .candidate-artists-track {
+    display: inline-block;
+    white-space: nowrap;
+    will-change: transform;
+    transition-property: transform;
+    transition-timing-function: linear;
+}
+#candidates .candidate-artist + .candidate-artist::before { content: ", "; }
+#candidates .candidate-artists-fade {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    padding-left: 1.5rem;
+    background: linear-gradient(90deg, transparent, var(--panel-2));
+    pointer-events: none;
+}
+#candidates .candidate-artists.overflowing .candidate-artists-fade {
+    display: flex;
+    align-items: center;
+}
+#candidates .candidate-artists.overflowing:hover .candidate-artists-fade,
+#candidates .candidate[role="button"]:focus-visible .candidate-artists-fade {
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
 dl#result dt { color: var(--muted); font-size: 0.9rem; }
 dl#result dd { margin: 0; font-family: var(--font-mono); font-size: 0.95rem; }
 .result-title { margin: 0 0 1rem; font-weight: 600; }
