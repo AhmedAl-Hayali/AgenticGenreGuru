@@ -76,6 +76,21 @@ function routeSearchOkConfirmRejects(reason: unknown) {
       : Promise.reject(reason);
 }
 
+/**
+ * URL-aware router: searches resolve with `[MATCH]`, everything else routes
+ * to `confirmHandler`. Selection is click-only, so confirm is the second
+ * fetch — routing by URL keeps call-count assertions honest.
+ */
+function routeToConfirm(confirmHandler: () => Promise<Response>) {
+  return (url: RequestInfo | URL): Promise<Response> => {
+    const path = String(url);
+    if (path.includes("/api/search/")) {
+      return Promise.resolve(searchResponse([MATCH]));
+    }
+    return confirmHandler();
+  };
+}
+
 /** Select + double-click a candidate and wait until confirmation starts. */
 async function startConfirm(els: BootEls): Promise<HTMLElement> {
   const item = await bootWithCandidate(els);
@@ -104,8 +119,7 @@ async function setupConfirmSupersede(els: BootEls) {
   const confirm = deferred<Response>();
   els.fetchMock
     .mockImplementationOnce(routeSearchOk)
-    .mockImplementationOnce(() => confirm.promise)
-    .mockImplementation(routeSearchOk);
+    .mockImplementation(routeToConfirm(() => confirm.promise));
   await startConfirm(els);
   submitSearch(els, "newer search");
   await vi.waitFor(() => {
@@ -310,9 +324,14 @@ describe("page controller", () => {
   describe("confirmMatch", () => {
     async function bootDoubleClickConfirm(confirmStatus = 201, body: unknown = CONFIRM_OK) {
       const els = await bootApp();
+      // Fresh response per call so each fetch gets an unconsumed `.json()`.
       els.fetchMock
         .mockImplementationOnce(routeSearchOk)
-        .mockResolvedValue(jsonResponse(body, confirmStatus));
+        .mockImplementation((url) =>
+          String(url).startsWith("/api/confirm/")
+            ? Promise.resolve(jsonResponse(body, confirmStatus))
+            : Promise.resolve(jsonResponse({ status: "error" }, 500)),
+        );
       const item = await startConfirm(els);
       await expectNoProcessing(item);
       return els;
@@ -445,8 +464,7 @@ describe("page controller", () => {
       const confirmResponse = withDeferredJson(jsonResponse(CONFIRM_OK, 201), body.promise);
       els.fetchMock
         .mockImplementationOnce(routeSearchOk)
-        .mockImplementationOnce(() => response.promise)
-        .mockImplementation(routeSearchOk);
+        .mockImplementation(routeToConfirm(() => response.promise));
 
       await startConfirm(els);
 
