@@ -40,7 +40,7 @@ Open browser to `http://localhost:8000`.
 
 ## Frontend JS Toolchain
 
-The browser UI source of truth is `web/fingerprint_app/ts/` — reusable modules (`dto`, `config`, `api`, `messages`, `render`, `page-controller`, `errors`) plus a thin per-page bootstrap (`ts/pages/index-page.ts`). esbuild bundles the bootstrap to the served ES module `web/fingerprint_app/static/fingerprint_app/app.js` — a generated, gitignored artifact, so a fresh checkout must run `npm run build` before `runserver` or any `collectstatic` deploy. The source is checked by ESLint 10 (flat config, `eslint.config.ts`), formatted with Prettier 3, typechecked with `tsc` (strict, no emit), and unit-tested with Vitest 5 + jsdom contract tests in `web/tests/`.
+The browser UI source of truth is `web/fingerprint_app/ts/` — reusable modules (`dto`, `config`, `api`, `messages`, `render`, `scroll-reveal`, `page-controller`, `errors`) plus a thin per-page bootstrap (`ts/pages/index-page.ts`). esbuild bundles the bootstrap to the served ES module `web/fingerprint_app/static/fingerprint_app/app.js` — a generated, gitignored artifact, so a fresh checkout must run `npm run build` before `runserver` or any `collectstatic` deploy. The source is checked by ESLint 10 (flat config, `eslint.config.ts`), formatted with Prettier 3, typechecked with `tsc` (strict, no emit), and unit-tested with Vitest 5 + jsdom contract tests in `web/tests/`.
 
 ```bash
 cd web
