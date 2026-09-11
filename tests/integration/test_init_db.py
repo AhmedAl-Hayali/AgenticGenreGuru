@@ -22,7 +22,7 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 from genreguru.db import init_db
 from genreguru.db.engine import create_engine
 
-EXPECTED_TABLES = {"songs", "song_fingerprints"}
+EXPECTED_TABLES = {"songs", "song_artists", "song_fingerprints"}
 TEST_SCHEMA = "test"
 MISSING_FKC_NAME = "ForeignKeyConstraintUnnamed"
 
@@ -63,8 +63,10 @@ def _table_names(inspector: Inspector) -> set[str]:
     return set(inspector.get_table_names(schema=TEST_SCHEMA))
 
 
-def _foreign_key_constraints(eng_inspector: Inspector) -> dict[str, FKCstrInfo]:
-    fk_cstrs = eng_inspector.get_foreign_keys("song_fingerprints", schema=TEST_SCHEMA)
+def _foreign_key_constraints(
+    eng_inspector: Inspector, table: str
+) -> dict[str, FKCstrInfo]:
+    fk_cstrs = eng_inspector.get_foreign_keys(table, schema=TEST_SCHEMA)
     fk_cstrs = {
         fk_cstr["name"] or MISSING_FKC_NAME: FKCstrInfo(
             fk_cstr["referred_table"], fk_cstr["referred_columns"]
@@ -111,6 +113,7 @@ def test_schema_matches_data_model(engine, eng_inspector) -> None:
 
     song_cols = _columns(eng_inspector, "songs")
     fp_cols = _columns(eng_inspector, "song_fingerprints")
+    artist_cols = _columns(eng_inspector, "song_artists")
 
     fp_metrics = [
         "spectral_centroid",
@@ -139,20 +142,41 @@ def test_schema_matches_data_model(engine, eng_inspector) -> None:
     assert song_cols["preview_url"].type == "text"
     assert song_cols["duration"].type == "integer"
 
+    # song_artists (contributor roster) schema per data-model.md.
+    assert artist_cols["id"].type == "uuid"
+    assert artist_cols["id"].default == "uuidv7()"
+    assert artist_cols["song_id"].type == "uuid"
+    assert artist_cols["song_id"].nullable is False
+    assert artist_cols["deezer_id"].type == "bigint"
+    assert artist_cols["deezer_id"].nullable is False
+    assert artist_cols["name"].type == "varchar(255)"
+    assert artist_cols["name"].nullable is False
+    assert artist_cols["position"].type == "smallint"
+    assert artist_cols["position"].nullable is False
+
     # Native server-side uuidv7() defaults (PG18+; data-model.md).
     assert song_cols["id"].default == "uuidv7()"
     assert fp_cols["id"].default == "uuidv7()"
+    assert artist_cols["id"].default == "uuidv7()"
 
     song_unique_cols = _unique_constraint_targets(eng_inspector, "songs")
     fp_unique_cols = _unique_constraint_targets(eng_inspector, "song_fingerprints")
+    artist_unique_cols = _unique_constraint_targets(eng_inspector, "song_artists")
 
-    # Uniqueness: deezer_id + isrc in songs; song_id in song_fingerprints.
+    # Uniqueness: deezer_id + isrc in songs; song_id in song_fingerprints;
+    # (song_id, position) in song_artists.
     assert {"deezer_id", "isrc"} <= song_unique_cols
     assert {"song_id"} <= fp_unique_cols
+    assert {"song_id", "position"} <= artist_unique_cols
 
-    fk_cstrs = _foreign_key_constraints(eng_inspector)
+    fk_fp_cstrs = _foreign_key_constraints(eng_inspector, "song_fingerprints")
+    fk_artist_cstrs = _foreign_key_constraints(eng_inspector, "song_artists")
     # no unnamed foreign key constraints
-    assert MISSING_FKC_NAME not in fk_cstrs
+    assert MISSING_FKC_NAME not in fk_fp_cstrs
+    assert MISSING_FKC_NAME not in fk_artist_cstrs
     # songs 1 -> 1 song_fingerprints via a real FK on songs.id.
-    assert fk_cstrs["fk_song_fingerprints_song_id_songs"].referred_table == "songs"
-    assert fk_cstrs["fk_song_fingerprints_song_id_songs"].referred_columns == ["id"]
+    assert fk_fp_cstrs["fk_song_fingerprints_song_id_songs"].referred_table == "songs"
+    assert fk_fp_cstrs["fk_song_fingerprints_song_id_songs"].referred_columns == ["id"]
+    # songs 1 -> n song_artists via a real FK on songs.id.
+    assert fk_artist_cstrs["fk_song_artists_song_id_songs"].referred_table == "songs"
+    assert fk_artist_cstrs["fk_song_artists_song_id_songs"].referred_columns == ["id"]
