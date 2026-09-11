@@ -1,6 +1,6 @@
 import { confirmTrack, readJsonMaybe, searchTracks } from "./api.ts";
 import type { ApiConfig, ConfirmResponse, Match, SearchResponse } from "./dto.ts";
-import { ERROR_CODES, isNetworkDown, matchesStatusOrCode } from "./errors.ts";
+import { outcomeFor } from "./errors.ts";
 import { Messages } from "./messages.ts";
 import { renderCandidates, renderFingerprint } from "./render.ts";
 
@@ -45,6 +45,12 @@ export class PageController {
 
   private isCurrent = (seq: number) => seq === this.actionSeq;
 
+  /** Await `fn`, then return its value only if `seq` is still the active action; `undefined` if superseded. */
+  private async guarded<T>(seq: number, fn: () => Promise<T>): Promise<T | undefined> {
+    const value = await fn();
+    return this.isCurrent(seq) ? value : undefined;
+  }
+
   private markSelected = (listItem: HTMLLIElement) => {
     for (const item of this.containers.candidates.children) {
       item.classList.remove("selected");
@@ -88,28 +94,31 @@ export class PageController {
     candidates.replaceChildren();
 
     try {
-      const response = await searchTracks(this.config, trimmed);
-      if (!this.isCurrent(seq)) {
+      const response = await this.guarded(seq, () => searchTracks(this.config, trimmed));
+      if (!response) {
         return;
       }
 
       if (!response.ok) {
-        const body = await readJsonMaybe(response);
-        if (!this.isCurrent(seq)) {
+        const body = await this.guarded(seq, () => readJsonMaybe(response));
+        if (!body) {
           return;
         }
-        if (matchesStatusOrCode(response, body, 404, ERROR_CODES.trackNotFound)) {
-          this.setStatus(Messages.noResults, true);
-        } else if (isNetworkDown(response, body)) {
-          this.setStatus(Messages.searchNetworkDown, true);
-        } else {
-          this.setStatus(Messages.genericSearch, true);
+        switch (outcomeFor(response, body)) {
+          case "notFound":
+            this.setStatus(Messages.noResults, true);
+            break;
+          case "networkDown":
+            this.setStatus(Messages.searchNetworkDown, true);
+            break;
+          default:
+            this.setStatus(Messages.genericSearch, true);
         }
         return;
       }
 
-      const body = await readJsonMaybe<SearchResponse>(response);
-      if (!this.isCurrent(seq)) {
+      const body = await this.guarded(seq, () => readJsonMaybe<SearchResponse>(response));
+      if (!body) {
         return;
       }
 
@@ -146,12 +155,12 @@ export class PageController {
     this.setBusy(true);
 
     try {
-      const response = await confirmTrack(this.config, match);
-      if (!this.isCurrent(seq)) {
+      const response = await this.guarded(seq, () => confirmTrack(this.config, match));
+      if (!response) {
         return;
       }
-      const body = await readJsonMaybe(response);
-      if (!this.isCurrent(seq)) {
+      const body = await this.guarded(seq, () => readJsonMaybe(response));
+      if (!body) {
         return;
       }
 
@@ -164,12 +173,17 @@ export class PageController {
           this.config.featureLabels,
         );
         this.setStatus(Messages.fingerprintStored);
-      } else if (matchesStatusOrCode(response, body, 400, ERROR_CODES.audioProcessing)) {
-        this.setStatus(Messages.audioUnprocessable(match.title), true);
-      } else if (isNetworkDown(response, body)) {
-        this.setStatus(Messages.confirmNetworkDown, true);
       } else {
-        this.setStatus(Messages.genericConfirm, true);
+        switch (outcomeFor(response, body)) {
+          case "unprocessable":
+            this.setStatus(Messages.audioUnprocessable(match.title), true);
+            break;
+          case "networkDown":
+            this.setStatus(Messages.confirmNetworkDown, true);
+            break;
+          default:
+            this.setStatus(Messages.genericConfirm, true);
+        }
       }
     } catch (error) {
       if (!this.isCurrent(seq)) {
