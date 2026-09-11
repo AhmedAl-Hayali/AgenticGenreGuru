@@ -30,8 +30,9 @@ const OTHER_MATCH: Match = {
   isrc: "GBDUW0000123",
   duration: 217,
   preview: "https://example.test/preview-other.mp3",
-  artist: { id: 27, name: "Daft Punk" },
+  artists: [{ id: 27, name: "Daft Punk" }],
   album: { id: 302127, title: "Homework" },
+  cover: "",
 };
 
 const MINIMAL_MATCH: Match = {
@@ -40,6 +41,9 @@ const MINIMAL_MATCH: Match = {
   isrc: "GBDUW0000123",
   duration: 217,
   preview: "https://example.test/preview-minimal.mp3",
+  artists: [],
+  album: null,
+  cover: "",
 };
 
 function searchResponse(matches: Match[]) {
