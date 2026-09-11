@@ -5,12 +5,12 @@ confirm contract suites, so a field edit lands in one place and both
 endpoints exercise the same realistic payload.
 """
 
-from genreguru.dto import Artist, ConfirmTrack, Track
+from genreguru.dto import Album, Artist, ConfirmTrack, Track
 
 
 def make_sample_artist(artist_id: int = 27, name: str = "Daft Punk") -> Artist:
     """Helper to build a strongly typed Artist dict fixture."""
-    return {"id": artist_id, "name": name}
+    return Artist(id=artist_id, name=name)
 
 
 # Cover built from the 32-hex `md5_image` via the client's bare-suffix form
@@ -28,7 +28,7 @@ DEEZER_MATCH: Track = {
     "preview": "https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
     "cover": DEEZER_COVER_URL,
     "artists": [make_sample_artist(27, "Daft Punk")],
-    "album": {"id": 302127, "title": "Discovery"},
+    "album": Album(id=302127, title="Discovery"),
 }
 
 DEEZER_MATCHES: list[Track] = [DEEZER_MATCH]
