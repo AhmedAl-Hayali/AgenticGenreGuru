@@ -24,8 +24,9 @@ export interface Match {
   isrc: string;
   duration: number;
   preview: string;
-  artist?: Artist;
-  album?: Album;
+  artists: Artist[];
+  album: Album | null;
+  cover: string;
 }
 
 /** Envelope returned by the search endpoint. */
