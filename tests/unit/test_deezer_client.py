@@ -288,6 +288,41 @@ class TestSearchEnrichment:
         assert result["cover"] == _COVER_URL
 
 
+class TestContributorsMapping:
+    """Verify the canonical main-first `artists` dedupe/tolerance contract."""
+
+    def test_track_lookup_main_first_dedupes_contributors(self, monkeypatch):
+        """`contributors[0] == main` must yield main first, then the roster."""
+        body = _raw_track(contributors=_FULL_ROSTER)
+        assert _track(monkeypatch, body)["artists"] == _FULL_ROSTER
+
+    def test_malformed_contributors_skipped(self, monkeypatch):
+        """Entries lacking an id/name must be skipped without aborting."""
+        body = _raw_track(
+            contributors=[
+                _MAIN_ARTIST,
+                {"id": "not-an-int", "name": "Bad"},
+                {"name": "NoId"},
+                Artist(id=99, name=""),
+                _EXTRA_ARTIST,
+            ]
+        )
+        assert _track(monkeypatch, body)["artists"] == _FULL_ROSTER
+
+    def test_non_list_contributors_ignored(self, monkeypatch):
+        """A non-list `contributors` value must fall back to the main artist."""
+        body = _raw_track(contributors=Artist(id=1, name="Nope"))
+        assert _track(monkeypatch, body)["artists"] == _MAIN_ROSTER
+
+    def test_unknown_artist_fallback_when_main_malformed(self, monkeypatch):
+        """A worst-case payload must still yield one `Unknown artist` entry."""
+        body = _raw_track(
+            artist={"id": "bad", "name": ""},
+            contributors=[{"id": 1, "name": None}],
+        )
+        assert _track(monkeypatch, body)["artists"] == [client._UNKNOWN_ARTIST]
+
+
 class TestRequestShape:
     """Verify request construction per contracts/deezer-api.md §1."""
 
