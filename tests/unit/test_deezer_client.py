@@ -344,6 +344,87 @@ class TestRequestShape:
         assert kwargs["params"] == {"q": _QUERY, "limit": 5}
 
 
+class TestGetTrack:
+    """Verify the track-lookup path (`GET /track/{id}`) mapping and errors."""
+
+    def test_get_track_hits_track_endpoint_with_id(self, monkeypatch):
+        """`get_track` must request `https://api.deezer.com/track/{id}`."""
+        calls = capture_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            ok_track(_SAMPLE_TRACK, _track_url(_SAMPLE_TRACK["id"])),
+        )
+        _CLIENT.get_track(_SAMPLE_TRACK["id"])
+        (args, _kwargs) = calls[0]
+        assert args[0] == _track_url(_SAMPLE_TRACK["id"])
+
+    def test_track_maps_contributors(self, monkeypatch):
+        """`get_track` must carry the full contributor roster (main-first)."""
+        body = _raw_track(contributors=_FULL_ROSTER)
+        result = _track(monkeypatch, body)
+        assert result["artists"] == _FULL_ROSTER
+
+    def test_http_404_data_not_found_raises_track_not_found(self, monkeypatch):
+        """A 404 with a DATA_NOT_FOUND (800) envelope must raise `TrackNotFoundError`."""
+        track_id = _SAMPLE_TRACK["id"]
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            error_envelope(404, 800, _track_url(track_id)),
+        )
+        with pytest.raises(TrackNotFoundError) as exc_info:
+            _CLIENT.get_track(track_id)
+        assert exc_info.value.deezer_id == track_id
+
+    def test_embedded_800_raises_track_not_found(self, monkeypatch):
+        """A 200 body embedding code 800 must also raise `TrackNotFoundError`."""
+        track_id = _SAMPLE_TRACK["id"]
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            error_envelope(200, 800, _track_url(track_id)),
+        )
+        with pytest.raises(TrackNotFoundError):
+            _CLIENT.get_track(track_id)
+
+    @pytest.mark.parametrize("code", [4, 700])
+    def test_retryable_then_success(self, monkeypatch, code):
+        """A retryable track-lookup error must retry, then succeed."""
+        track_id = _SAMPLE_TRACK["id"]
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            retry_then_success(
+                error_envelope(200, code, _track_url(track_id)),
+                ok_track(_SAMPLE_TRACK, _track_url(track_id)),
+                n_failures=_MAX_RETRIES - 1,
+            ),
+        )
+        assert _CLIENT.get_track(track_id)["deezer_id"] == track_id
+
+    def test_track_missing_isrc_raises(self, monkeypatch):
+        """A track without an ISRC must fail loud even on the lookup path."""
+        with pytest.raises(MissingISRCError):
+            _track(monkeypatch, _raw_track(isrc=""))
+
+    def test_track_non_object_body_raises_network_disconnected(self, monkeypatch):
+        """A valid-JSON but non-object track body must map to 503."""
+        track_id = _SAMPLE_TRACK["id"]
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            response(
+                200,
+                content=b"[]",
+                headers={"content-type": "application/json"},
+                url=_track_url(track_id),
+            ),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.get_track(track_id)
+        assert exc_info.value.attempts == 1
+
+
 class TestEmptyResults:
     """Verify empty search results per DATA_NOT_FOUND handling."""
 
