@@ -173,6 +173,17 @@ class TestConfirm400InvalidJSON:
         assert resp.status_code == 400
         assert status_of(resp) == "error"
 
+    def test_extra_field_rejected(self, post_confirm):
+        """A body carrying keys beyond the required set (e.g. `cover`) must be 400."""
+        resp = post_confirm(
+            body={
+                **DEEZER_CONFIRM_BODY,
+                "cover": "https://cdn-images.dzcdn.net/images/cover/x/300x300.jpg",
+            }
+        )
+        assert resp.status_code == 400
+        assert status_of(resp) == "error"
+
 
 class TestConfirmMethodEnforcement:
     """Verify POST-only enforcement on the confirm endpoint."""
