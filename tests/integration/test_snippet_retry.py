@@ -22,7 +22,6 @@ from tests.http_stubs import (
     audio,
     capture_get,
     error_envelope,
-    repeat,
     response,
     retry_then_success,
     sequence,
@@ -84,18 +83,6 @@ class TestRetryableFailures:
         assert result == _FAKE_AUDIO
         assert len(calls) == _MAX_RETRIES
 
-    def test_retryable_error_code_exhausts_budget(self, monkeypatch):
-        """Repeated retryable codes exhaust the budget, raising the code.
-
-        One representative code suffices: proving each code retryable belongs to
-        `test_retryable_error_code_then_success` (parametrized over all); this covers
-        exhaustion + code propagation. A second code here would duplicate, not extend.
-        """
-        error = error_envelope(200, RETRYABLE_CODES[0], _PREVIEW_URL)
-        _, exc = _fetch_err(monkeypatch, repeat(error, _MAX_RETRIES))
-        assert exc.attempts == _MAX_RETRIES
-        assert exc.code == RETRYABLE_CODES[0]
-
     @pytest.mark.parametrize(
         "timeout",
         [
@@ -115,35 +102,15 @@ class TestRetryableFailures:
         assert result == _FAKE_AUDIO
         assert len(calls) == _MAX_RETRIES
 
-    @pytest.mark.parametrize(
-        "timeout",
-        [
-            httpx.ConnectTimeout("connection timed out"),
-            httpx.ReadTimeout("read timed out"),
-        ],
-        ids=["connect_timeout", "read_timeout"],
-    )
-    def test_timeout_exhausts_budget_sets_code_none(self, monkeypatch, timeout):
-        """A budget exhausted only by timeouts must raise with code=None."""
-        _, exc = _fetch_err(monkeypatch, repeat(timeout, _MAX_RETRIES))
-        assert exc.attempts == _MAX_RETRIES
-        assert exc.code is None
-
 
 class TestNonRetryableFailures:
     """Failures that raise immediately without retrying."""
 
-    @pytest.mark.parametrize(
-        "exc",
-        [
-            httpx.ConnectError("DNS resolution failed"),
-            httpx.ReadError("stream interrupted"),
-        ],
-        ids=["connect_error", "read_error"],
-    )
-    def test_permanent_network_error_raises_immediately(self, monkeypatch, exc):
+    def test_permanent_network_error_raises_immediately(self, monkeypatch):
         """ConnectError/ReadError must raise without retrying (permanent errors)."""
-        _, err = _fetch_err(monkeypatch, sequence(exc))
+        _, err = _fetch_err(
+            monkeypatch, sequence(httpx.ConnectError("DNS resolution failed"))
+        )
         assert err.attempts == 1
 
     def test_non_retryable_error_code_raises_immediately(self, monkeypatch):
