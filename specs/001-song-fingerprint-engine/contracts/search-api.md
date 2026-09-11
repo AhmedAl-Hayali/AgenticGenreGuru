@@ -85,11 +85,13 @@ Raised when the search request is invalid or the search dependency fails:
 | `artists`   | array   | Main-first contributor list of `{id, name}` (non-empty)            |
 | `album`     | object  | Album object: `id` (integer), `title` (string)                     |
 
-> **Validation**: `artists` MUST be a non-empty list of `{id: int, name: non-empty str}`
+> **Validation**: The body MUST carry exactly the 7 required fields
+> (`deezer_id`, `title`, `isrc`, `duration`, `preview`, `artists`, `album`) —
+> nothing more, nothing less. Any missing field or extra key (e.g. the
+> display-only `cover`) is rejected with `400 invalid request body` before the
+> service runs. `artists` MUST be a non-empty list of `{id: int, name: non-empty str}`
 > maps; anything else (missing list, empty list, malformed entries) is rejected
-> with `400 invalid request body` before the service runs. `cover` is excluded
-> from the confirm payload entirely (display-only; not among the server's
-> required fields).
+> with `400 invalid request body`.
 
 - **Response**:
 ```json
@@ -145,7 +147,7 @@ Raised when the search request is invalid or the search dependency fails:
 > **Fingerprint reuse vs. fresh generation**: To aid developer debugging, the backend shall set a logging flag (e.g., `reused=true` / `reused=false`) in the request logs to distinguish between fingerprints that are freshly generated or reused from an existing database record — the caller is not informed which path was taken.
 
 - **Error Responses**:
-  - `400 Bad Request`: `{"status": "error", "error": "invalid JSON body"}` (malformed JSON) or `{"status": "error", "error": "invalid request body"}` (valid JSON but missing required fields: deezer_id, title, isrc, duration, preview, artists, album — or an invalid `artists` list)
+  - `400 Bad Request`: `{"status": "error", "error": "invalid JSON body"}` (malformed JSON) or `{"status": "error", "error": "invalid request body"}` (valid JSON but not exactly the required fields: deezer_id, title, isrc, duration, preview, artists, album — missing a required field, carrying extras like `cover`, or an invalid `artists` list)
   - `400 Bad Request`: `{"status": "error", error: "AudioProcessingError", "message": "audio file cannot be processed"}`
   - `503 Service Unavailable`: `{"status": "error", error: "NetworkDisconnectedError", "message": "network disconnected"}`
   - `500 Internal Server Error`: `{"status": "error", "error": "internal server error"}` (unexpected failure; session rolled back)
