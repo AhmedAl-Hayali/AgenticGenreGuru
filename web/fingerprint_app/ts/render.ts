@@ -5,9 +5,19 @@ import { Messages } from "./messages.ts";
 /** Callback signature invoked when a candidate list item is clicked or activated via keyboard. */
 export type CandidateClickHandler = (match: Match, listItem: HTMLLIElement) => void;
 
-function candidateLabel(match: Match) {
-  const artist = match.artist ? match.artist.name : Messages.unknownArtist;
-  return `${match.title} · ${artist}`;
+function createCandidateCover(match: Match): HTMLImageElement {
+  const cover = document.createElement("img");
+  cover.className = "candidate-cover";
+  cover.alt = match.title;
+  if (match.cover) {
+    cover.src = match.cover;
+    cover.onerror = () => cover.classList.add("hidden");
+  } else {
+    cover.classList.add("hidden");
+  }
+  return cover;
+}
+
 function createCandidateArtists(match: Match): HTMLElement {
   const names = match.artists.length > 0 ? match.artists.map((artist) => artist.name) : [];
 
@@ -80,16 +90,7 @@ export function renderCandidates(
     badge.className = "badge";
     badge.textContent = Messages.badgeSelected;
 
-    const title = document.createElement("span");
-    title.className = "title";
-    title.textContent = candidateLabel(match);
-    if (match.album && match.album.title) {
-      const meta = document.createElement("span");
-      meta.className = "meta";
-      meta.textContent = `(${match.album.title})`;
-      title.appendChild(meta);
-    }
-
+    listItem.appendChild(createCandidateCover(match));
     listItem.appendChild(createCandidateBody(match));
     listItem.appendChild(badge);
 

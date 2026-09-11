@@ -11,8 +11,15 @@ export function computeScrollDistance(containerWidth: number, contentWidth: numb
 const SCROLL_MS_PER_PX = 4;
 const SCROLL_MIN_MS = 250;
 const SCROLL_MAX_MS = 2500;
-const SCROLL_RESET_MS = 150;
+const SCROLL_RETURN_MS_PER_PX = 2;
+const SCROLL_RETURN_MIN_MS = 150;
+const SCROLL_RETURN_MAX_MS = 1200;
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
+
+/** Transition duration (ms) for a given scroll distance and per-pixel pace, clamped to [minMs, maxMs]. */
+function scrollDuration(distance: number, perPx: number, minMs: number, maxMs: number) {
+  return Math.min(maxMs, Math.max(minMs, distance * perPx));
+}
 
 /**
  * Wire the clip-and-reveal behavior of a container whose inline track can
@@ -25,7 +32,8 @@ const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
  * element's focus. On hover/focus it animates the track left to the end —
  * duration proportional to the distance, so any length of content scrolls at
  * a similar perceived pace — and holds the full extent in view; leave/blur
- * slides it back. Points to the referenced minimal pattern
+ * slides it back at a faster but still proportional pace, so it never snaps
+ * for long tracks. Points to the referenced minimal pattern
  * (stackoverflow.com/a/34884309) with the distance measured at runtime
  * instead of hardcoded.
  */
@@ -57,13 +65,22 @@ export function bindScrollReveal(
     }
     const base = reducedMotion?.matches
       ? 0
-      : Math.min(SCROLL_MAX_MS, Math.max(SCROLL_MIN_MS, distance * SCROLL_MS_PER_PX));
+      : scrollDuration(distance, SCROLL_MS_PER_PX, SCROLL_MIN_MS, SCROLL_MAX_MS);
     track.style.transitionDuration = `${base}ms`;
     track.style.transform = `translateX(${-distance}px)`;
   };
 
   const reset = () => {
-    track.style.transitionDuration = `${SCROLL_RESET_MS}ms`;
+    const distance = measure();
+    const base = reducedMotion?.matches
+      ? 0
+      : scrollDuration(
+          distance,
+          SCROLL_RETURN_MS_PER_PX,
+          SCROLL_RETURN_MIN_MS,
+          SCROLL_RETURN_MAX_MS,
+        );
+    track.style.transitionDuration = `${base}ms`;
     track.style.transform = "translateX(0)";
   };
 
