@@ -236,6 +236,58 @@ class TestFieldMapping:
         ]
 
 
+class TestSearchEnrichment:
+    """Verify best-effort per-candidate `/track/{id}` roster enrichment in `search`."""
+
+    def test_full_roster_merged(self, monkeypatch):
+        """A successful lookup must splice the full main-first contributor roster."""
+        track_id = _SAMPLE_TRACK["id"]
+        result = _search(
+            monkeypatch,
+            [_SAMPLE_TRACK],
+            {
+                track_id: ok_track(
+                    _raw_track(contributors=_FULL_ROSTER), _track_url(track_id)
+                )
+            },
+        )[0]
+        assert result["artists"] == _FULL_ROSTER
+
+    def test_lookup_failure_keeps_search_form_roster(self, monkeypatch):
+        """A failing lookup must keep the search-form (main-artist) roster."""
+        track_id = _SAMPLE_TRACK["id"]
+        result = _search(
+            monkeypatch,
+            [_SAMPLE_TRACK],
+            {track_id: error_envelope(404, 800, _track_url(track_id))},
+        )[0]
+        assert result["artists"] == _MAIN_ROSTER
+
+    def test_one_failed_sibling_still_enriched(self, monkeypatch):
+        """Only the failed track keeps its search-form roster; siblings stay enriched."""
+        second = _raw_track(id=_SECOND_TRACK_ID)
+        results = _search(
+            monkeypatch,
+            [second, _SAMPLE_TRACK],
+            {
+                second["id"]: error_envelope(404, 800, _track_url(second["id"])),
+                _SAMPLE_TRACK["id"]: ok_track(
+                    _raw_track(contributors=_FULL_ROSTER),
+                    _track_url(_SAMPLE_TRACK["id"]),
+                ),
+            },
+        )
+        failed, enriched = results
+        assert failed["artists"] == _MAIN_ROSTER
+        assert enriched["artists"] == _FULL_ROSTER
+
+    def test_result_sanitized_to_search_fields(self, monkeypatch):
+        """Each returned match must carry exactly the `SEARCH_FIELDS` keys."""
+        result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
+        assert set(result) == set(client.SEARCH_FIELDS)
+        assert result["cover"] == _COVER_URL
+
+
 class TestRequestShape:
     """Verify request construction per contracts/deezer-api.md §1."""
 
