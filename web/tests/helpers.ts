@@ -22,14 +22,19 @@ export const CONFIG: ApiConfig = {
   },
 };
 
+/** Search-match fixture with the full enriched contributor roster. */
 export const MATCH: Match = {
   deezer_id: 3135556,
   title: "Harder, Better, Faster, Stronger",
   isrc: "GBDUW0000059",
   duration: 226,
   preview: "https://example.test/preview.mp3",
-  artist: { id: 27, name: "Daft Punk" },
+  artists: [
+    { id: 27, name: "Daft Punk" },
+    { id: 11, name: "Stardust" },
+  ],
   album: { id: 302127, title: "Discovery" },
+  cover: "https://example.test/cover.jpg",
 };
 
 export const CONFIRM_OK: ConfirmResponse = {
