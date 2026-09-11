@@ -8,7 +8,7 @@ Submodules:
   fail-loud on missing `isrc` (`MissingISRCError`) / empty `preview`
   (`PreviewUnavailableError`), and error-code classification
   (`classify_error`: `QUOTA`(4) / `SERVICE_BUSY`(700) retryable).
-  `get_track()` / `enrich_artists()`: single-track lookup against
+  `get_track()`: single-track lookup against
   `GET https://api.deezer.com/track/{id}` → `TrackNotFoundError` on
   404/`DATA_NOT_FOUND`(800).
 - `.snippets` — `snippets.fetch_snippet()`: 30-second audio preview
