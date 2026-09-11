@@ -9,6 +9,7 @@ Covers:
 - best-effort per-candidate `/track/{id}` roster enrichment inside `search`
   (full-roster merge, per-track failure fallback to the search-form roster) and
   sanitization of results to the `SEARCH_FIELDS` wire shape,
+- cover URL building from `md5_image`,
 - fail-loud on missing ISRC (MissingISRCError) / empty preview
   (PreviewUnavailableError),
 - empty results for DATA_NOT_FOUND search (per contracts/deezer-api.md) and
@@ -32,6 +33,7 @@ import pytest
 from httpx import Response
 
 from genreguru.deezer import client
+from genreguru.deezer._retry import classify_error
 from genreguru.dto import (
     Album,
     Artist,
@@ -44,6 +46,7 @@ from genreguru.errors import (
     MissingISRCError,
     NetworkDisconnectedError,
     PreviewUnavailableError,
+    TrackNotFoundError,
 )
 from tests.http_stubs import (
     RETRYABLE_CODES,
@@ -60,6 +63,14 @@ from tests.http_stubs import (
 )
 
 _QUERY = "Daft Punk"
+
+_COVER_MD5 = "950fd2a2d0f5f80e3b5f1e9f0b2a3c4d"
+_COVER_URL = f"https://cdn-images.dzcdn.net/images/cover/{_COVER_MD5}/300x300.jpg"
+
+_TIMEOUTS = [
+    httpx.ConnectTimeout("connection timed out"),
+    httpx.ReadTimeout("read timed out"),
+]
 
 _MAIN_ARTIST = Artist(id=27, name="Daft Punk")
 _EXTRA_ARTIST = Artist(id=11, name="Stardust")
@@ -184,17 +195,31 @@ class TestFieldMapping:
         result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
         assert result[field] == expected
 
-    @pytest.mark.parametrize(
-        "obj, expected",
-        [
-            ("artist", {"id": 27, "name": "Daft Punk"}),
-            ("album", {"id": 302127, "title": "Discovery"}),
-        ],
-    )
-    def test_nested_object_mapped(self, monkeypatch, obj, expected):
-        """Deezer `artist`/`album` sub-objects must pass through unchanged."""
+    def test_artists_mapped_main_first(self, monkeypatch):
+        """The canonical `artists` list must lead with the main artist."""
         result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
-        assert result[obj] == expected
+        assert result["artists"] == _MAIN_ROSTER
+
+    @pytest.mark.parametrize(
+        "album",
+        [Album(id=302127, title="Discovery"), None],
+    )
+    def test_album_passthrough(self, monkeypatch, album):
+        """Deezer `album` sub-object must pass through unchanged (or None)."""
+        raw = _raw_track(album=album)
+        result = _search(monkeypatch, [raw])[0]
+        assert result["album"] == album
+
+    def test_cover_mapped(self, monkeypatch):
+        """`md5_image` must map to the documented bare-suffix cover URL."""
+        result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
+        assert result["cover"] == _COVER_URL
+
+    def test_cover_empty_without_md5_image(self, monkeypatch):
+        """A track without `md5_image` must map `cover` to an empty string."""
+        raw = _raw_track(md5_image=None)
+        result = _search(monkeypatch, [raw])[0]
+        assert result["cover"] == ""
 
     def test_preview_mapped(self, monkeypatch):
         """Deezer `preview` URL must pass through unchanged."""
@@ -287,12 +312,7 @@ class TestSearchTransportErrors:
     """Verify network transport failures map to retry / 503 correctly."""
 
     @pytest.mark.parametrize(
-        "timeout",
-        [
-            httpx.ConnectTimeout("connection timed out"),
-            httpx.ReadTimeout("read timed out"),
-        ],
-        ids=["connect_timeout", "read_timeout"],
+        "timeout", _TIMEOUTS, ids=["connect_timeout", "read_timeout"]
     )
     def test_timeout_retries_then_success(self, monkeypatch, timeout):
         """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""
@@ -306,12 +326,7 @@ class TestSearchTransportErrors:
         assert len(search_calls) == _MAX_RETRIES
 
     @pytest.mark.parametrize(
-        "timeout",
-        [
-            httpx.ConnectTimeout("connection timed out"),
-            httpx.ReadTimeout("read timed out"),
-        ],
-        ids=["connect_timeout", "read_timeout"],
+        "timeout", _TIMEOUTS, ids=["connect_timeout", "read_timeout"]
     )
     def test_timeout_exhausts_budget_sets_code_none(self, monkeypatch, timeout):
         """A budget exhausted only by timeouts must raise with code=None."""
@@ -426,9 +441,11 @@ class TestAlbumTolerance:
 
     def test_missing_album_key_maps_to_none(self, monkeypatch):
         """A raw track without an `album` key must result in `album=None`."""
-        result = _search(monkeypatch, [_raw_track(album="")])
+        raw_no_album = cast(
+            RawDeezerTrack, {k: v for k, v in _SAMPLE_TRACK.items() if k != "album"}
+        )
+        result = _search(monkeypatch, [raw_no_album])
         assert result[0]["album"] is None
-
 
 class TestErrorCodeMapping:
     """Verify Deezer error code classification for retry vs. failure."""
