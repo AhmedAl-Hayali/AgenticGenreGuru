@@ -8,13 +8,15 @@ them on a dotted `target` path (e.g. `"genreguru.deezer.client.httpx.get"`)
 via pytest's `monkeypatch`.
 """
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 import httpx
 
 from genreguru.deezer._retry import _RETRYABLE_CODES
-from genreguru.dto import RawDeezerTrack
 from genreguru.dto import DeezerErrorEnvelope, RawDeezerTrack
+
+# A fixed response or a per-call responder; `route_get` keys them by URL.
+Responder = httpx.Response | Callable[..., httpx.Response]
 
 _JSON_HEADERS = {"content-type": "application/json"}
 _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
@@ -152,3 +154,23 @@ def capture_get(monkeypatch, target: str, responder) -> list[tuple[tuple, dict]]
 
     monkeypatch.setattr(target, fake)
     return calls
+
+
+def route_get(
+    monkeypatch, target: str, urls: Mapping[str, Responder]
+) -> list[tuple[tuple, dict]]:
+    """Fake `httpx.get` at *target*, dispatching on the exact URL.
+
+    *urls* maps an exact URL to a fixed `httpx.Response` or a per-call
+    responder, for flows that issue multiple distinct upstream calls (e.g.
+    search + per-track lookups). Calls are recorded as `(args, kwargs)`,
+    mirroring `capture_get`.
+    """
+
+    def fake(url: str, **kwargs) -> httpx.Response:
+        responder = urls[url]
+        if isinstance(responder, httpx.Response):
+            return responder
+        return responder(url, **kwargs)
+
+    return capture_get(monkeypatch, target, fake)

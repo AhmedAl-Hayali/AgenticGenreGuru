@@ -6,6 +6,9 @@ Covers:
 - field mapping from Deezer Track objects, incl. multiple tracks per response,
 - canonical `artists` mapping: main-first with `contributors` dedupe, tolerant
   skip of malformed rosters, and an `Unknown artist` fallback (list never empty),
+- best-effort per-candidate `/track/{id}` roster enrichment inside `search`
+  (full-roster merge, per-track failure fallback to the search-form roster) and
+  sanitization of results to the `SEARCH_FIELDS` wire shape,
 - fail-loud on missing ISRC (MissingISRCError) / empty preview
   (PreviewUnavailableError),
 - empty results for DATA_NOT_FOUND search (per contracts/deezer-api.md) and
@@ -15,8 +18,9 @@ Covers:
   retry classification.
 
 Tests import the `client.DeezerClient` class, exercise a module-level
-instance, and fake its `httpx.get` with the shared `tests.http_stubs` helpers
-via pytest's function-scoped `monkeypatch`; cases are collapsed with
+instance, and fake its `httpx.get` with the shared `tests.http_stubs`
+helpers (`route_get`, `stub_get`/`capture_get`) via pytest's
+function-scoped `monkeypatch`; cases are collapsed with
 `@pytest.mark.parametrize`.
 """
 
@@ -25,10 +29,11 @@ from typing import Any, cast
 
 import httpx
 import pytest
+from httpx import Response
 
 from genreguru.deezer import client
-from genreguru.deezer._retry import classify_error
 from genreguru.dto import (
+    Album,
     Artist,
     DeezerSearchResponse,
     RawDeezerTrack,
@@ -45,9 +50,11 @@ from tests.http_stubs import (
     capture_get,
     error_envelope,
     ok_json,
+    ok_track,
     repeat,
     response,
     retry_then_success,
+    route_get,
     sequence,
     stub_get,
 )
@@ -61,17 +68,19 @@ _FULL_ROSTER = [_MAIN_ARTIST, _EXTRA_ARTIST]
 
 # Deliberate: mirrors `DEEZER_MATCH` (tests.sample_payloads) without coupling
 # the unit suite to the contract fixtures.
-_SAMPLE_TRACK: RawDeezerTrack = {
-    "id": 3135556,
-    "title": "Harder, Better, Faster, Stronger",
-    "isrc": "GBDUW0000059",
-    "duration": 226,
-    "preview": "https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
-    "artist": _MAIN_ARTIST,
-    "album": {"id": 302127, "title": "Discovery"},
-}
+_SAMPLE_TRACK = RawDeezerTrack(
+    id=3135556,
+    title="Harder, Better, Faster, Stronger",
+    isrc="GBDUW0000059",
+    duration=226,
+    preview="https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
+    md5_image=_COVER_MD5,
+    artist=_MAIN_ARTIST,
+    album=Album(id=302127, title="Discovery"),
+)
 
 _SEARCH_URL = "https://api.deezer.com/search"
+_TRACK_URL = "https://api.deezer.com/track"
 _SECOND_TRACK_ID = 999
 
 _MODULE = "genreguru.deezer.client"
@@ -87,6 +96,11 @@ def _ok_search(data: list[RawDeezerTrack]) -> httpx.Response:
     """200 search envelope with *data* and a matching `total`."""
     body: DeezerSearchResponse = {"data": data, "total": len(data)}
     return ok_json(body, _SEARCH_URL)
+
+
+def _track_url(track_id: int) -> str:
+    """The documented Deezer track endpoint for *track_id*."""
+    return f"{_TRACK_URL}/{track_id}"
 
 
 def _raw_track(contributors=None, **overrides) -> RawDeezerTrack:
@@ -106,11 +120,51 @@ def _raw_track(contributors=None, **overrides) -> RawDeezerTrack:
         body["contributors"] = contributors
     return cast(RawDeezerTrack, body)
 
-### Come back, list[dict] -> list[RawDeezerTrack]
-def _search(monkeypatch, data: list[RawDeezerTrack]) -> list[Track]:
-    """Stub `httpx.get` with a 200 search envelope and dispatch `_CLIENT.search`."""
-    stub_get(monkeypatch, _CLIENT_HTTP_GET, _ok_search(data))
+
+def _search(
+    monkeypatch,
+    data: list[RawDeezerTrack],
+    track_bodies: dict[int, Response] | None = None,
+) -> list[Track]:
+    """Stub `/search` + a `/track/{id}` lookup per hit, dispatch `_CLIENT.search`.
+
+    Each hit's lookup returns the same body it appeared in `/search` by
+    default, so the mapped roster is unchanged by enrichment — mapping and
+    validation assertions stay decoupled from the enrichment tests. Pass
+    *track_bodies* (track id → response) to override specific
+    `/track/{id}` lookups, e.g. richer rosters or failures.
+    """
+    url_map = {_SEARCH_URL: _ok_search(data)}
+    if track_bodies is None:
+        track_bodies = {
+            track["id"]: ok_track(track, _track_url(track["id"])) for track in data
+        }
+    url_map.update(
+        {_track_url(track_id): body for track_id, body in track_bodies.items()}
+    )
+    route_get(monkeypatch, _CLIENT_HTTP_GET, url_map)
     return _CLIENT.search(_QUERY)
+
+
+def _track(monkeypatch, body: RawDeezerTrack) -> Track:
+    """Stub `httpx.get` with a 200 track payload and dispatch `_CLIENT.get_track`."""
+    track_id = body["id"]
+    stub_get(monkeypatch, _CLIENT_HTTP_GET, ok_track(body, _track_url(track_id)))
+    return _CLIENT.get_track(track_id)
+
+
+def _route_search_retry(monkeypatch, search_seq) -> list[tuple[tuple, dict]]:
+    """Route `/search` through *search_seq* and the sample track lookup to 200."""
+    return route_get(
+        monkeypatch,
+        _CLIENT_HTTP_GET,
+        {
+            _SEARCH_URL: search_seq,
+            _track_url(_SAMPLE_TRACK["id"]): ok_track(
+                _SAMPLE_TRACK, _track_url(_SAMPLE_TRACK["id"])
+            ),
+        },
+    )
 
 
 class TestFieldMapping:
@@ -242,14 +296,14 @@ class TestSearchTransportErrors:
     )
     def test_timeout_retries_then_success(self, monkeypatch, timeout):
         """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""
-        calls = capture_get(
-            monkeypatch,
-            _CLIENT_HTTP_GET,
-            retry_then_success(timeout, _ok_search([_SAMPLE_TRACK]), _MAX_RETRIES - 1),
+        search_seq = retry_then_success(
+            timeout, _ok_search([_SAMPLE_TRACK]), _MAX_RETRIES - 1
         )
+        calls = _route_search_retry(monkeypatch, search_seq)
         results = _CLIENT.search(_QUERY)
         assert [r["deezer_id"] for r in results] == [_SAMPLE_TRACK["id"]]
-        assert len(calls) == _MAX_RETRIES
+        search_calls = [call for call in calls if call[0][0] == _SEARCH_URL]
+        assert len(search_calls) == _MAX_RETRIES
 
     @pytest.mark.parametrize(
         "timeout",
@@ -305,15 +359,12 @@ class TestSearchRetry:
     @pytest.mark.parametrize("code", [4, 700])
     def test_retryable_then_success(self, monkeypatch, code):
         """A retryable Deezer code must be retried, succeeding on the last attempt."""
-        stub_get(
-            monkeypatch,
-            _CLIENT_HTTP_GET,
-            retry_then_success(
-                error_envelope(200, code, _SEARCH_URL),
-                _ok_search([_SAMPLE_TRACK]),
-                n_failures=_MAX_RETRIES - 1,
-            ),
+        search_seq = retry_then_success(
+            error_envelope(200, code, _SEARCH_URL),
+            _ok_search([_SAMPLE_TRACK]),
+            n_failures=_MAX_RETRIES - 1,
         )
+        _route_search_retry(monkeypatch, search_seq)
         results = _CLIENT.search(_QUERY)
         assert [r["deezer_id"] for r in results] == [_SAMPLE_TRACK["id"]]
 
