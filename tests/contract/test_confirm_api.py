@@ -31,7 +31,11 @@ from fingerprint_app import views  # ty: ignore[unresolved-import]
 from genreguru import fingerprint_service
 from genreguru.dto import FingerprintResponse
 from genreguru.errors import AudioProcessingError, NetworkDisconnectedError
-from tests.sample_payloads import DEEZER_MATCH, FINGERPRINT_FIELDS, SUCCESS_RESPONSE
+from tests.sample_payloads import (
+    DEEZER_CONFIRM_BODY,
+    FINGERPRINT_FIELDS,
+    SUCCESS_RESPONSE,
+)
 
 
 def confirm_body(resp) -> FingerprintResponse:
@@ -70,9 +74,9 @@ def post_confirm(django_client, mocker):
     """POST /api/confirm/ with stubbed service/session; returns the response.
 
     All arguments are keyword-only. `error` makes the service raise,
-    `session` replaces the view's session (to assert rollback/close), `body`
-    overrides the posted match (default `DEEZER_MATCH`), and `raw` posts an
-    unencoded body verbatim.
+    `session` replaces the view's session (to assert rollback/close), and
+    `body` overrides the posted match as a dict (default `DEEZER_MATCH`,
+    JSON-encoded by the fixture).
     """
 
     def _post_confirm(
@@ -80,8 +84,6 @@ def post_confirm(django_client, mocker):
         error=None,
         session=None,
         body=None,
-        raw=None,
-        csrf_token=None,
     ):
         def fake_process(fake_session, track, repo):
             if error is not None:
@@ -94,16 +96,7 @@ def post_confirm(django_client, mocker):
             fake_process,
         )
 
-        payload = json.dumps(DEEZER_MATCH) if body is None else body
-        payload = raw if raw is not None else payload
-
-        if csrf_token is not None:
-            return django_client.post(
-                _CONFIRM_URL,
-                data=payload,
-                content_type="application/json",
-                HTTP_X_CSRFTOKEN=csrf_token,
-            )
+        payload = json.dumps(DEEZER_CONFIRM_BODY) if body is None else body
 
         return django_client.post(
             _CONFIRM_URL,
@@ -165,9 +158,11 @@ class TestConfirmSuccess:
 class TestConfirm400InvalidJSON:
     """Verify malformed request bodies yield 400."""
 
-    def test_invalid_json(self, post_confirm):
+    def test_invalid_json(self, django_client):
         """A non-JSON body must produce HTTP 400 without touching the session."""
-        resp = post_confirm(raw="{not json")
+        resp = django_client.post(
+            _CONFIRM_URL, data="{not json", content_type="application/json"
+        )
         assert resp.status_code == 400
         assert status_of(resp) == "error"
         assert "invalid JSON" in error_of(resp)
@@ -234,15 +229,13 @@ class TestConfirmCsrf:
 
         resp = django_csrf_client.post(
             _CONFIRM_URL,
-            data=json.dumps(DEEZER_MATCH),
+            data=json.dumps(DEEZER_CONFIRM_BODY),
             content_type="application/json",
         )
 
-        print("bruh=", resp)
-
         assert resp.status_code == 403
 
-    def test_post_with_token_succeeds(self, django_csrf_client, post_confirm):
+    def test_post_with_token_succeeds(self, django_csrf_client, mocker):
         """After GET / issues the csrftoken cookie, a token-header POST passes.
 
         The rendered `{% csrf_token %}` in index.html sets the cookie; echoing
@@ -254,6 +247,17 @@ class TestConfirmCsrf:
         token = django_csrf_client.cookies["csrftoken"].value
         assert token
 
-        resp = post_confirm(body=json.dumps(DEEZER_MATCH), csrf_token=token)
+        patch_session_and_process_fp(
+            mocker,
+            lambda: mocker.Mock(),
+            lambda fake_session, track, repo: dict(SUCCESS_RESPONSE),
+        )
+
+        resp = django_csrf_client.post(
+            _CONFIRM_URL,
+            data=json.dumps(DEEZER_CONFIRM_BODY),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+        )
 
         assert resp.status_code == 201
