@@ -613,3 +613,29 @@ class TestAlbumTolerance:
         )
         result = _search(monkeypatch, [raw_no_album])
         assert result[0]["album"] is None
+
+
+class TestErrorCodeParsing:
+    """Verify the `_error_code` / `_request_json` error-parsing edge cases."""
+
+    def test_error_code_with_non_dict_error_returns_none(self):
+        """An `error` key that is not a dict (e.g. a bare string) must yield no code."""
+        resp = response(200, json={"error": "boom"}, url=_SEARCH_URL)
+        assert client._error_code(resp) is None
+
+    def test_non_json_body_raises_network_disconnected(self, monkeypatch):
+        """A 200 body that is not valid JSON must map to a 503 `NetworkDisconnectedError`."""
+        stub_get(
+            monkeypatch,
+            _CLIENT_HTTP_GET,
+            response(
+                200,
+                content=b"not json",
+                headers={"content-type": "application/json"},
+                url=_SEARCH_URL,
+            ),
+        )
+        with pytest.raises(NetworkDisconnectedError) as exc_info:
+            _CLIENT.search(_QUERY)
+        assert exc_info.value.attempts == 1
+        assert "non-JSON" in str(exc_info.value)
