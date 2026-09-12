@@ -35,6 +35,15 @@ _RECOGNIZED_FTYP_ATOMS = tuple(size + b"ftyp" for size in M4A_LEADING_SIZES)
 _UNRECOGNIZED_FTYP_ATOM = b"\x00\x00\x00\x24ftyp"  # leading size 0x24
 
 
+def _raise(exc: Exception):
+    """A `librosa.load`-shaped callable that always raises *exc*."""
+
+    def _fake_load(*_args, **_kwargs) -> None:
+        raise exc
+
+    return _fake_load
+
+
 def _snippet(
     fmt: str,
     subtype: str | None = None,
@@ -197,3 +206,49 @@ class TestLoadAudioGuard:
         assert mono.ndim == 1
         assert sr == _SAMPLE_RATE
         assert mono == pytest.approx(0.5, abs=1e-6)
+
+
+class TestLoadAudioFallback:
+    """Verify the in-memory → temp-file fallback and its error contract.
+
+    Both `load_audio`'s in-memory `librosa.load(io.BytesIO(...))` and
+    `_decode_file`'s path-based `librosa.load` share the module-level
+    `librosa.load` reference, so monkeypatching `loader.librosa.load` drives
+    the whole branch set deterministically (the generated wav bytes are real,
+    but the decode paths themselves are forced).
+    """
+
+    def test_in_memory_failure_falls_back_to_temp_file(self, monkeypatch):
+        """An in-memory `BytesIO` decode failure must retry via a temp file."""
+        original = loader.librosa.load
+
+        def _fake_load(source, *args, **kwargs):
+            if isinstance(source, io.BytesIO):
+                raise RuntimeError("in-memory decode failed")
+            return original(source, *args, **kwargs)
+
+        monkeypatch.setattr(loader.librosa, "load", _fake_load)
+        mono, sr = loader.load_audio(_snippet("wav"), target_sr=_SAMPLE_RATE)
+
+        assert mono.dtype == np.float32
+        assert mono.ndim == 1
+        assert mono.shape[0] > 0
+        assert sr == _SAMPLE_RATE
+
+    def test_both_paths_fail_raise_audio_processing_error(self, monkeypatch):
+        """Both the in-memory and temp-file decodes failing must yield a domain error."""
+        monkeypatch.setattr(
+            loader.librosa, "load", _raise(RuntimeError("decode failed"))
+        )
+        with pytest.raises(
+            AudioProcessingError, match="audio file cannot be processed"
+        ):
+            loader.load_audio(_snippet("wav"), target_sr=_SAMPLE_RATE)
+
+    def test_audio_processing_error_passes_through_unwrapped(self, monkeypatch):
+        """An `AudioProcessingError` from the in-memory path must not be wrapped."""
+        monkeypatch.setattr(
+            loader.librosa, "load", _raise(AudioProcessingError("downstream failure"))
+        )
+        with pytest.raises(AudioProcessingError, match="downstream failure"):
+            loader.load_audio(_snippet("wav"), target_sr=_SAMPLE_RATE)
