@@ -10,8 +10,7 @@ function createCandidateCover(match: Match): HTMLImageElement {
   cover.className = "candidate-cover";
   cover.alt = match.title;
   if (match.cover) {
-    cover.src = match.cover;
-    cover.onerror = () => cover.classList.add("hidden");
+    cover.dataset.src = match.cover;
   } else {
     cover.classList.add("hidden");
   }
@@ -109,6 +108,31 @@ export function renderCandidates(
     );
 
     listElement.appendChild(listItem);
+  }
+
+  const observer = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) {
+          continue;
+        }
+        const listItem = entry.target as HTMLLIElement;
+        const cover = listItem.querySelector<HTMLImageElement>(".candidate-cover");
+        if (cover?.dataset.src) {
+          cover.src = cover.dataset.src;
+          cover.onerror = () => cover.classList.add("hidden");
+          delete cover.dataset.src;
+        }
+        observer.unobserve(listItem);
+      }
+    },
+    { rootMargin: "200px" },
+  );
+
+  for (const listItem of listElement.querySelectorAll<HTMLLIElement>(".candidate")) {
+    if (listItem.querySelector<HTMLImageElement>(".candidate-cover")?.dataset.src) {
+      observer.observe(listItem);
+    }
   }
 }
 
