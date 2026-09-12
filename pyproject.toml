@@ -147,3 +147,9 @@ DJANGO_SETTINGS_MODULE = "genreguru_web.settings.test"
 testpaths = ["tests"]
 pythonpath = ["web", "src"]
 addopts = ["-ra", "--strict-markers", "--import-mode=importlib"]
+
+[tool.coverage.report]
+# The coverage gate is the full test suite (backend, living against PostgreSQL
+# in CI). Enforced on every `--cov` run; the unit-only suite intentionally
+# falls below this threshold.
+fail_under = 95

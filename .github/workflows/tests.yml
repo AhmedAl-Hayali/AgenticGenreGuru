@@ -53,7 +53,7 @@ jobs:
         run: echo "PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/src:$GITHUB_WORKSPACE/web" >> $GITHUB_ENV
 
       - name: run tests
-        run: uv run pytest
+        run: uv run pytest --cov=genreguru --cov-report=term-missing
 
   web:
     runs-on: ubuntu-latest
