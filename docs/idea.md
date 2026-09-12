@@ -129,13 +129,12 @@ out to specs/roadmap.
   - https://morisinc.net/
   - https://beigeforce.com/
   - https://www.cozyeating.app/
-- Song preview card before confirm: album art, artist, provider icon.
+- Song preview card before confirm: album art, artist, provider icon. **In-flight** — `architecture.md` §3.3/§7.5 anticipate `renderPreviewCard` + Deezer "D" badge; render hub + partials + `dto` fields are in place, pending the card UI.
 - Multi-artist previews — a song can have multiple artists, but the preview
   shows only Deezer's main `artist` (track `contributors` are dropped by the
   client; `Song.artist` is a single String(255); contracts expose one
   `artist {id,name}`). Fix: carry the full artist list and truncate long ones
-  with a trailing `…`. Requires a data-model.md change (Song schema) plus the
-  Deezer client mapping and deezer-api/search-api contracts.
+  with a trailing `…`. **Done** — `dto.ts` carries `artists[]` + `cover`; `render.ts` renders the full contributor roster truncated via the overflow marquee (`ts/marquee.ts`, reduced-motion aware).
 - No-preview edge cases (missing/invalid Deezer preview URL).
 - Error toasts — small, dismissable, fade-from-below, bottom-right; shown on any
   error. Expandable: later cover non-blocking events (fingerprint stored, slow
