@@ -1,7 +1,9 @@
 // Unit tests for the render module (fingerprint_app/ts/render.ts).
 // renderCandidates: structural contract of the candidate list — item shape,
-// label composition, and click/keyboard delegation. renderFingerprint: the
-// formatting edge cases and the missing-featureLabels fail-loud guard.
+// full contributor roster + cover rendering, and click/keyboard delegation.
+// renderFingerprint: the formatting edge cases and the missing-featureLabels
+// fail-loud guard. The candidate artists overflow ("scroll reveal") interaction
+// lives in its own module and test (scroll-reveal.test.ts).
 
 import { describe, expect, it, vi } from "vitest";
 import type { ConfirmResponse, Match } from "../fingerprint_app/ts/dto.ts";
@@ -26,6 +28,9 @@ const MINIMAL_MATCH: Match = {
   isrc: "GBDUW0000123",
   duration: 217,
   preview: "https://example.test/preview-minimal.mp3",
+  artists: [],
+  album: null,
+  cover: "",
 };
 
 function renderInto(matches: Match[], handler = () => {}) {
@@ -35,33 +40,75 @@ function renderInto(matches: Match[], handler = () => {}) {
 }
 
 describe("renderCandidates", () => {
-  it("renders one item per match in order, badge before the label", () => {
+  it("renders one item per match in order: cover, body, then badge", () => {
     const { list } = renderInto([MATCH, MINIMAL_MATCH]);
 
     const items = Array.from(list.children);
     expect(items).toHaveLength(2);
 
-    const first = items[0] as HTMLElement;
-    const badge = first.firstElementChild;
+    const children = Array.from(items[0]!.children);
+    expect(children[0]?.classList.contains("candidate-cover")).toBe(true);
+    expect(children[1]?.classList.contains("candidate-body")).toBe(true);
+    const badge = children[2];
     expect(badge?.classList.contains("badge")).toBe(true);
     expect(badge?.textContent).toBe("Selected");
-    expect(badge?.nextElementSibling?.classList.contains("title")).toBe(true);
   });
 
-  it("labels a match as 'title · artist' with the album in parentheses", () => {
+  it("renders the title, album meta, and the full contributor roster", () => {
     const { list } = renderInto([MATCH]);
 
-    const label = (list.children[0] as HTMLElement).querySelector(".title")?.textContent ?? "";
-    expect(label).toContain("Harder, Better, Faster, Stronger · Daft Punk");
-    expect(label).toContain("(Discovery)");
+    const item = list.children[0] as HTMLElement;
+    expect(item.querySelector(".candidate-title")?.textContent).toBe(MATCH.title);
+    expect(item.querySelector(".candidate-meta")?.textContent).toBe("(Discovery)");
+
+    const artistNames = Array.from(item.querySelectorAll(".candidate-artist")).map(
+      (el) => el.textContent,
+    );
+    expect(artistNames).toEqual(["Daft Punk", "Stardust"]);
+    const artists = item.querySelector(".candidate-artists");
+    expect(artists?.getAttribute("title")).toBe("Daft Punk, Stardust");
+  });
+
+  it("shows the overflowing fade hint on every contributor line", () => {
+    const { list } = renderInto([MATCH]);
+
+    const fade = list.querySelector(".candidate-artists-fade");
+    expect(fade?.textContent).toBe("…");
+    expect(fade?.getAttribute("aria-hidden")).toBe("true");
   });
 
   it("falls back to 'Unknown artist' and omits album meta when absent", () => {
     const { list } = renderInto([MINIMAL_MATCH]);
 
-    const label = (list.children[0] as HTMLElement).querySelector(".title")?.textContent ?? "";
-    expect(label).toContain("Unknown artist");
-    expect(label).not.toContain("(");
+    const item = list.children[0] as HTMLElement;
+    expect(item.querySelector(".candidate-artist")?.textContent).toBe("Unknown artist");
+    expect(item.querySelector(".candidate-artists")?.getAttribute("title")).toBe("Unknown artist");
+    expect(item.querySelector(".candidate-meta")).toBeNull();
+  });
+
+  it("renders the match cover eagerly with the title as alt text", () => {
+    const { list } = renderInto([MATCH]);
+
+    const cover = list.querySelector(".candidate-cover");
+    expect(cover?.getAttribute("src")).toBe("https://example.test/cover.jpg");
+    expect(cover?.getAttribute("alt")).toBe(MATCH.title);
+  });
+
+  it("hides the cover when no cover is available", () => {
+    const { list } = renderInto([{ ...MATCH, cover: "" }]);
+
+    const cover = list.querySelector(".candidate-cover");
+    expect(cover?.classList.contains("hidden")).toBe(true);
+    expect(cover?.hasAttribute("src")).toBe(false);
+  });
+
+  it("hides the cover when the image fails to load", () => {
+    const { list } = renderInto([MATCH]);
+
+    const cover = list.querySelector(".candidate-cover") as HTMLImageElement;
+    expect(cover.classList.contains("hidden")).toBe(false);
+    cover.dispatchEvent(new Event("error"));
+    expect(cover.classList.contains("hidden")).toBe(true);
   });
 
   it("starts each item unselected with a button role and zero tabindex", () => {
@@ -121,6 +168,17 @@ describe("renderCandidates", () => {
     renderCandidates(list, [MATCH, MINIMAL_MATCH], () => {});
 
     expect(list.children).toHaveLength(2);
+  });
+
+  it("keeps exactly one tab stop per candidate, never the scroll-reveal container", () => {
+    const five = [MATCH, MATCH, MATCH, MATCH, MATCH];
+    const { list } = renderInto(five);
+
+    const tabStops = Array.from(list.querySelectorAll("[tabindex]"));
+    expect(tabStops).toHaveLength(5);
+    for (const stop of tabStops) {
+      expect(stop.classList.contains("candidate")).toBe(true);
+    }
   });
 });
 
