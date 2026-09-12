@@ -171,6 +171,6 @@ def main(cfg: DictConfig) -> None:
         sys.exit(1)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # `cfg` captured passed @hydra.main(...)
     raise SystemExit(main())
