@@ -1,6 +1,6 @@
 // Unit tests for the render module (fingerprint_app/ts/render.ts).
 // renderCandidates: structural contract of the candidate list — item shape,
-// full contributor roster + cover rendering, and click/keyboard delegation.
+// full contributor roster + lazy cover rendering, and click/keyboard delegation.
 // renderFingerprint: the formatting edge cases and the missing-featureLabels
 // fail-loud guard. The candidate artists overflow ("scroll reveal") interaction
 // lives in its own module and test (scroll-reveal.test.ts).
@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConfirmResponse, Match } from "../fingerprint_app/ts/dto.ts";
 import { renderCandidates, renderFingerprint } from "../fingerprint_app/ts/render.ts";
 import { CONFIRM_OK, MATCH } from "./helpers.ts";
+import { installIntersectionObserver } from "./setup.ts";
 
 const BODY = {
   status: "success",
@@ -86,27 +87,60 @@ describe("renderCandidates", () => {
     expect(item.querySelector(".candidate-meta")).toBeNull();
   });
 
-  it("renders the match cover eagerly with the title as alt text", () => {
+  it("defers the cover src to data-src until the item is revealed", () => {
     const { list } = renderInto([MATCH]);
 
-    const cover = list.querySelector(".candidate-cover");
-    expect(cover?.getAttribute("src")).toBe("https://example.test/cover.jpg");
-    expect(cover?.getAttribute("alt")).toBe(MATCH.title);
+    const cover = list.querySelector(".candidate-cover") as HTMLImageElement;
+    expect(cover.dataset.src).toBe("https://example.test/cover.jpg");
+    expect(cover.hasAttribute("src")).toBe(false);
+    expect(cover.getAttribute("alt")).toBe(MATCH.title);
+    expect(cover.classList.contains("hidden")).toBe(false);
   });
 
-  it("hides the cover when no cover is available", () => {
+  it("loads the cover src when the item intersects and then unobserves it", () => {
+    const handles = installIntersectionObserver();
+    const { list } = renderInto([MATCH]);
+    const observer = handles[0]!;
+    const item = list.children[0] as HTMLLIElement;
+    const cover = item.querySelector(".candidate-cover") as HTMLImageElement;
+
+    expect(observer.observed).toEqual([item]);
+
+    observer.trigger([{ target: item, isIntersecting: true }]);
+    expect(cover.getAttribute("src")).toBe("https://example.test/cover.jpg");
+    expect(cover.hasAttribute("data-src")).toBe(false);
+    expect(observer.unobserved).toEqual([item]);
+  });
+
+  it("keeps the cover src deferred for items outside the viewport", () => {
+    const handles = installIntersectionObserver();
+    const { list } = renderInto([MATCH]);
+    const observer = handles[0]!;
+    const item = list.children[0] as HTMLLIElement;
+
+    observer.trigger([{ target: item, isIntersecting: false }]);
+    expect(item.querySelector(".candidate-cover")?.hasAttribute("src")).toBe(false);
+  });
+
+  it("hides the cover when no cover is available and never observes it", () => {
+    const handles = installIntersectionObserver();
     const { list } = renderInto([{ ...MATCH, cover: "" }]);
+    const observer = handles[0]!;
 
     const cover = list.querySelector(".candidate-cover");
     expect(cover?.classList.contains("hidden")).toBe(true);
     expect(cover?.hasAttribute("src")).toBe(false);
+    expect(observer.observed).toEqual([]);
   });
 
-  it("hides the cover when the image fails to load", () => {
+  it("hides the cover when the image fails to load after being revealed", () => {
+    const handles = installIntersectionObserver();
     const { list } = renderInto([MATCH]);
+    const observer = handles[0]!;
+    const item = list.children[0] as HTMLLIElement;
+    const cover = item.querySelector(".candidate-cover") as HTMLImageElement;
 
-    const cover = list.querySelector(".candidate-cover") as HTMLImageElement;
-    expect(cover.classList.contains("hidden")).toBe(false);
+    observer.trigger([{ target: item, isIntersecting: true }]);
     cover.dispatchEvent(new Event("error"));
     expect(cover.classList.contains("hidden")).toBe(true);
   });
