@@ -11,8 +11,15 @@ engine factory contract; live connections are exercised by the integration
 tests instead.
 """
 
+from types import SimpleNamespace
+
+import pytest
 from omegaconf import DictConfig
+from omegaconf.errors import ConfigAttributeError
+from sqlalchemy import create_engine as _sa_create_engine
 from sqlalchemy.engine import Engine
+
+from genreguru.db import engine as eng_module
 
 
 def test_engine_from_dev_db_group(engine: Engine, db_cfg: DictConfig):
@@ -39,3 +46,26 @@ def test_pool_settings_from_db_group(engine: Engine, db_cfg: DictConfig):
 def test_echo_disabled_by_default(engine: Engine, db_cfg: DictConfig):
     """Test that echo stays off unless the db group enables it."""
     assert engine.echo == db_cfg.echo
+
+
+def test_missing_config_attribute_raises():
+    """An incomplete `db` group must fail fast with `ConfigAttributeError`."""
+    with pytest.raises(ConfigAttributeError):
+        eng_module._build_url(DictConfig({}))
+
+
+@pytest.mark.parametrize(
+    ("connection", "expected_host"),
+    [
+        (SimpleNamespace(), "UNKNOWN_HOST"),
+        (SimpleNamespace(info=SimpleNamespace(host="db-prod-1")), "db-prod-1"),
+    ],
+    ids=["unreported_host", "reported_host"],
+)
+def test_pool_invalidate_logs_host(caplog, connection, expected_host):
+    """A pool invalidate must log the host, falling back to `UNKNOWN_HOST`."""
+    _sample_engine = _sa_create_engine("sqlite://")
+    eng_module._attach_pool_events(_sample_engine)
+    with caplog.at_level("WARNING", logger=eng_module.__name__):
+        _sample_engine.pool.dispatch.invalidate(connection, None, None)  # ty: ignore[unresolved-attribute]
+    assert f"connection to database lost (host={expected_host})" in caplog.text
