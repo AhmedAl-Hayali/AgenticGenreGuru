@@ -6,6 +6,22 @@ import { Messages } from "./messages.ts";
 /** Callback signature invoked when a candidate list item is clicked or activated via keyboard. */
 export type CandidateClickHandler = (match: Match, listItem: HTMLLIElement) => void;
 
+/** The play button + progress bar a candidate's playback row exposes to the player. */
+export interface PreviewControl {
+  button: HTMLButtonElement;
+  gauge: HTMLElement;
+  element: HTMLElement;
+}
+
+/** Callback signature invoked when a candidate's preview button is activated. */
+export type CandidatePreviewHandler = (match: Match, control: PreviewControl) => void;
+
+/** Behavior hooks supplied to `renderCandidates`. */
+export interface CandidateHandlers {
+  onCandidateClick: CandidateClickHandler;
+  onCandidatePreview: CandidatePreviewHandler;
+}
+
 function createCandidateCover(match: Match): HTMLImageElement {
   const cover = document.createElement("img");
   cover.className = "candidate-cover";
@@ -52,6 +68,46 @@ function createCandidateArtists(match: Match): HTMLElement {
   return artists;
 }
 
+function createCandidatePlayback(match: Match, onPreview: CandidatePreviewHandler): PreviewControl {
+  const element = document.createElement("div");
+  element.className = "candidate-playback";
+
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "candidate-preview";
+
+  const gauge = document.createElement("div");
+  gauge.className = "candidate-progress";
+  gauge.setAttribute("role", "progressbar");
+  gauge.setAttribute("aria-valuemin", "0");
+  gauge.setAttribute("aria-valuemax", "100");
+  gauge.setAttribute("aria-valuenow", "0");
+  const fill = document.createElement("div");
+  fill.className = "candidate-progress-fill";
+  gauge.appendChild(fill);
+
+  element.appendChild(button);
+  element.appendChild(gauge);
+
+  if (!match.preview) {
+    button.disabled = true;
+    button.title = Messages.previewUnavailable;
+    button.setAttribute("aria-label", Messages.previewUnavailable);
+    return { button, gauge, element };
+  }
+  button.setAttribute("aria-label", Messages.previewLabel(match.title));
+  // This control sits inside the clickable row: consume its own activations so
+  // a preview never selects or confirms the candidate it belongs to.
+  button.addEventListener("click", (event) => {
+    event.stopPropagation();
+    onPreview(match, { button, gauge, element });
+  });
+  button.addEventListener("keydown", (event) => {
+    event.stopPropagation();
+  });
+  return { button, gauge, element };
+}
+
 function createCandidateTitleRow(match: Match, provider?: HTMLImageElement): HTMLElement {
   const row = document.createElement("div");
   row.className = "candidate-title-row";
@@ -86,19 +142,24 @@ function createCandidateProvider(listElement: HTMLUListElement): HTMLImageElemen
   return provider;
 }
 
-function createCandidateBody(match: Match, provider?: HTMLImageElement): HTMLElement {
+function createCandidateBody(
+  match: Match,
+  provider: HTMLImageElement | undefined,
+  preview: PreviewControl,
+): HTMLElement {
   const body = document.createElement("div");
   body.className = "candidate-body";
   body.appendChild(createCandidateTitleRow(match, provider));
   body.appendChild(createCandidateArtists(match));
+  body.appendChild(preview.element);
   return body;
 }
 
-/** Build the candidate list in `listElement`; each `<li>` wires click/keyboard to `onCandidateClick`. */
+/** Build the candidate list in `listElement`; each `<li>` wires click/keyboard to `handlers`. */
 export function renderCandidates(
   listElement: HTMLUListElement,
   matches: Match[],
-  onCandidateClick: CandidateClickHandler,
+  handlers: CandidateHandlers,
 ) {
   listElement.replaceChildren();
   for (const match of matches) {
@@ -108,10 +169,11 @@ export function renderCandidates(
     listItem.setAttribute("role", "button");
     listItem.setAttribute("aria-pressed", "false");
 
+    const preview = createCandidatePlayback(match, handlers.onCandidatePreview);
     listItem.appendChild(createCandidateCover(match));
-    listItem.appendChild(createCandidateBody(match, createCandidateProvider(listElement)));
+    listItem.appendChild(createCandidateBody(match, createCandidateProvider(listElement), preview));
 
-    const activate = () => onCandidateClick(match, listItem);
+    const activate = () => handlers.onCandidateClick(match, listItem);
     listItem.addEventListener("click", activate);
     listItem.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {

@@ -15,7 +15,9 @@ export const Messages = {
     "Click a match once to select, then click it again to confirm.",
   selectedMatch: (title: string) =>
     `Selected "${title}". Click it again to confirm and fingerprint it.`,
+  previewLabel: (title: string) => `Preview "${title}"`,
   previewStopLabel: (title: string) => `Stop preview "${title}"`,
+  previewUnavailable: "No preview available for this song.",
   previewFailed: "The audio preview could not be loaded.",
   fetching: (title: string) => `Fetching the audio preview and fingerprinting "${title}"…`,
   audioUnprocessable: (title: string) =>

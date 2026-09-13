@@ -146,6 +146,45 @@ ul#candidates { list-style: none; margin: 0; padding: 0; }
     overflow: hidden;
     text-overflow: ellipsis;
 }
+#candidates .candidate-preview {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+#candidates .candidate-preview::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: currentColor;
+    clip-path: polygon(0 0, 0 100%, 100% 50%, 100% 50%);
+    transition: clip-path 100ms ease;
+}
+#candidates .candidate-preview.playing::before {
+    clip-path: polygon(0.5px 0.5px, 0.5px 7.5px, 7.5px 7.5px, 7.5px 0.5px);
+}
+@media (prefers-reduced-motion: reduce) {
+    #candidates .candidate-preview::before { transition: none; }
+}
+#candidates .candidate-preview:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+#candidates .candidate-preview:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+#candidates .candidate-preview:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
 #candidates .candidate-provider {
     flex: none;
     margin-left: auto;
@@ -153,6 +192,25 @@ ul#candidates { list-style: none; margin: 0; padding: 0; }
     height: 20px;
     object-fit: contain;
     opacity: 0.9;
+}
+#candidates .candidate-playback {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+#candidates .candidate-progress {
+    flex: 1;
+    min-width: 0;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: var(--border);
+    overflow: hidden;
+}
+#candidates .candidate-progress-fill {
+    width: var(--preview-progress, 0%);
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent);
 }
 
 /* Animate scrolling through the full contributor roster on hover/focus:
