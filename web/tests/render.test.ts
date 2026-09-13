@@ -7,8 +7,11 @@
 
 import { describe, expect, it, vi } from "vitest";
 import type { ConfirmResponse, Match } from "../fingerprint_app/ts/dto.ts";
-import { renderCandidates, renderFingerprint } from "../fingerprint_app/ts/render.ts";
-import { CONFIRM_OK, MATCH } from "./helpers.ts";
+import {
+  renderCandidates,
+  renderFingerprint,
+  type PreviewControl,
+} from "../fingerprint_app/ts/render.ts";
 import { CONFIRM_OK, MATCH, MINIMAL_MATCH } from "./helpers.ts";
 import { installIntersectionObserver } from "./setup.ts";
 
@@ -25,16 +28,22 @@ const BODY = {
 
 const PROVIDER_ICON = "/static/fingerprint_app/images/deezer-heart.png";
 
-function renderInto(matches: Match[], handler = () => {}) {
+function renderInto(
+  matches: Match[],
+  {
+    onCandidateClick = () => {},
+    onCandidatePreview = () => {},
+  }: { onCandidateClick?: () => void; onCandidatePreview?: () => void } = {},
+) {
   const list = document.createElement("ul");
   list.dataset.providerIcon = PROVIDER_ICON;
   list.dataset.providerName = "Deezer";
-  renderCandidates(list, matches, handler);
+  renderCandidates(list, matches, { onCandidateClick, onCandidatePreview });
   return { list };
 }
 
 describe("renderCandidates", () => {
-  it("renders one item per match in order: cover, then body with title-row above artists", () => {
+  it("renders one item per match in order: cover, then body with title-row, artists, and playback", () => {
     const { list } = renderInto([MATCH, MINIMAL_MATCH]);
 
     const items = Array.from(list.children);
@@ -48,18 +57,54 @@ describe("renderCandidates", () => {
     const titleRow = bodyChildren[0];
     expect(titleRow?.classList.contains("candidate-title-row")).toBe(true);
     expect(bodyChildren[1]?.classList.contains("candidate-artists")).toBe(true);
+    expect(bodyChildren[2]?.classList.contains("candidate-playback")).toBe(true);
 
     const provider = titleRow?.querySelector(".candidate-provider");
     expect(provider?.getAttribute("src")).toBe(PROVIDER_ICON);
     expect(provider?.getAttribute("alt")).toBe("Deezer");
     expect(provider?.hasAttribute("tabindex")).toBe(false);
+
+    expect(titleRow?.querySelector(".candidate-preview")).toBeNull();
+  });
+
+  it("lays out the preview button and progress bar in a shared playback row", () => {
+    const { list } = renderInto([MATCH]);
+
+    const playback = list.querySelector(".candidate-playback");
+    expect(playback).not.toBeNull();
+
+    const playbackChildren = Array.from(playback!.children);
+    expect(playbackChildren[0]?.classList.contains("candidate-preview")).toBe(true);
+    expect(playbackChildren[1]?.classList.contains("candidate-progress")).toBe(true);
+
+    const button = playbackChildren[0];
+    expect(button?.tagName).toBe("BUTTON");
+    expect(button?.getAttribute("type")).toBe("button");
+    expect(button?.getAttribute("aria-label")).toBe(`Preview "${MATCH.title}"`);
+    expect(button?.hasAttribute("tabindex")).toBe(false);
+
+    const gauge = playbackChildren[1];
+    expect(gauge?.getAttribute("role")).toBe("progressbar");
+    expect(gauge?.getAttribute("aria-valuemin")).toBe("0");
+    expect(gauge?.getAttribute("aria-valuemax")).toBe("100");
+    expect(gauge?.getAttribute("aria-valuenow")).toBe("0");
+    expect(playback?.querySelector(".candidate-progress-fill")).not.toBeNull();
   });
 
   it("omits the provider icon when the list carries no provider data", () => {
     const list = document.createElement("ul");
-    renderCandidates(list, [MATCH], () => {});
+    renderCandidates(list, [MATCH], { onCandidateClick: () => {}, onCandidatePreview: () => {} });
 
     expect(list.querySelector(".candidate-provider")).toBeNull();
+  });
+
+  it("disables the preview button when the match has no preview", () => {
+    const { list } = renderInto([{ ...MATCH, preview: "" }]);
+
+    const preview = list.querySelector(".candidate-preview") as HTMLButtonElement;
+    expect(preview.disabled).toBe(true);
+    expect(preview.getAttribute("aria-label")).toBe("No preview available for this song.");
+    expect(preview.getAttribute("title")).toBe("No preview available for this song.");
   });
 
   it("renders the title, album meta, and the full contributor roster", () => {
@@ -140,7 +185,7 @@ describe("renderCandidates", () => {
 
   it("delegates clicks with the match and the list item", () => {
     const handler = vi.fn();
-    const { list } = renderInto([MATCH], handler);
+    const { list } = renderInto([MATCH], { onCandidateClick: handler });
 
     const item = list.children[0] as HTMLElement;
     item.click();
@@ -148,9 +193,53 @@ describe("renderCandidates", () => {
     expect(handler).toHaveBeenCalledWith(MATCH, item);
   });
 
+  it("delegates preview activation with the match, the button, and the gauge", () => {
+    const handler = vi.fn();
+    const { list } = renderInto([MATCH], { onCandidatePreview: handler });
+
+    const button = list.querySelector(".candidate-preview") as HTMLButtonElement;
+    button.click();
+
+    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler.mock.calls[0]![0]).toBe(MATCH);
+    const control = handler.mock.calls[0]![1] as PreviewControl;
+    expect(control.button).toBe(button);
+    expect(control.gauge.classList.contains("candidate-progress")).toBe(true);
+  });
+
+  it("does not treat a preview button activation as a row activation", () => {
+    const clickHandler = vi.fn();
+    const previewHandler = vi.fn();
+    const { list } = renderInto([MATCH], {
+      onCandidateClick: clickHandler,
+      onCandidatePreview: previewHandler,
+    });
+    const item = list.children[0] as HTMLElement;
+    const button = item.querySelector(".candidate-preview") as HTMLButtonElement;
+
+    button.click();
+    expect(clickHandler).not.toHaveBeenCalled();
+    expect(previewHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps row activation working from the cover while ignoring the preview button", () => {
+    const clickHandler = vi.fn();
+    const previewHandler = vi.fn();
+    const { list } = renderInto([MATCH], {
+      onCandidateClick: clickHandler,
+      onCandidatePreview: previewHandler,
+    });
+    const item = list.children[0] as HTMLElement;
+    const cover = item.querySelector(".candidate-cover") as HTMLElement;
+
+    cover.click();
+    expect(clickHandler).toHaveBeenCalledWith(MATCH, item);
+    expect(previewHandler).not.toHaveBeenCalled();
+  });
+
   it("activates on Enter and Space, preventing the key's default", () => {
     const handler = vi.fn();
-    const { list } = renderInto([MATCH], handler);
+    const { list } = renderInto([MATCH], { onCandidateClick: handler });
     const item = list.children[0] as HTMLElement;
 
     const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
@@ -166,9 +255,29 @@ describe("renderCandidates", () => {
     expect(spaceDefault).toHaveBeenCalled();
   });
 
+  it("does not activate the row from keys pressed on the preview button", () => {
+    const clickHandler = vi.fn();
+    const previewHandler = vi.fn();
+    const { list } = renderInto([MATCH], {
+      onCandidateClick: clickHandler,
+      onCandidatePreview: previewHandler,
+    });
+    const item = list.children[0] as HTMLElement;
+    const button = item.querySelector(".candidate-preview") as HTMLButtonElement;
+
+    const enter = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    const space = new KeyboardEvent("keydown", { key: " ", bubbles: true, cancelable: true });
+    button.dispatchEvent(enter);
+    button.dispatchEvent(space);
+
+    expect(clickHandler).not.toHaveBeenCalled();
+    expect(previewHandler).not.toHaveBeenCalled();
+    expect(item.classList.contains("selected")).toBe(false);
+  });
+
   it("ignores keys other than Enter or Space", () => {
     const handler = vi.fn();
-    const { list } = renderInto([MATCH], handler);
+    const { list } = renderInto([MATCH], { onCandidateClick: handler });
     const item = list.children[0] as HTMLElement;
 
     const tab = new KeyboardEvent("keydown", { key: "Tab", bubbles: true, cancelable: true });
@@ -182,20 +291,35 @@ describe("renderCandidates", () => {
   it("replaces previously rendered candidates on re-render", () => {
     const { list } = renderInto([MATCH]);
 
-    renderCandidates(list, [MATCH, MINIMAL_MATCH], () => {});
+    renderCandidates(list, [MATCH, MINIMAL_MATCH], {
+      onCandidateClick: () => {},
+      onCandidatePreview: () => {},
+    });
 
     expect(list.children).toHaveLength(2);
   });
 
-  it("keeps exactly one tab stop per candidate, never the scroll-reveal container", () => {
+  it("keeps one row tab stop plus one preview button stop per candidate", () => {
     const five = [MATCH, MATCH, MATCH, MATCH, MATCH];
     const { list } = renderInto(five);
 
-    const tabStops = Array.from(list.querySelectorAll("[tabindex]"));
-    expect(tabStops).toHaveLength(5);
-    for (const stop of tabStops) {
-      expect(stop.classList.contains("candidate")).toBe(true);
+    const rowStops = Array.from(list.querySelectorAll(".candidate[tabindex]"));
+    expect(rowStops).toHaveLength(5);
+
+    const previewButtons = Array.from(list.querySelectorAll(".candidate-preview"));
+    expect(previewButtons).toHaveLength(5);
+    for (const button of previewButtons) {
+      expect(button.hasAttribute("tabindex")).toBe(false);
     }
+
+    const gauges = Array.from(list.querySelectorAll(".candidate-progress"));
+    expect(gauges).toHaveLength(5);
+    for (const gauge of gauges) {
+      expect(gauge.hasAttribute("tabindex")).toBe(false);
+    }
+
+    const selectors = list.querySelectorAll("button, [tabindex]");
+    expect(selectors).toHaveLength(10);
   });
 });
 
