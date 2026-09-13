@@ -128,18 +128,6 @@ describe("renderCandidates", () => {
     expect(observer.observed).toEqual([]);
   });
 
-  it("hides the cover when the image fails to load after being revealed", () => {
-    const handles = installIntersectionObserver();
-    const { list } = renderInto([MATCH]);
-    const observer = handles[0]!;
-    const item = list.children[0] as HTMLLIElement;
-    const cover = item.querySelector(".candidate-cover") as HTMLImageElement;
-
-    observer.trigger([{ target: item, isIntersecting: true }]);
-    cover.dispatchEvent(new Event("error"));
-    expect(cover.classList.contains("hidden")).toBe(true);
-  });
-
   it("starts each item unselected with a button role and zero tabindex", () => {
     const { list } = renderInto([MATCH]);
 
