@@ -259,7 +259,7 @@ dl#result dd { margin: 0; font-family: var(--font-mono); font-size: 0.95rem; }
 .hidden { display: none; }
 
 /*
-Themed-page example (see docs/001-song-fingerprint-engine/architecture.md §3.3):
+Themed-page example (see docs/ARCHITECTURE.md §3.3):
 a differently-styled page drops its own stylesheet in {% block head_extras %}
 (loads after this file, so equal-specificity rules win) and tags
 <body class="themed-retro">, e.g.:

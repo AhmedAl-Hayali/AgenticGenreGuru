@@ -252,27 +252,12 @@ erDiagram
 ## Project Structure
 
 ```text
-src/genreguru/              # Standalone core library (import root `genreguru`)
-├── audio/                 # DSP: loader, features (Feature enum), feature_extract, feature_collapse
-├── deezer/                # Deezer API client & retry logic
-└── db/                    # SQLAlchemy models, engine & repositories
-
-web/                     # Django web application
-├── genreguru_web/         # Project settings, URL routing
-├── fingerprint_app/       # Views, templates, static assets (built app.js)
-│   ├── templates/.../partials/  # Reusable fragments: page_header, search_form, match_list, fingerprint_panel
-│   └── ts/                # Browser source: dto/config/api/messages/render/page-controller/errors modules + pages/*-page.ts
-├── tests/                 # Vitest DOM contract tests (jsdom, domain spec files + shared helpers)
-├── package.json           # JS toolchain scripts & devDependencies (type: module)
-├── eslint.config.ts       # ESLint 10 flat config
-├── vitest.config.ts       # Vitest + v8 coverage config
-├── tsconfig.json          # strict TS typecheck, no emit (ts/, tests/, configs)
-└── .prettierrc.json       # Prettier style (printWidth 100)
-
-config/                    # Hydra configuration tree
-tests/                     # unit/, integration/, contract/, benchmarks/
-specs/                     # Feature specifications & design docs
-docs/                      # API flow diagrams, config reports
+src/        # Standalone core library (import root `genreguru`) — DSP, Deezer client, DB, services
+web/        # Django web application — project, app, templates, browser TS source + Vitest tests
+config/     # Hydra configuration tree (env groups, feature flags)
+tests/      # pytest suites — unit/ integration/ contract/ benchmarks/
+specs/      # Feature specifications & design docs → specs/README.md
+docs/       # Architecture, API, decision records, roadmap → docs/README.md
 ```
 
 Each folder's documentation entry point is its `README.md`:
@@ -302,6 +287,7 @@ recommendations:
 ## Learn More
 
 - [`docs/README.md`](docs/README.md) — Documentation index (architecture, API, decision records, roadmap)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Project architecture
 - [`docs/adr/index.md`](docs/adr/index.md) — Architecture decision records
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — Idea backlog and roadmap
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc

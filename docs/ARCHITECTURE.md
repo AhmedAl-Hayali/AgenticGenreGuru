@@ -1,5 +1,7 @@
 # Software Architecture: Song Fingerprint Engine
 
+ Project-level architecture entry point (promoted from `docs/001-song-fingerprint-engine/architecture.md`). For the documentation index, see [`docs/README.md`](README.md); for decision records, see [`docs/adr/index.md`](adr/index.md).
+
 **Purpose**: Authoritative, source-consistent software architecture layout for the GenreGuru Song Fingerprint Engine (`001-song-fingerprint-engine`). Every statement traces to a governing design artifact; where a layout element is already implemented versus planned, the current state on disk is noted.
 
 **Sources reviewed (governing artifacts)**:
@@ -328,6 +330,11 @@ Exception hierarchy with structured attributes (`isrc`, `deezer_id`, `code`, `at
 ---
 
 ## 8. Design Decisions & Trade-offs
+
+> **Decision records**: decisions captured below (and deployment decisions
+> D1–D5) are logged as versioned Architecture Decision Records in
+> [`docs/adr/index.md`](adr/index.md); that log is the canonical home for
+> new decisions. This table summarizes the ones with architecture impact.
 
 | Decision                                                            | Why                                                                                   | Rejected alternative                                                                 |
 |---------------------------------------------------------------------|---------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|
