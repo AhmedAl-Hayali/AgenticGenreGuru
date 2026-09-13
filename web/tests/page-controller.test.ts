@@ -12,6 +12,8 @@ import { abortAwareFetch } from "./setup.ts";
 import {
   CONFIRM_OK,
   MATCH,
+  MINIMAL_MATCH,
+  OTHER_MATCH,
   BootEls,
   bootApp,
   deferred,
@@ -23,28 +25,6 @@ import {
   withDeferredJson,
   withUnhandledRejection,
 } from "./helpers.ts";
-
-const OTHER_MATCH: Match = {
-  deezer_id: 999,
-  title: "Around the World",
-  isrc: "GBDUW0000123",
-  duration: 217,
-  preview: "https://example.test/preview-other.mp3",
-  artists: [{ id: 27, name: "Daft Punk" }],
-  album: { id: 302127, title: "Homework" },
-  cover: "",
-};
-
-const MINIMAL_MATCH: Match = {
-  deezer_id: 1001,
-  title: "Around the World",
-  isrc: "GBDUW0000123",
-  duration: 217,
-  preview: "https://example.test/preview-minimal.mp3",
-  artists: [],
-  album: null,
-  cover: "",
-};
 
 function searchResponse(matches: Match[]) {
   return jsonResponse({ status: "success", matches });

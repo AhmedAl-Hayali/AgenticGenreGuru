@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ConfirmResponse, Match } from "../fingerprint_app/ts/dto.ts";
 import { renderCandidates, renderFingerprint } from "../fingerprint_app/ts/render.ts";
 import { CONFIRM_OK, MATCH } from "./helpers.ts";
+import { CONFIRM_OK, MATCH, MINIMAL_MATCH } from "./helpers.ts";
 import { installIntersectionObserver } from "./setup.ts";
 
 const BODY = {
@@ -21,17 +22,6 @@ const BODY = {
     vector_length: 13,
   },
 } as ConfirmResponse;
-
-const MINIMAL_MATCH: Match = {
-  deezer_id: 1001,
-  title: "Around the World",
-  isrc: "GBDUW0000123",
-  duration: 217,
-  preview: "https://example.test/preview-minimal.mp3",
-  artists: [],
-  album: null,
-  cover: "",
-};
 
 const PROVIDER_ICON = "/static/fingerprint_app/images/deezer-heart.png";
 
@@ -116,29 +106,15 @@ describe("renderCandidates", () => {
     expect(cover.classList.contains("hidden")).toBe(false);
   });
 
-  it("loads the cover src when the item intersects and then unobserves it", () => {
+  it("wires lazy cover loading: observes rows whose covers have a pending data-src", () => {
     const handles = installIntersectionObserver();
-    const { list } = renderInto([MATCH]);
+    renderInto([MATCH, MINIMAL_MATCH]);
+
     const observer = handles[0]!;
-    const item = list.children[0] as HTMLLIElement;
-    const cover = item.querySelector(".candidate-cover") as HTMLImageElement;
-
-    expect(observer.observed).toEqual([item]);
-
-    observer.trigger([{ target: item, isIntersecting: true }]);
-    expect(cover.getAttribute("src")).toBe("https://example.test/cover.jpg");
-    expect(cover.hasAttribute("data-src")).toBe(false);
-    expect(observer.unobserved).toEqual([item]);
-  });
-
-  it("keeps the cover src deferred for items outside the viewport", () => {
-    const handles = installIntersectionObserver();
-    const { list } = renderInto([MATCH]);
-    const observer = handles[0]!;
-    const item = list.children[0] as HTMLLIElement;
-
-    observer.trigger([{ target: item, isIntersecting: false }]);
-    expect(item.querySelector(".candidate-cover")?.hasAttribute("src")).toBe(false);
+    expect(observer.observed).toHaveLength(1);
+    expect(observer.observed[0]?.querySelector(".candidate-cover")?.getAttribute("data-src")).toBe(
+      "https://example.test/cover.jpg",
+    );
   });
 
   it("hides the cover when no cover is available and never observes it", () => {

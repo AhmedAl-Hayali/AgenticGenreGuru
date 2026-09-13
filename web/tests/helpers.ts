@@ -37,6 +37,30 @@ export const MATCH: Match = {
   cover: "https://example.test/cover.jpg",
 };
 
+/** Match with a full roster but only the fields the confirm payload needs. */
+export const OTHER_MATCH: Match = {
+  deezer_id: 999,
+  title: "Around the World",
+  isrc: "GBDUW0000123",
+  duration: 217,
+  preview: "https://example.test/preview-other.mp3",
+  artists: [{ id: 27, name: "Daft Punk" }],
+  album: { id: 302127, title: "Homework" },
+  cover: "",
+};
+
+/** Match with no artists, no album, and no cover — exercises the fallback rendering. */
+export const MINIMAL_MATCH: Match = {
+  deezer_id: 1001,
+  title: "Around the World",
+  isrc: "GBDUW0000123",
+  duration: 217,
+  preview: "https://example.test/preview-minimal.mp3",
+  artists: [],
+  album: null,
+  cover: "",
+};
+
 export const CONFIRM_OK: ConfirmResponse = {
   song_id: "11111111-1111-1111-1111-111111111111",
   deezer_id: MATCH.deezer_id,
