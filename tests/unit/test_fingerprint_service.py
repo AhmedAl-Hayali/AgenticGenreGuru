@@ -1,6 +1,6 @@
 """Unit tests for `fingerprint_service` pure mapping functions.
 
-Tests `_feature_map`, `_build_response`, `_album_title`, and `_to_song_data`
+Tests `_feature_map`, `_build_response`, and `_to_song_data`
 in isolation — no monkeypatch, no network. The orchestration path is covered
 by the integration suite (`tests/integration/test_fingerprint_service.py`).
 """
@@ -13,7 +13,6 @@ from genreguru.audio.features import Feature
 from genreguru.db.models import Song
 from genreguru.dto import Album, FeatureScalars, FingerprintResponse
 from genreguru.fingerprint_service import (
-    _album_title,
     _build_response,
     _feature_map,
     _to_song_data,
@@ -148,21 +147,6 @@ class TestBuildResponse:
 
         for f in Feature:
             assert result["fingerprint"][f.value] == features[f]
-
-
-class TestAlbumTitle:
-    """Verify `_album_title` flattens object-shaped / None payloads."""
-
-    @pytest.mark.parametrize(
-        ("album", "expected_album"),
-        [
-            (Album(id=302127, title="Discovery"), "Discovery"),
-            (None, None),
-        ],
-    )
-    def test_album_title_flattens(self, album, expected_album):
-        """`_album_title` flattens object albums; `None` stays `None`."""
-        assert _album_title(album) is expected_album
 
 
 class TestToSongData:
