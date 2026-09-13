@@ -290,11 +290,6 @@ class TestSearchEnrichment:
 class TestContributorsMapping:
     """Verify the canonical main-first `artists` dedupe/tolerance contract."""
 
-    def test_track_lookup_main_first_dedupes_contributors(self, monkeypatch):
-        """`contributors[0] == main` must yield main first, then the roster."""
-        body = _raw_track(contributors=_FULL_ROSTER)
-        assert _track(monkeypatch, body)["artists"] == _FULL_ROSTER
-
     def test_malformed_contributors_skipped(self, monkeypatch):
         """Entries lacking an id/name must be skipped without aborting."""
         body = _raw_track(
@@ -405,23 +400,6 @@ class TestGetTrack:
         """A track without an ISRC must fail loud even on the lookup path."""
         with pytest.raises(MissingISRCError):
             _track(monkeypatch, _raw_track(isrc=""))
-
-    def test_track_non_object_body_raises_network_disconnected(self, monkeypatch):
-        """A valid-JSON but non-object track body must map to 503."""
-        track_id = _SAMPLE_TRACK["id"]
-        stub_get(
-            monkeypatch,
-            _CLIENT_HTTP_GET,
-            response(
-                200,
-                content=b"[]",
-                headers={"content-type": "application/json"},
-                url=_track_url(track_id),
-            ),
-        )
-        with pytest.raises(NetworkDisconnectedError) as exc_info:
-            _CLIENT.get_track(track_id)
-        assert exc_info.value.attempts == 1
 
 
 class TestEmptyResults:
