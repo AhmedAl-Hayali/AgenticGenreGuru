@@ -275,6 +275,9 @@ specs/                     # Feature specifications & design docs
 docs/                      # API flow diagrams, config reports
 ```
 
+Each folder's documentation entry point is its `README.md`:
+[`docs/README.md`](docs/README.md) indexes all documentation; [`specs/README.md`](specs/README.md) indexes feature specifications.
+
 ## Configuration
 
 All non-secret settings live in the Hydra `config/` tree and are overridable from the CLI. Secrets resolve via `${oc.env:...}` interpolation. Django settings (in `genreguru_web/settings/`) contain no environment-specific values — they read the Hydra `django` and `db` groups through `genreguru/config.py`, selected by the `GENREGURU_ENV` variable (`dev` default; `prod` for production). Django and the core library share one DB connection source — the core library uses programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`) via `genreguru/db/engine.py`, and Django settings are built from the same components (`web/genreguru_web/settings/base.py`).
@@ -298,12 +301,11 @@ recommendations:
 
 ## Learn More
 
-- [`specs/`](specs/) — Feature specifications, requirements, and design docs
-- [`docs/`](docs/) — API flow diagrams, contract references, and configuration reports
 - [`docs/README.md`](docs/README.md) — Documentation index (architecture, API, decision records, roadmap)
 - [`docs/adr/index.md`](docs/adr/index.md) — Architecture decision records
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — Idea backlog and roadmap
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc
+- [`specs/README.md`](specs/README.md) — Feature specifications and design docs
 
 ## Known Limitations
 
