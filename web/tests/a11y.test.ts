@@ -51,4 +51,37 @@ describe("keyboard accessibility (a11y)", () => {
     expect(listItem.classList.contains("selected")).toBe(false);
     expect(listItem.getAttribute("aria-pressed")).toBe("false");
   });
+
+  it("switches a preview on with the Enter key on its button, without selecting or confirming", async () => {
+    const els = await bootWithMatch();
+    const listItem = grabCandidate(els);
+    const button = listItem.querySelector<HTMLButtonElement>(".candidate-preview")!;
+
+    button.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+    button.click();
+
+    expect(listItem.classList.contains("selected")).toBe(false);
+    expect(listItem.getAttribute("aria-pressed")).toBe("false");
+    expect(button.classList.contains("playing")).toBe(true);
+    expect(button.getAttribute("aria-pressed")).toBe("true");
+    expect(els.fetchMock).not.toHaveBeenCalledWith(
+      expect.stringContaining("/api/confirm/"),
+      expect.anything(),
+    );
+  });
+
+  it("switches a preview off with the Space key on its button and deselects nothing", async () => {
+    const els = await bootWithMatch();
+    const listItem = grabCandidate(els);
+    const button = listItem.querySelector<HTMLButtonElement>(".candidate-preview")!;
+
+    button.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    button.click();
+    button.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    button.click();
+
+    expect(listItem.classList.contains("selected")).toBe(false);
+    expect(button.classList.contains("playing")).toBe(false);
+    expect(button.hasAttribute("aria-pressed")).toBe(false);
+  });
 });
