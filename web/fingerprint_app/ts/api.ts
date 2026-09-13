@@ -66,5 +66,5 @@ export function confirmTrack(config: ApiConfig, match: Match) {
 /** Django CSRF token from `document`, or `""` if the cookie is absent. */
 export function getCsrfToken(doc: Document = document) {
   const match = doc.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
-  return match ? decodeURIComponent(match[1] ?? "") : "";
+  return match ? decodeURIComponent(match[1]!) : "";
 }

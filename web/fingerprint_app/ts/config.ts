@@ -6,5 +6,5 @@ export function loadConfig(root: ParentNode = document): ApiConfig {
   if (!configElement) {
     throw new Error("Missing #api-config JSON blob; cannot bootstrap the UI.");
   }
-  return JSON.parse(configElement.textContent ?? "") as ApiConfig;
+  return JSON.parse(configElement.textContent!) as ApiConfig;
 }
