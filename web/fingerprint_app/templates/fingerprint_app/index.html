@@ -7,6 +7,7 @@
 <main class="wrap">
     {% include "fingerprint_app/partials/page_header.html" with title=page_title subtitle=page_subtitle %}
     {% include "fingerprint_app/partials/search_form.html" %}
+    <p id="status" class="status" aria-live="polite">{{ initial_status|default:"Enter a song title above to begin." }}</p>
     {% include "fingerprint_app/partials/match_list.html" %}
     {% include "fingerprint_app/partials/fingerprint_panel.html" %}
 </main>

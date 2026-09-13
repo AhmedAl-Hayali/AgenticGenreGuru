@@ -38,7 +38,6 @@ export const MATCH: Match = {
 };
 
 export const CONFIRM_OK: ConfirmResponse = {
-  status: "success",
   song_id: "11111111-1111-1111-1111-111111111111",
   deezer_id: MATCH.deezer_id,
   isrc: MATCH.isrc,

@@ -31,14 +31,12 @@ export interface Match {
 
 /** Envelope returned by the search endpoint. */
 export interface SearchResponse {
-  status?: string;
   error?: string;
   matches?: Match[];
 }
 
 /** Envelope returned by the confirm endpoint. */
 export interface ConfirmResponse {
-  status?: string;
   error?: string;
   title?: string;
   song_id?: string;

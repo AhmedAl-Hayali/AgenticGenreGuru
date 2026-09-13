@@ -12,7 +12,6 @@ import { CONFIRM_OK, MATCH } from "./helpers.ts";
 import { installIntersectionObserver } from "./setup.ts";
 
 const BODY = {
-  status: "success",
   song_id: "11111111-1111-1111-1111-111111111111",
   deezer_id: 3135556,
   isrc: "GBDUW0000059",
