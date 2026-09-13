@@ -299,6 +299,48 @@ describe("page controller", () => {
       expect(second.getAttribute("aria-pressed")).toBe("true");
       expect(els.status.textContent).toContain('Selected "Around the World"');
     });
+
+    it("plays a preview with one click without selecting or confirming the row", async () => {
+      const els = await bootApp();
+      els.fetchMock.mockResolvedValue(jsonResponse({ status: "success", matches: [MATCH] }));
+      submitSearch(els, "Daft Punk");
+      await waitForCandidate(els);
+      const item = grabCandidate(els);
+      const button = item.querySelector<HTMLButtonElement>(".candidate-preview")!;
+
+      button.click();
+
+      expect(item.classList.contains("selected")).toBe(false);
+      expect(item.getAttribute("aria-pressed")).toBe("false");
+      expect(button.classList.contains("playing")).toBe(true);
+      expect(button.getAttribute("aria-pressed")).toBe("true");
+      expect(els.status.textContent).toContain("Found 1 match");
+      expect(
+        els.fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/confirm/")),
+      ).toHaveLength(0);
+    });
+
+    it("stops an active preview when a preview of another row starts", async () => {
+      const els = await bootApp();
+      els.fetchMock.mockResolvedValue(
+        jsonResponse({ status: "success", matches: [MATCH, MINIMAL_MATCH] }),
+      );
+      submitSearch(els, "Daft Punk");
+      await vi.waitFor(() => {
+        expect(els.candidates.children.length).toBe(2);
+      });
+
+      const rows = Array.from(els.candidates.children) as HTMLElement[];
+      const first = rows[0]!.querySelector<HTMLButtonElement>(".candidate-preview")!;
+      const second = rows[1]!.querySelector<HTMLButtonElement>(".candidate-preview")!;
+
+      first.click();
+      second.click();
+
+      expect(first.classList.contains("playing")).toBe(false);
+      expect(first.hasAttribute("aria-pressed")).toBe(false);
+      expect(second.classList.contains("playing")).toBe(true);
+    });
   });
 
   describe("confirmMatch", () => {
@@ -516,6 +558,20 @@ describe("page controller", () => {
       });
       expect(els.status.textContent).not.toContain("Network disconnected.");
       expect(els.searchButton.disabled).toBe(false);
+    });
+
+    it("rethrows TypeError rejections on the search path instead of mapping them to a network down", async () => {
+      const els = await bootApp();
+      els.fetchMock.mockRejectedValue(new TypeError("boom"));
+
+      await withUnhandledRejection(async (reasons) => {
+        submitSearch(els);
+        await vi.waitFor(() => {
+          expect(reasons.length).toBeGreaterThan(0);
+        });
+        expect(reasons[0]).toBeInstanceOf(TypeError);
+      });
+      expect(els.status.textContent).not.toContain("Network disconnected.");
     });
   });
 });
