@@ -24,6 +24,7 @@ from tests.repo_payloads import (
     EXPECTED_FINGERPRINT_KEYS,
     build_repo_payloads,
     match_from_song,
+    roster_rows,
 )
 
 _SR = 44100
@@ -176,9 +177,7 @@ class TestFlattening:
         assert stored is not None
         assert stored.artist == contributors[0].name
         assert stored.album == "Discovery"
-        assert [(a.deezer_id, a.name, a.position) for a in stored.artists] == [
-            (c.deezer_id, c.name, c.position) for c in contributors
-        ]
+        assert roster_rows(stored.artists) == roster_rows(contributors)
 
         assert result["song_id"] == str(stored.id)
         # Smoke-signal that the full fresh pipeline ran: the stub yields 1.0
@@ -209,9 +208,7 @@ class TestFlattening:
         stored = repo.find_by_isrc(song_data["isrc"])
         assert stored is not None
         assert stored.album is None
-        assert [(a.name, a.position) for a in stored.artists] == [
-            (contributors[0].name, 0)
-        ]
+        assert roster_rows(stored.artists) == roster_rows(contributors)
 
         assert result["song_id"] == str(stored.id)
         # Smoke-signal that the full fresh pipeline ran (see prior test).

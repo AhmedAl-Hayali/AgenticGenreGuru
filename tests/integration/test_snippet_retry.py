@@ -19,6 +19,7 @@ from genreguru.deezer import snippets
 from genreguru.errors import NetworkDisconnectedError
 from tests.http_stubs import (
     RETRYABLE_CODES,
+    TIMEOUTS,
     audio,
     capture_get,
     error_envelope,
@@ -84,12 +85,7 @@ class TestRetryableFailures:
         assert len(calls) == _MAX_RETRIES
 
     @pytest.mark.parametrize(
-        "timeout",
-        [
-            httpx.ConnectTimeout("connection timed out"),
-            httpx.ReadTimeout("read timed out"),
-        ],
-        ids=["connect_timeout", "read_timeout"],
+        "timeout", TIMEOUTS, ids=["connect_timeout", "read_timeout"]
     )
     def test_network_timeout_retries_then_success(self, monkeypatch, timeout):
         """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""

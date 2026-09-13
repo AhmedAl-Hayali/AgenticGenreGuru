@@ -49,6 +49,7 @@ from genreguru.errors import (
 )
 from tests.http_stubs import (
     RETRYABLE_CODES,
+    TIMEOUTS,
     capture_get,
     error_envelope,
     ok_json,
@@ -60,16 +61,9 @@ from tests.http_stubs import (
     sequence,
     stub_get,
 )
+from tests.sample_payloads import DEEZER_COVER_MD5, DEEZER_COVER_URL
 
 _QUERY = "Daft Punk"
-
-_COVER_MD5 = "950fd2a2d0f5f80e3b5f1e9f0b2a3c4d"
-_COVER_URL = f"https://cdn-images.dzcdn.net/images/cover/{_COVER_MD5}/300x300.jpg"
-
-_TIMEOUTS = [
-    httpx.ConnectTimeout("connection timed out"),
-    httpx.ReadTimeout("read timed out"),
-]
 
 _MAIN_ARTIST = Artist(id=27, name="Daft Punk")
 _EXTRA_ARTIST = Artist(id=11, name="Stardust")
@@ -84,7 +78,7 @@ _SAMPLE_TRACK = RawDeezerTrack(
     isrc="GBDUW0000059",
     duration=226,
     preview="https://cdnt-preview.dzcdn.net/api/1/1/abc/def/0/abc.mp3?hdnea=exp=123",
-    md5_image=_COVER_MD5,
+    md5_image=DEEZER_COVER_MD5,
     artist=_MAIN_ARTIST,
     album=Album(id=302127, title="Discovery"),
 )
@@ -212,7 +206,7 @@ class TestFieldMapping:
     def test_cover_mapped(self, monkeypatch):
         """`md5_image` must map to the documented bare-suffix cover URL."""
         result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
-        assert result["cover"] == _COVER_URL
+        assert result["cover"] == DEEZER_COVER_URL
 
     def test_cover_empty_without_md5_image(self, monkeypatch):
         """A track without `md5_image` must map `cover` to an empty string."""
@@ -284,7 +278,7 @@ class TestSearchEnrichment:
         """Each returned match must carry exactly the `SEARCH_FIELDS` keys."""
         result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
         assert set(result) == set(client.SEARCH_FIELDS)
-        assert result["cover"] == _COVER_URL
+        assert result["cover"] == DEEZER_COVER_URL
 
 
 class TestContributorsMapping:
@@ -457,7 +451,7 @@ class TestSearchTransportErrors:
     """Verify network transport failures map to retry / 503 correctly."""
 
     @pytest.mark.parametrize(
-        "timeout", _TIMEOUTS, ids=["connect_timeout", "read_timeout"]
+        "timeout", TIMEOUTS, ids=["connect_timeout", "read_timeout"]
     )
     def test_timeout_retries_then_success(self, monkeypatch, timeout):
         """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""
@@ -471,7 +465,7 @@ class TestSearchTransportErrors:
         assert len(search_calls) == _MAX_RETRIES
 
     @pytest.mark.parametrize(
-        "timeout", _TIMEOUTS, ids=["connect_timeout", "read_timeout"]
+        "timeout", TIMEOUTS, ids=["connect_timeout", "read_timeout"]
     )
     def test_timeout_exhausts_budget_sets_code_none(self, monkeypatch, timeout):
         """A budget exhausted only by timeouts must raise with code=None."""

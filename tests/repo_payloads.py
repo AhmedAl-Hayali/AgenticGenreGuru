@@ -8,7 +8,7 @@ here instead of re-declaring payload helpers.
 from typing import Literal, cast, overload
 
 from genreguru.audio.features import Feature
-from genreguru.db.models import AudioFormat, Song, SongFingerprint
+from genreguru.db.models import AudioFormat, Song, SongArtist, SongFingerprint
 from genreguru.dto import Album, Artist, ConfirmTrack, FeatureScalars, SongData
 from tests.factories import SongArtistFactory, SongFactory, SongFingerprintFactory
 
@@ -92,3 +92,8 @@ def match_from_song(
         "artists": artists if artists is not None else song_data["artists"],
         "album": album,
     }
+
+
+def roster_rows(artists: list[SongArtist]) -> list[tuple[int, str, int]]:
+    """The `(deezer_id, name, position)` projection of persisted artist rows."""
+    return [(a.deezer_id, a.name, a.position) for a in artists]

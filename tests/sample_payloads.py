@@ -5,6 +5,7 @@ confirm contract suites, so a field edit lands in one place and both
 endpoints exercise the same realistic payload.
 """
 
+from genreguru.audio.features import Feature
 from genreguru.dto import Album, Artist, ConfirmTrack, Track
 
 
@@ -15,9 +16,9 @@ def make_sample_artist(artist_id: int = 27, name: str = "Daft Punk") -> Artist:
 
 # Cover built from the 32-hex `md5_image` via the client's bare-suffix form
 # (`contracts/deezer-api.md`): https://cdn-images.dzcdn.net/images/cover/{md5}/300x300.jpg
+DEEZER_COVER_MD5 = "950fd2a2d0f5f80e3b5f1e9f0b2a3c4d"
 DEEZER_COVER_URL = (
-    "https://cdn-images.dzcdn.net/images/cover/"
-    "950fd2a2d0f5f80e3b5f1e9f0b2a3c4d/300x300.jpg"
+    f"https://cdn-images.dzcdn.net/images/cover/{DEEZER_COVER_MD5}/300x300.jpg"
 )
 
 DEEZER_MATCH: Track = {
@@ -65,13 +66,12 @@ SUCCESS_RESPONSE = {
     },
 }
 
-FINGERPRINT_FIELDS: list[str] = [
-    "spectral_centroid",
-    "rms",
-    "spectral_bandwidth",
-    "spectral_contrast",
-    "spectral_flatness",
-    "spectral_rolloff",
-    "zero_crossing_rate",
-    "mfcc",
-]
+# Every `Feature` value: the 8 fingerprint response keys (single source of truth).
+FINGERPRINT_FIELDS: list[str] = [f.value for f in Feature]
+
+
+def error_of(resp) -> str:
+    """Return the typed `error` field of an error API response."""
+    body = resp.json()
+    assert isinstance(body, dict) and isinstance(body.get("error"), str)
+    return body["error"]

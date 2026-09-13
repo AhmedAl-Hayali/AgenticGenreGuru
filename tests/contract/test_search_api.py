@@ -30,7 +30,7 @@ from genreguru.errors import (
     PreviewUnavailableError,
     TrackNotFoundError,
 )
-from tests.sample_payloads import DEEZER_MATCH, DEEZER_MATCHES
+from tests.sample_payloads import DEEZER_MATCH, DEEZER_MATCHES, error_of
 
 
 def matches_of(resp) -> list[Track]:
@@ -38,13 +38,6 @@ def matches_of(resp) -> list[Track]:
     body = resp.json()
     assert isinstance(body, dict) and isinstance(body.get("matches"), list)
     return body["matches"]
-
-
-def error_of(resp) -> str:
-    """Return the typed `error` field of an error search response."""
-    body = resp.json()
-    assert isinstance(body, dict) and isinstance(body.get("error"), str)
-    return body["error"]
 
 
 @pytest.fixture

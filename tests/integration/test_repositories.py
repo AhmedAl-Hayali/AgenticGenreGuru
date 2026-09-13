@@ -23,7 +23,7 @@ from genreguru.audio.features import Feature
 from genreguru.db.models import AudioFormat, SongFingerprint
 from genreguru.db.repositories import Song, SongRepository
 from tests.factories import SongArtistFactory, SongFactory
-from tests.repo_payloads import build_repo_payloads
+from tests.repo_payloads import build_repo_payloads, roster_rows
 
 
 def _build_and_create(repo, *, include_audio_spec=True, overrides=None):
@@ -224,8 +224,6 @@ class TestSongArtists:
             song_data, features, audio_format, sample_rate
         )
 
-        assert [(a.deezer_id, a.name, a.position) for a in song.artists] == [
-            (c.deezer_id, c.name, c.position) for c in contributors
-        ]
+        assert roster_rows(song.artists) == roster_rows(contributors)
         assert [a.position for a in song.artists] == [0, 1]
         assert song.artist == contributors[0].name

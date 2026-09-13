@@ -35,6 +35,7 @@ from tests.sample_payloads import (
     DEEZER_CONFIRM_BODY,
     FINGERPRINT_FIELDS,
     SUCCESS_RESPONSE,
+    error_of,
 )
 
 
@@ -43,13 +44,6 @@ def confirm_body(resp) -> FingerprintResponse:
     body = resp.json()
     assert isinstance(body, dict)
     return cast(FingerprintResponse, body)
-
-
-def error_of(resp) -> str:
-    """Return the typed `error` field of an error confirm response."""
-    body = resp.json()
-    assert isinstance(body, dict) and isinstance(body.get("error"), str)
-    return body["error"]
 
 
 def status_of(resp) -> str:

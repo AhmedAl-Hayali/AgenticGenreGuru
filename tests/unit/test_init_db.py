@@ -52,6 +52,28 @@ class _FakeLoggingManager:
         pass
 
 
+def _patch_main(monkeypatch, cfg, *, boom=None) -> tuple[_FakeEngine, list[str]]:
+    """Patch `init_db.main`'s deps; returns (engine, ordered call log)."""
+    engine = _FakeEngine()
+    calls: list[str] = []
+    monkeypatch.setattr(init_db, "LoggingManager", _FakeLoggingManager)
+    monkeypatch.setattr(init_db, "create_engine", lambda _cfg: engine)
+    if boom is None:
+        monkeypatch.setattr(init_db, "dry_run_ddl_gen", lambda: calls.append("dry_run"))
+        monkeypatch.setattr(
+            init_db, "health_check", lambda _eng: calls.append("health")
+        )
+        monkeypatch.setattr(
+            init_db, "verify_pg_version", lambda _eng: calls.append("verify")
+        )
+        monkeypatch.setattr(
+            init_db, "create_all_tables", lambda _eng: calls.append("create_all")
+        )
+    else:
+        monkeypatch.setattr(init_db, "health_check", boom)
+    return engine, calls
+
+
 def test_dry_run_ddl_gen_logs_every_table(caplog):
     """Test DDL is logged for every table without touching a database."""
     with caplog.at_level(logging.INFO, logger="genreguru.db.init_db"):
@@ -105,10 +127,7 @@ def test_verify_pg_version_rejects_old_server(caplog):
 def test_main_dry_run_skips_engine(monkeypatch):
     """Test dry-run mode logs DDL and returns before building an engine."""
     cfg = OmegaConf.create({"db": {"dry_run": True}, "logging": {}})
-    calls = []
-    monkeypatch.setattr(init_db, "LoggingManager", _FakeLoggingManager)
-    monkeypatch.setattr(init_db, "dry_run_ddl_gen", lambda: calls.append("dry_run"))
-    monkeypatch.setattr(init_db, "create_engine", lambda cfg: calls.append("engine"))
+    _engine, calls = _patch_main(monkeypatch, cfg)
 
     init_db.main(cfg)
 
@@ -123,17 +142,7 @@ def test_main_success_disposes_engine(monkeypatch):
             "logging": {},
         }
     )
-    engine = _FakeEngine()
-    calls = []
-    monkeypatch.setattr(init_db, "LoggingManager", _FakeLoggingManager)
-    monkeypatch.setattr(init_db, "create_engine", lambda cfg: engine)
-    monkeypatch.setattr(init_db, "health_check", lambda eng: calls.append("health"))
-    monkeypatch.setattr(
-        init_db, "verify_pg_version", lambda eng: calls.append("verify")
-    )
-    monkeypatch.setattr(
-        init_db, "create_all_tables", lambda eng: calls.append("create_all")
-    )
+    engine, calls = _patch_main(monkeypatch, cfg)
 
     init_db.main(cfg)
 
@@ -144,14 +153,11 @@ def test_main_success_disposes_engine(monkeypatch):
 def test_main_failure_exits_one(monkeypatch, caplog):
     """Test a workflow failure disposes the engine and exits with code 1."""
     cfg = OmegaConf.create({"db": {"dry_run": False}, "logging": {}})
-    engine = _FakeEngine()
-    monkeypatch.setattr(init_db, "LoggingManager", _FakeLoggingManager)
-    monkeypatch.setattr(init_db, "create_engine", lambda cfg: engine)
 
-    def _boom(eng):
+    def _boom(_eng):
         raise RuntimeError("boom")
 
-    monkeypatch.setattr(init_db, "health_check", _boom)
+    engine, _calls = _patch_main(monkeypatch, cfg, boom=_boom)
 
     with pytest.raises(SystemExit) as exc_info:
         init_db.main(cfg)

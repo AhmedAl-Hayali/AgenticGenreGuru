@@ -25,6 +25,12 @@ _AUDIO_HEADERS = {"content-type": "audio/mpeg"}
 # own set so the retry suites can't drift from the implementation.
 RETRYABLE_CODES = tuple(sorted(_RETRYABLE_CODES))
 
+# Network timeouts retried by both the client and snippet-fetch suites.
+TIMEOUTS = [
+    httpx.ConnectTimeout("connection timed out"),
+    httpx.ReadTimeout("read timed out"),
+]
+
 
 def no_sleep(monkeypatch, module: str) -> None:
     """Eliminate the retry delay at the module dotted path.

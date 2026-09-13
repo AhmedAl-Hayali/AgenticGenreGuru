@@ -21,6 +21,7 @@ from sqlalchemy.schema import CreateSchema, DropSchema
 
 from genreguru.db import init_db
 from genreguru.db.engine import create_engine
+from tests.sample_payloads import FINGERPRINT_FIELDS
 
 EXPECTED_TABLES = {"songs", "song_artists", "song_fingerprints"}
 TEST_SCHEMA = "test"
@@ -115,17 +116,7 @@ def test_schema_matches_data_model(engine, eng_inspector) -> None:
     fp_cols = _columns(eng_inspector, "song_fingerprints")
     artist_cols = _columns(eng_inspector, "song_artists")
 
-    fp_metrics = [
-        "spectral_centroid",
-        "rms",
-        "spectral_bandwidth",
-        "spectral_contrast",
-        "spectral_flatness",
-        "spectral_rolloff",
-        "zero_crossing_rate",
-        "mfcc",
-    ]
-    for metric in fp_metrics:
+    for metric in FINGERPRINT_FIELDS:
         assert fp_cols[metric].type == "double precision"
         assert fp_cols[metric].nullable is False
 
