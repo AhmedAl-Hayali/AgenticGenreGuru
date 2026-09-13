@@ -51,22 +51,44 @@ function createCandidateArtists(match: Match): HTMLElement {
   return artists;
 }
 
-function createCandidateBody(match: Match): HTMLElement {
-  const body = document.createElement("div");
-  body.className = "candidate-body";
+function createCandidateTitleRow(match: Match, provider?: HTMLImageElement): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "candidate-title-row";
 
   const title = document.createElement("span");
   title.className = "candidate-title";
   title.textContent = match.title;
-  body.appendChild(title);
+  row.appendChild(title);
 
   if (match.album?.title) {
     const meta = document.createElement("span");
     meta.className = "candidate-meta";
     meta.textContent = `(${match.album.title})`;
-    body.appendChild(meta);
+    row.appendChild(meta);
   }
 
+  if (provider) {
+    row.appendChild(provider);
+  }
+  return row;
+}
+
+function createCandidateProvider(listElement: HTMLUListElement): HTMLImageElement | undefined {
+  const { providerIcon, providerName } = listElement.dataset;
+  if (!providerIcon) {
+    return undefined;
+  }
+  const provider = document.createElement("img");
+  provider.className = "candidate-provider";
+  provider.src = providerIcon;
+  provider.alt = providerName ?? "";
+  return provider;
+}
+
+function createCandidateBody(match: Match, provider?: HTMLImageElement): HTMLElement {
+  const body = document.createElement("div");
+  body.className = "candidate-body";
+  body.appendChild(createCandidateTitleRow(match, provider));
   body.appendChild(createCandidateArtists(match));
   return body;
 }
@@ -85,13 +107,8 @@ export function renderCandidates(
     listItem.setAttribute("role", "button");
     listItem.setAttribute("aria-pressed", "false");
 
-    const badge = document.createElement("span");
-    badge.className = "badge";
-    badge.textContent = Messages.badgeSelected;
-
     listItem.appendChild(createCandidateCover(match));
-    listItem.appendChild(createCandidateBody(match));
-    listItem.appendChild(badge);
+    listItem.appendChild(createCandidateBody(match, createCandidateProvider(listElement)));
 
     const activate = () => onCandidateClick(match, listItem);
     listItem.addEventListener("click", activate);

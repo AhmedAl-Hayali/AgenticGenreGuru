@@ -18,7 +18,6 @@ export const Messages = {
   fetching: (title: string) => `Fetching the audio preview and fingerprinting "${title}"…`,
   audioUnprocessable: (title: string) =>
     `The audio file cannot be processed — "${title}" could not be fingerprinted.`,
-  badgeSelected: "Selected",
   unknownArtist: "Unknown artist",
   fingerprintDefaultTitle: "Fingerprint stored",
   rows: {

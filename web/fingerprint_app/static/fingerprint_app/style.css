@@ -125,23 +125,35 @@ ul#candidates { list-style: none; margin: 0; padding: 0; }
     flex-direction: column;
     gap: 0.15rem;
 }
+#candidates .candidate-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-width: 0;
+}
 #candidates .candidate-title {
     font-weight: 600;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
-#candidates .candidate-meta { color: var(--muted); font-size: 0.85rem; }
-#candidates .badge {
-    flex: none;
-    font-size: 0.75rem;
-    color: var(--text-on-accent);
-    background: var(--accent-strong);
-    border-radius: var(--radius-pill);
-    padding: 0.15rem 0.6rem;
-    visibility: hidden;
+#candidates .candidate-meta {
+    color: var(--muted);
+    font-size: 0.85rem;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
-#candidates li.selected .badge { visibility: visible; }
+#candidates .candidate-provider {
+    flex: none;
+    margin-left: auto;
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+    opacity: 0.9;
+}
 
 /* Animate scrolling through the full contributor roster on hover/focus:
    the track slides left to its end (translate-X transition), holds, then

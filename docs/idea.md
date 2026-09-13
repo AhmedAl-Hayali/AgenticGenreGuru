@@ -129,12 +129,12 @@ out to specs/roadmap.
   - https://morisinc.net/
   - https://beigeforce.com/
   - https://www.cozyeating.app/
-- Song preview card before confirm: album art, artist, provider icon. **In-flight** — `architecture.md` §3.3/§7.5 anticipate `renderPreviewCard` + Deezer "D" badge; render hub + partials + `dto` fields are in place, pending the card UI.
+- Song preview card before confirm: album art, artist, provider icon. **In-flight** — `architecture.md` §3.3/§7.5 anticipate `renderPreviewCard` + Deezer "D" badge; render hub + partials + `dto` fields are in place, pending the card UI. **Progress** — provider icon landed on candidate rows: Deezer heart (vendored `static/fingerprint_app/deezer-heart.png`, served via `{% static %}` + `data-provider-*` attrs on `#candidates`), replacing the redundant "Selected" pill (selection stays clear via highlight + `aria-pressed` + status text).
 - Multi-artist previews — a song can have multiple artists, but the preview
   shows only Deezer's main `artist` (track `contributors` are dropped by the
   client; `Song.artist` is a single String(255); contracts expose one
   `artist {id,name}`). Fix: carry the full artist list and truncate long ones
-  with a trailing `…`. **Done** — `dto.ts` carries `artists[]` + `cover`; `render.ts` renders the full contributor roster truncated via the overflow marquee (`ts/marquee.ts`, reduced-motion aware).
+  with a trailing `…`. **Done** — `dto.ts` carries `artists[]` + `cover`; `render.ts` renders the full contributor roster truncated via the overflow marquee (`ts/scroll-reveal.ts`, reduced-motion aware).
 - No-preview edge cases (missing/invalid Deezer preview URL).
 - Error toasts — small, dismissable, fade-from-below, bottom-right; shown on any
   error. Expandable: later cover non-blocking events (fingerprint stored, slow
