@@ -300,6 +300,7 @@ recommendations:
 
 - [`specs/`](specs/) — Feature specifications, requirements, and design docs
 - [`docs/`](docs/) — API flow diagrams, contract references, and configuration reports
+- [`docs/ROADMAP.md`](docs/ROADMAP.md) — Idea backlog and roadmap
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc
 
 ## Known Limitations

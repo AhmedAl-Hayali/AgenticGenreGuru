@@ -3,7 +3,7 @@
 > **Note (post-record):** the Django web application directory `frontend/` was
 > renamed to `web/` after this record. All `frontend/` path references in this
 > document and in `tasks.md` map to `web/` — see the Resolved bullet under
-> `docs/idea.md` Infrastructure.
+> `docs/ROADMAP.md` Infrastructure.
 
 **Branch**: `001-song-fingerprint-engine` | **Date**: 2026-08-03 | **Spec**: [spec.md](spec.md)
 

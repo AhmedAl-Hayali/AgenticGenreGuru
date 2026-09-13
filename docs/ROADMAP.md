@@ -1,16 +1,115 @@
-# Idea Box — future directions, experiments, improvements
+# Roadmap & Idea Backlog
 
-Raw backlog. Triage when planning next phases; commit ideas that get adopted
-out to specs/roadmap.
+Destination for `docs/idea.md`. Raw backlogs and future directions are
+tracked here and triaged when planning next phases; adopted ideas get
+specified under `specs/`. Items are grouped as **Completed**, **In
+Progress**, or **Planned**. Each Planned section is its own workstream.
 
-## Dev experience
+> **Status at a glance (2026-09-13)**: core library + US1 search/confirm
+> implemented; docs navigation skeleton shipped (this snapshot); frontend
+> preview UX in flight; deployment (D1–D5) designed, not implemented.
+> When this file outgrows triage, the raw backlog migrates to GitHub
+> Issues + Milestones (see #roadmap-home note).
+
+---
+
+## Completed
+
+### Pass history (from git)
+
+- **Phase 1 core**: config tree + `config.py`, `gglogging.py`, `errors.py`,
+  `audio/{loader,features,feature_extract,feature_collapse}`,
+  `deezer/{client,snippets,_retry}`, `db/{engine,base,models,repositories,init_db}`,
+  `fingerprint_service.py` — with passing unit tests.
+- **US1 web**: `search` + `confirm` Django API endpoints + 2-click browser UI
+  (`web/fingerprint_app/ts/` modules + `pages/` bootstrap, esbuild-bundled,
+  contract-tested with Vitest/jsdom).
+- **Repo rename** `frontend/` → `web/` (dir + `.gitignore`, README tree/commands,
+  architecture + config-report + quickstart paths, CI `tests.yml`/`docs.yml`,
+  prek hook, pyproject tool configs; package `genreguru-frontend` →
+  `genreguru-web`). Historical specs left as-recorded with mapping notes.
+- **Deezer mapping hardening**: golden corpus + anti-drift key-acknowledgement
+  tests + mutation fuzz (`tests/deezer_golden.py`,
+  `tests/unit/test_deezer_mapping.py`).
+- **Frontend preview rounds**: preview player (`ts/preview-player.ts`) with
+  shared `<audio>` + progress gauge, lazy image loading (`ts/lazy-image.ts`),
+  provider-icon (Deezer heart) on candidate rows.
+- **Test-suite pruning**: subsumption/merge passes on contract/integration/unit
+  suites; shared extraction into `sample_payloads`/`repo_payloads`/`http_stubs`.
+
+### Docs (navigation skeleton round, 2026-09-13)
+
+- **#4** `docs/README.md` — documentation index created.
+- **#6** `docs/ARCHITECTURE.md` — promoted from
+  `docs/001-song-fingerprint-engine/architecture.md`; cross-refs retargeted.
+- **#7** Decision records — superseded the single-log idea with the
+  idiomatic `docs/adr/` layout (ADR-0000 bootstrap + backfill of §8 + D1–D5
+  decisions + `index.md`).
+- **#5** `docs/API.md` — API guide page (endpoint table + contracts + pdoc).
+- **#19** `specs/README.md` — spec index + relationship map.
+- **#13** Module docstrings — added across all public modules
+  (`config.py`, `errors.py`, `dto.py`, `gglogging.py`, `audio/*`, `db/*`,
+  `deezer/*`, `fingerprint_service.py`); `NullHandler` present on
+  `genreguru/__init__.py` (logging-report Rule 11).
+- **#14** `docs/idea.md` → `docs/ROADMAP.md` — this file; all `idea.md`
+  references retargeted (`tasks.md`, `plan.md`, `checklists/api.md`).
+- **#15** `docs/TODOs/` cleanup — directory already removed; `api.md`
+  cross-references folded here / retargeted.
+- **#21** Per-folder README strategy — **slim variant**: `docs/README.md` +
+  `specs/README.md` indexes + root README Project Structure collapsed to
+  link pointers (per-folder `src/`/`web/`/`tests/`/`config/` READMEs dropped —
+  non-idiomatic in Python; research 2026-09-13).
+
+### Frontend (shipped items)
+
+- **Multi-artist previews** — `dto.ts` carries `artists[]` + `cover`; `render.ts`
+  renders the full contributor roster truncated via the overflow marquee
+  (`ts/scroll-reveal.ts`, reduced-motion aware).
+- **Deezer provider icon** — vendored `static/fingerprint_app/deezer-heart.png`
+  served via `{% static %}` + `data-provider-*` attrs on `#candidates`,
+  replacing the redundant "Selected" pill (highlight + `aria-pressed` + status
+  text keep selection clear).
+- **Docstring-gap closure** — see #13 above.
+
+---
+
+## In Progress
+
+### Frontend
+
+- **Song preview card before confirm** — album art, artist, provider icon.
+  Anticipated by `docs/ARCHITECTURE.md §3.3/§7.5` (`renderPreviewCard` +
+  Deezer "D" badge); render hub + partials + `dto` fields are in place,
+  pending the card UI.
+- **No-preview edge cases (missing/invalid Deezer preview URL)** — lazy audio
+  preview per candidate done (`ts/preview-player.ts`; shared
+  `<audio preload="none">`, one track at a time; `.candidate-preview` play/stop
+  button, keyboard-accessible, `stopPropagation`); missing/invalid preview →
+  disabled button / `previewUnavailable`/`previewFailed`. Play button now lives
+  in a `.candidate-playback` row under the artists: round play/stop button +
+  linear progress bar (`.candidate-progress`, `--preview-progress`, `aria`-
+  driven rAF loop; triangle→square clip-path morph).
+
+### Docs
+
+- **README refresh** — structural collapse shipped (#21); full refresh
+  (badges, ToC, Known Limitations callout, progress indicator) still pending
+  under #3 below.
+
+---
+
+## Planned
+
+### Dev experience
+
 - Test aliases: one command for ruff (check+format) + pytest + type check
   (mypy/ty); too many separate invocations today.
 - Pre-commit hook wrapping the alias above.
 - CI: gate on `ruff check` + typing too (tests.yml currently runs pytest +
   frontend check; extend the pytest job).
 
-## Testing
+### Testing
+
 - Django integration tests (view + template + settings path) — that gap backfired.
 - Test environment isolation: dedicated `genreguru_test` DB so dev data never
   bleeds into assertions (option B from the contract-testing discussion).
@@ -41,8 +140,10 @@ out to specs/roadmap.
   - **Empty / zero-length input** — `extract_<feature>` behavior (warn/raise?)
     is untested for empty arrays.
 
-## Docs
-- **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** — some drifted from the implemented API.
+### Docs
+
+- **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** —
+  some drifted from the implemented API.
 - **API reference look-and-feel** — pdoc's default template is functional but
   dated; the live reference is a public-facing surface (README badge → GH
   Pages). Options, cheapest first: (1) pdoc already ships a theme toggle —
@@ -57,43 +158,48 @@ out to specs/roadmap.
   source links); pdoc deployment already lives in CI `docs.yml` + `.github/
   workflows`, keep that path. Future-proof: pick a theme behind a build-time
   config so the docs site and the deployed artifact share one source.
+- **Documentation improvement/addition plan** —
+  1. **`CONTRIBUTING.md`** — repo root contributor guide: prerequisites
+     (Python 3.14, uv, PostgreSQL, Node 26), setup (`uv sync`, `npm ci`),
+     running tests (`uv run pytest`, `npm run check`), lint/type-check
+     commands, commit conventions (conventional-pre-commit hook), branch/PR
+     workflow, pre-commit installation. *Home for the superseded
+     `web/`/`tests/`/`config/` folder-README content (#10/#11/#12).*
+  2. **`CODE_OF_CONDUCT.md`** — open-source standard companion to the
+     AGPL-3.0 license.
+  3. **README.md enhancements** — add CI status badges (tests, ruff, pdoc,
+     coverage), Table of Contents anchor links, callout box for Known
+     Limitations near the top, progress indicator (phase 1 done / phase 2
+     pending), link to live API Reference (pdoc deployed on GitHub Pages).
+  <!-- -->
+  8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations;
+     phase/pass history currently only in git history (the old
+     `phase_3_notes.md` scratch file has been discarded).
+  9. **`SECURITY.md`** — secret handling, Django security headers, CSRF
+     protection, dependency scanning (bandit).
+  <!-- -->
+  16. **Interactive tutorial / screenshot** — README "Preview/screenshot" item
+     from Site/promo; step-by-step walkthrough showing actual terminal output
+     and UI flow.
+  17. **`AGENTS.md`** at repo root — document agentic workflow conventions,
+     available skills (`caveman`, `speckit-*`, `caveman-commit`, etc.), and
+     project-specific AI-assisted development instructions. *(Parked
+     2026-09-13 alongside the standards-parse below.)*
+  18. **`notebooks/` documentation** — document purpose and usage of
+     exploratory DSP notebooks.
+  <!-- -->
+  20. **Docs-in-PR policy** — a feature PR ships its docs with the code:
+     contract → traceability → status docs (`tasks.md`), `ARCHITECTURE.md`
+     decision/tree rows, README/quickstart, and pdoc template purpose rows
+     change in the SAME PR as the code. Review enforces; never land a
+     docs/impl mismatch.
+  - **Superseded**: #10 `web/README.md`, #11 `tests/README.md`,
+    #12 `config/README.md` (per-folder READMEs dropped in the slim #21
+    decision — their content folds into `CONTRIBUTING.md` / guides above);
+    #7 single `DECISION_LOG.md` (replaced by `docs/adr/`).
 
-### Documentation improvement/addition plan
-1. **`CONTRIBUTING.md`** — repo root contributor guide: prerequisites (Python 3.14, uv, PostgreSQL, Node 26), setup (`uv sync`, `npm ci`), running tests (`uv run pytest`, `npm run check`), lint/type-check commands, commit conventions (conventional-pre-commit hook), branch/PR workflow, pre-commit installation.
-2. **`CODE_OF_CONDUCT.md`** — open-source standard companion to the AGPL-3.0 license.
-3. **README.md enhancements** — add CI status badges (tests, ruff, pdoc, coverage), Table of Contents anchor links, callout box for Known Limitations near the top, progress indicator (phase 1 done / phase 2 pending), link to live API Reference (pdoc deployed on GitHub Pages).
-4. **`docs/README.md`** — index/overview of all documentation files for discoverability.
-5. **`docs/API.md`** — top-level API reference page tying together pdoc output, contract specs (`contracts/search-api.md`, `contracts/deezer-api.md`), and the endpoint table from README.
-6. **`docs/ARCHITECTURE.md`** — promoted top-level entry point from `001-song-fingerprint-engine/architecture.md`.
-7. **`docs/DECISION_LOG.md`** (ADR log) — track why specific technologies were chosen (Django vs Flask, SQLAlchemy vs Django ORM, Hydra vs env vars), record rejected alternatives, prevent re-litigation. Already partially documented in `architecture.md` §8.
-8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations; phase/pass history currently only in git history (the old `phase_3_notes.md` scratch file has been discarded).
-9. **`SECURITY.md`** — secret handling, Django security headers, CSRF protection, dependency scanning (bandit).
-10. **`web/README.md`** — web dev instructions: running dev server, adding tests (module-mirrored test files in `tests/` — `api.test.ts`/`render.test.ts`/`page-controller.test.ts` cover the `ts/` modules, `bootstrap.test.ts` the boot layer, `a11y.test.ts` cross-cutting — with shared `helpers.ts`/`setup.ts`), ESLint/Prettier/Vitest config, JS architecture (DOM-free TS modules + per-page `ts/pages/*-page.ts` bootstrap, 2-click state machine, `api-config` blob pattern).
-11. **`tests/README.md`** — test structure, naming conventions (module-mirrored frontend files; `dto.ts`/`messages.ts`/`errors.ts` intentionally fileless — covered transitively via their callers), TDD workflow (Constitution III), fixture usage (`conftest.py`, `factories.py`), benchmark test patterns.
-12. **`config/README.md`** — Hydra config tree explanation: environment switching (`GENREGURU_ENV`), `${oc.env:...}` interpolation, feature flag gating, adding new config groups.
-13. **Module docstrings** — add missing docstrings to `genreguru/config.py`, `genreguru/errors.py`, `genreguru/dto.py`, `genreguru/__init__.py` (also needs `NullHandler` per logging-report Rule 11), `fingerprint_service.py`. Required for complete pdoc API output.
-14. **`docs/idea.md` → `docs/ROADMAP.md`** — convert raw backlog to structured roadmap with completed/in-progress/planned sections; integrate completed Pass 1-7 items.
-15. **`docs/TODOs/` cleanup** — items folded into this file (`### README backlog`,
-    `## Data`, `## Architecture`, `## ML experiments`); directory removed,
-    `api.md` cross-references retargeted.
-16. **Interactive tutorial / screenshot** — README "Preview/screenshot" item from Site/promo; step-by-step walkthrough showing actual terminal output and UI flow.
-17. **`AGENTS.md`** at repo root — document agentic workflow conventions, available skills (`caveman`, `speckit-*`, `caveman-commit`, etc.), and project-specific AI-assisted development instructions.
-18. **`notebooks/` documentation** — document purpose and usage of exploratory DSP notebooks.
-19. **`docs/001-song-fingerprint-engine/` index** — `specs/README.md` or similar index listing all spec documents and their relationships.
-20. **Docs-in-PR policy** — a feature PR ships its docs with the code: contract → traceability → status docs (`tasks.md`), `architecture.md` decision/tree rows, README/quickstart, and pdoc template purpose rows change in the SAME PR as the code. Review enforces; never land a docs/impl mismatch.
-21. **Per-folder README strategy** — GitHub renders a folder's `README.md` as
-    its directory landing page; give the 7 content folders one (`src/`,
-    `web/`, `tests/`, `config/`, `specs/`, `docs/`, `.github/`) so the
-    root README headline stays clean and each folder reads in full when
-    browsed. Folds in items #4, #10, #11, #12, #19. When implementing:
-    collapse the root `Project Structure` prose (README.md:246-270) to
-    one-line link pointers + add them to `Learn More`; keep each README small
-    and factual (15-40 lines, same shape: purpose → layout → entry points →
-    run/verify → links); leave empty/artifact folders (`data/`, `models/`,
-    `reports/`, `references/`, `notebooks/`, `outputs/`, `logs/`)
-    README-less; ship README changes in the same PR as the feature (#20).
+### Standards/patterns reference
 
-### Standards/patterns reference (one-time deep-parse)
 - One-time deep-parse of the repo to extract coding standards + established
   patterns into a modular reference. Keep `AGENTS.md` thin — an index that
   points to per-domain standards files (testing, frontend ts modules,
@@ -102,24 +208,26 @@ out to specs/roadmap.
   instead of hunting across files for patterns — velocity, especially as the
   project scales. The modular split also maps cleanly to future skills/loops
   (each standards file ≈ a skill scope); exact file layout decided during the
-  parse pass.
+  parse pass. *(Parked 2026-09-13 alongside #17.)*
 
-### README backlog (folded from docs/TODOs/README.xit)
+### README backlog
+
 - [ ] Capture & add app screenshots (search results + fingerprint result) under `docs/screenshots/`, reference with relative links
 - [ ] Add "Try it" one-liner — single copy-paste bash block to run the whole stack
 - [ ] Add real fingerprint JSON output example (e.g. `spectral_centroid`, `rms`, `mfcc` values)
 - [ ] Add rendered spectrogram image with spectral centroid highlighted (DSP visualization feature)
 - [ ] Add recommendations demo — before/after feature-slider tweak yielding different similar songs
 - [ ] Add 8-features table: feature / what it captures / what a high value sounds like
-- [ ] Add Windows & macOS setup instructions (current `export` blocks are bash-only)
-- [ ] Document known limitations: 30s Deezer preview only, Deezer catalog dependency, no genre classification
+- [ ] Add Windows & macOS setup instructions (current `export` blocks are bash-only) — *Windows PowerShell block already present; extend to full Windows setup*
+- [ ] Document known limitations: 30s Deezer preview only, Deezer catalog dependency, no genre classification — *callout box pending #3*
 - [ ] Add "Related tools / why not alternatives" positioning (Essentia, acousticDB, Chromaprint)
 - [ ] Add Roadmap section
 - [ ] Add Contributing section
 - [ ] Expand badges: tests, coverage, ruff, uv
 - [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license
 
-## Frontend
+### Frontend
+
 - Layout/theme experiment — retro throwback look **for some layouts** (mixed aesthetics, not the whole app). Reference styles:
   - https://wildrose.space/
   - https://sweethard666.neocities.org/#
@@ -129,13 +237,7 @@ out to specs/roadmap.
   - https://morisinc.net/
   - https://beigeforce.com/
   - https://www.cozyeating.app/
-- Song preview card before confirm: album art, artist, provider icon. **In-flight** — `architecture.md` §3.3/§7.5 anticipate `renderPreviewCard` + Deezer "D" badge; render hub + partials + `dto` fields are in place, pending the card UI. **Progress** — provider icon landed on candidate rows: Deezer heart (vendored `static/fingerprint_app/deezer-heart.png`, served via `{% static %}` + `data-provider-*` attrs on `#candidates`), replacing the redundant "Selected" pill (selection stays clear via highlight + `aria-pressed` + status text).
-- Multi-artist previews — a song can have multiple artists, but the preview
-  shows only Deezer's main `artist` (track `contributors` are dropped by the
-  client; `Song.artist` is a single String(255); contracts expose one
-  `artist {id,name}`). Fix: carry the full artist list and truncate long ones
-  with a trailing `…`. **Done** — `dto.ts` carries `artists[]` + `cover`; `render.ts` renders the full contributor roster truncated via the overflow marquee (`ts/scroll-reveal.ts`, reduced-motion aware).
-- No-preview edge cases (missing/invalid Deezer preview URL).
+  - selenized colours for normal things, accessibility-maxing, even w hyperaccessible font :)
 - Error toasts — small, dismissable, fade-from-below, bottom-right; shown on any
   error. Expandable: later cover non-blocking events (fingerprint stored, slow
   network, background rechecks) instead of status-line-only copy. Needs a
@@ -176,15 +278,16 @@ out to specs/roadmap.
   (e.g., Nielsen's 10) to find violations; keep a running HCI-violation log
   (file/component + heuristic) feeding the backlog, not a one-off review.
 
-## Data
+### Data
+
 - Backfill a large catalogue for dev/prod (e.g. Billboard chart feeds) so the
   fingerprint engine has real volume to chew on.
 - Use Deezer [global parameters](https://developers.deezer.com/api/parameters)
   and [optional search parameters](https://developers.deezer.com/api/search#:~:text=Optionnal%20Parameters) on the search client.
 
-## Audio / DSP
+### Audio / DSP
 
-### N-section collapse (`feature_collapse.py`) — PENDING REVIEW
+#### N-section collapse (`feature_collapse.py`) — PENDING REVIEW
 
 Design sketched, not approved; no code changed (`collapse_feature` still
 returns a scalar, `collapse_features` a `dict[Feature, float]`). Don't implement
@@ -239,16 +342,8 @@ Behavioral output (sine, N=3): frame groups [(1,15),(16,30),(31,44)]; rms
 Verify when implementing (not yet run): `ruff check` + `ruff format --check`
 clean; `uv run pytest tests/unit -q` all existing + new green.
 
-## Infrastructure
-- **Done — `frontend/` → `web/` rename** (resolves the Django project root
-  named "frontend" confusion). Executed: dir moved + `.gitignore` paths,
-  README tree/commands, architecture.md + config-report.md paths,
-  quickstart.md paths, CI `tests.yml`/`docs.yml` PYTHONPATH +
-  working-directory + artifact paths, prek.toml hook, pyproject.toml tool
-  configs. Identifiers renamed too: `tests.yml` job/artifact →
-  `web`/`web-coverage`, package `genreguru-frontend` → `genreguru-web`.
-  Historical specs (`plan.md`, `tasks.md`) left as-recorded with a mapping
-  note; prose "frontend" kept as the abstraction/layer name.
+### Infrastructure
+
 - **Deployment & containerization** — ship the app to a prod-grade environment.
   Directions settled (decisions D1–D5; each records its future-proof path so a
   later scale-up slots in with minimal churn). None implemented yet.
@@ -295,8 +390,11 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
   override vs mounted volume; `uv.lock` is gitignored — commit it or
   `uv sync --no-lock` for fresh clones; whether Deezer preview URLs need a
   proxy/allowlist for CORS in prod.
+  - **ADR status**: D1–D5 are recorded as accepted decisions
+    (`docs/adr/` 0008-0012), noting "decision recorded; not yet implemented".
 
-## Architecture
+### Architecture
+
 - Centralize cross-functional/cross-language/cross-file constants into a single
   source/config, e.g. feature labels now live on the `Feature` enum, not in JS
   or per-file literals. Audit other duplicated values (units, message strings,
@@ -315,14 +413,17 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
 - Enforce rate-limiting & abuse-prevention for the internal search API (per
   CHK024 in `api.md` / `search-api.md`).
 
-## Product
+### Product
+
 - Song recommendations from fingerprint distance metric (nearest neighbors on
   stored vectors).
 
-## ML experiments
+### ML experiments
+
 - Setup MLFlow for experiment tracking.
 
-## Site/promo
+### Site/promo
+
 - Preview/screenshot in README for readability.
 - GitHub Pages site: a repo hosts one `github.io` site; an org can host many
   (so this could live on a separate repo, or on this one at `docs/`).
@@ -333,5 +434,19 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
   api/render/page-controller/bootstrap + cross-cutting a11y — and backend
   pytest families), and test-stat reporting
   (coverage % + test counts posted as CI artifacts/badges — or Codecov/
-  Coveralls). Deep breakdown lives in `tests/README.md` (Docs #11); the root
-  README shows headline numbers.
+  Coveralls). Deep breakdown lives in `tests/README.md` (deferred folder
+  README); the root README shows headline numbers.
+- A lot more visualizations and system breakdowns, both for promo, and for
+  `contributing.md` support
+  - state diagram for frontend?
+
+---
+
+## Roadmap-home note
+
+When the backlog matures (contributors, external triage, or burnout of this
+file), migrate raw items to **GitHub Issues + Milestones** with a Projects
+roadmap view (the pattern containerd and GitHub's own roadmap use: labeled
+issues, milestones = "when"). Keep this file only for committed passes and
+decisions. *Decision 2026-09-13: stay in-repo for now to match the file-based
+speckit workflow.*

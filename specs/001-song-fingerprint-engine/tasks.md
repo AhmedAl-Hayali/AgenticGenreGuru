@@ -3,7 +3,7 @@
 > **Note (post-record):** the Django web application directory `frontend/` was
 > renamed to `web/` after this record. All `frontend/` path references in this
 > document and in `plan.md` map to `web/` — see the Resolved bullet under
-> `docs/idea.md` Infrastructure.
+> `docs/ROADMAP.md` Infrastructure.
 >
 > **Note (post-record):** the database connection configuration moved from a
 > single `DATABASE_URL` (referenced in T005a/T012a below) to per-component
