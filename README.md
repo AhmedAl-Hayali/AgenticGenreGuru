@@ -288,6 +288,7 @@ recommendations:
 
 - [`docs/README.md`](docs/README.md) — Documentation index (architecture, API, decision records, roadmap)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Project architecture
+- [`docs/API.md`](docs/API.md) — API reference guide and API contracts
 - [`docs/adr/index.md`](docs/adr/index.md) — Architecture decision records
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — Idea backlog and roadmap
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc
