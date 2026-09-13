@@ -2,7 +2,8 @@ import { confirmTrack, readJsonMaybe, searchTracks } from "./api.ts";
 import type { ApiConfig, ConfirmResponse, Match, SearchResponse } from "./dto.ts";
 import { outcomeFor } from "./errors.ts";
 import { Messages } from "./messages.ts";
-import { renderCandidates, renderFingerprint } from "./render.ts";
+import { PreviewPlayer } from "./preview-player.ts";
+import { renderCandidates, renderFingerprint, type PreviewControl } from "./render.ts";
 
 /** DOM element references the controller uses; built once at bootstrap. */
 export interface PageContainers {
@@ -20,11 +21,13 @@ export interface PageContainers {
 export class PageController {
   private readonly config: ApiConfig;
   private readonly containers: PageContainers;
+  private readonly player: PreviewPlayer;
   private actionSeq = 0;
 
   constructor(config: ApiConfig, containers: PageContainers) {
     this.config = config;
     this.containers = containers;
+    this.player = new PreviewPlayer({ onError: (message) => this.setStatus(message, true) });
   }
 
   mount() {
@@ -73,6 +76,11 @@ export class PageController {
     this.setStatus(Messages.selectedMatch(match.title));
   };
 
+  /** Toggle the candidate's audio preview; never part of select/confirm. */
+  private handleCandidatePreview = (match: Match, control: PreviewControl) => {
+    this.player.toggle(match, control);
+  };
+
   /** Validate the query, fire the search, render candidates or an error; discards superseded responses. */
   private onSearch = async (event: SubmitEvent) => {
     event.preventDefault();
@@ -82,6 +90,7 @@ export class PageController {
       this.actionSeq += 1; // Deregister any in-flight action, like a real search would.
       resultSection.classList.add("hidden");
       candidates.replaceChildren();
+      this.player.stop();
       this.setStatus(Messages.emptyQuery, true);
       query.focus();
       return;
@@ -92,6 +101,7 @@ export class PageController {
     this.setStatus(Messages.searching);
     this.setBusy(true);
     candidates.replaceChildren();
+    this.player.stop();
 
     try {
       const response = await this.guarded(seq, () => searchTracks(this.config, trimmed));
@@ -131,11 +141,19 @@ export class PageController {
         this.setStatus(Messages.noResults);
         return;
       }
-      renderCandidates(candidates, matches, this.handleCandidateClick);
+      renderCandidates(candidates, matches, {
+        onCandidateClick: this.handleCandidateClick,
+        onCandidatePreview: this.handleCandidatePreview,
+      });
       this.setStatus(Messages.foundMatches(matches.length));
-    } catch {
+    } catch (error) {
       if (!this.isCurrent(seq)) {
         return;
+      }
+      if (error instanceof TypeError) {
+        // Fail-loud: propagate programmer errors (e.g. a render bug on the
+        // search path) instead of misreporting them as a network disconnect.
+        throw error;
       }
       this.setStatus(Messages.searchNetworkDown, true);
     } finally {
