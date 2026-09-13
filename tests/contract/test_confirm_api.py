@@ -53,9 +53,11 @@ def status_of(resp) -> str:
     return body["status"]
 
 
-def patch_session_and_process_fp(mocker, session_patch, process_fp_patch):
-    """Patch session and `process_fingerprint` with provided stubs."""
-    mocker.patch.object(views, "_get_session", new=session_patch)
+def patch_session_and_process_fp(mocker, session_patch=None, process_fp_patch=None):
+    """Patch session and `process_fingerprint`; the session defaults to a fresh `Mock`."""
+    mocker.patch.object(
+        views, "_get_session", new=session_patch or (lambda: mocker.Mock())
+    )
     mocker.patch.object(
         fingerprint_service,
         "process_fingerprint",
@@ -112,32 +114,21 @@ class TestConfirmSuccess:
         resp = post_confirm()
         assert resp.status_code == 201
 
-    def test_status_success(self, post_confirm):
-        """Response body must have `status` set to `success`."""
-        resp = post_confirm()
-        assert status_of(resp) == "success"
-
-    def test_has_song_id_deezer_id_and_isrc(self, post_confirm):
-        """Response must include `song_id`, `deezer_id`, and `isrc`."""
+    def test_success_body_shape(self, post_confirm):
+        """Response body must carry `status` `success` plus `song_id`/`deezer_id`/`isrc`."""
         resp = post_confirm()
         body = confirm_body(resp)
-        assert "song_id" in body
+        assert status_of(resp) == "success"
+        assert {"song_id", "deezer_id", "isrc"} <= set(body)
         assert body["deezer_id"] == 3135556
         assert body["isrc"] == "GBDUW0000059"
 
-    def test_fingerprint_has_all_8_dsp_features(self, post_confirm):
-        """Fingerprint sub-object must contain all 8 DSP feature keys."""
-        resp = post_confirm()
-        fp = confirm_body(resp)["fingerprint"]
+    def test_fingerprint_shape_and_values(self, post_confirm):
+        """Fingerprint sub-object must carry every DSP feature as a number."""
+        fp = confirm_body(post_confirm())["fingerprint"]
+        assert fp["vector_length"] == 8
         for field in FINGERPRINT_FIELDS:
             assert field in fp, f"missing fingerprint field: {field}"
-        assert fp["vector_length"] == 8
-
-    def test_fingerprint_values_are_numeric(self, post_confirm):
-        """All fingerprint feature values must be numeric (int or float)."""
-        resp = post_confirm()
-        fp = confirm_body(resp)["fingerprint"]
-        for field in FINGERPRINT_FIELDS:
             assert isinstance(fp[field], (int, float)), f"{field} is not numeric"
 
     def test_success_closes_session_never_rolls_back(self, post_confirm, mocker):
@@ -161,20 +152,20 @@ class TestConfirm400InvalidJSON:
         assert status_of(resp) == "error"
         assert "invalid JSON" in error_of(resp)
 
-    def test_missing_required_fields(self, post_confirm):
-        """A JSON body missing required fields must produce HTTP 400."""
-        resp = post_confirm(body={"title": "no other fields"})
-        assert resp.status_code == 400
-        assert status_of(resp) == "error"
-
-    def test_extra_field_rejected(self, post_confirm):
-        """A body carrying keys beyond the required set (e.g. `cover`) must be 400."""
-        resp = post_confirm(
-            body={
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"title": "no other fields"},
+            {
                 **DEEZER_CONFIRM_BODY,
                 "cover": "https://cdn-images.dzcdn.net/images/cover/x/300x300.jpg",
-            }
-        )
+            },
+        ],
+        ids=["missing_required_fields", "extra_field_rejected"],
+    )
+    def test_400_body_shape(self, post_confirm, body):
+        """Any schema violation must produce HTTP 400 with an error status."""
+        resp = post_confirm(body=body)
         assert resp.status_code == 400
         assert status_of(resp) == "error"
 
@@ -228,8 +219,7 @@ class TestConfirmCsrf:
         """
         patch_session_and_process_fp(
             mocker,
-            lambda: mocker.Mock(),
-            AssertionError("view ran without CSRF token"),
+            process_fp_patch=AssertionError("view ran without CSRF token"),
         )
 
         resp = django_csrf_client.post(
@@ -254,8 +244,7 @@ class TestConfirmCsrf:
 
         patch_session_and_process_fp(
             mocker,
-            lambda: mocker.Mock(),
-            lambda fake_session, track, repo: dict(SUCCESS_RESPONSE),
+            process_fp_patch=lambda fake_session, track, repo: dict(SUCCESS_RESPONSE),
         )
 
         resp = django_csrf_client.post(

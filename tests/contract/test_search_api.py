@@ -69,52 +69,23 @@ def get_search(django_client, monkeypatch):
 class TestSearchResponseShape:
     """Verify 200 response JSON shape for a successful search."""
 
-    def test_status_success(self, get_search):
-        """Successful search must return HTTP 200 with `status` = `success`."""
+    def test_success_response_shape(self, get_search):
+        """A successful search must return 200 with `status` `success` and a list."""
         resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
         assert resp.status_code == 200
         assert resp.json()["status"] == "success"
-
-    def test_matches_is_list(self, get_search):
-        """`matches` must be a JSON array."""
-        resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
         assert isinstance(matches_of(resp), list)
 
-    def test_match_has_required_fields(self, get_search):
-        """Each match must include deezer_id, title, isrc, duration, preview, cover, artists, album."""
-        resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
-        match = matches_of(resp)[0]
-        for field in [
-            "deezer_id",
-            "title",
-            "isrc",
-            "duration",
-            "preview",
-            "cover",
-            "artists",
-            "album",
-        ]:  # Could be DEEZER_MATCH instead, but this is explicit
-            assert field in match
-
-    def test_artists_lead_with_main_artist(self, get_search):
-        """The `artists` list must lead with `{id, name}` of the main artist."""
-        resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
-        artists = matches_of(resp)[0]["artists"]
-        assert artists
-        assert "id" in artists[0]
-        assert "name" in artists[0]
-
-    def test_cover_url_shape(self, get_search):
-        """The `cover` URL must carry the bare md5-image suffix at 300x300."""
-        resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
-        cover = matches_of(resp)[0]["cover"]
+    def test_match_shape_contract(self, get_search):
+        """Each match must carry the full `SEARCH_FIELDS` shape with real values."""
+        match = matches_of(get_search(query="Daft+Punk", result=DEEZER_MATCHES))[0]
+        assert set(deezer_client.SEARCH_FIELDS) <= set(match)
+        artists = match["artists"]
+        assert artists and "id" in artists[0] and "name" in artists[0]
+        cover = match["cover"]
         assert cover.startswith("https://cdn-images.dzcdn.net/images/cover/")
         assert cover.endswith("/300x300.jpg")
-
-    def test_album_has_id_and_title(self, get_search):
-        """Album sub-object must contain `id` and `title`."""
-        resp = get_search(query="Daft+Punk", result=DEEZER_MATCHES)
-        album = cast(Album, matches_of(resp)[0]["album"])
+        album = cast(Album, match["album"])
         assert "id" in album
         assert "title" in album
 
@@ -195,18 +166,14 @@ class TestSearch503:
 class TestSearch500:
     """Verify 500 responses on upstream data-integrity failures."""
 
-    def test_500_missing_isrc(self, get_search):
-        """A match missing its ISRC is a data-integrity failure → HTTP 500."""
-        resp = get_search(query="Daft+Punk", error=MissingISRCError("missing isrc"))
-        assert resp.status_code == 500
-        assert resp.json()["status"] == "error"
-        assert "internal server error" in error_of(resp)
-
-    def test_500_preview_unavailable(self, get_search):
-        """A match with no preview URL is a data-integrity failure → HTTP 500."""
-        resp = get_search(
-            query="Daft+Punk", error=PreviewUnavailableError("no preview")
-        )
+    @pytest.mark.parametrize(
+        "error",
+        [MissingISRCError("missing isrc"), PreviewUnavailableError("no preview")],
+        ids=["missing_isrc", "preview_unavailable"],
+    )
+    def test_500_integrity_failure_maps_internal(self, get_search, error):
+        """A data-integrity failure from the dependency must map to HTTP 500."""
+        resp = get_search(query="Daft+Punk", error=error)
         assert resp.status_code == 500
         assert resp.json()["status"] == "error"
         assert "internal server error" in error_of(resp)
