@@ -41,6 +41,13 @@ class _FakeEngine:
         self.disposed = True
 
 
+class _FailingEngine:
+    """A `connect()` that raises to exercise `health_check` failure."""
+
+    def connect(self):
+        raise ConnectionError("db down")
+
+
 class _FakeLoggingManager:
     def __enter__(self):
         return self
@@ -94,34 +101,35 @@ def test_dry_run_ddl_gen_logs_every_table(caplog):
     )
 
 
-def test_health_check_successful_connection():
-    """Test `health_check` accepts a reachable engine without raising."""
-    init_db.health_check(_FakeEngine())  # ty: ignore[invalid-argument-type]
+@pytest.mark.parametrize(
+    ("engine", "fails"),
+    [(_FakeEngine(), False), (_FailingEngine(), True)],
+    ids=["reachable", "unreachable"],
+)
+def test_health_check_connection(caplog, engine, fails):
+    """Test `health_check` accepts a reachable engine and re-raises on failure."""
+    if fails:
+        with pytest.raises(ConnectionError):
+            init_db.health_check(engine)
+        assert "engine health-check failed" in caplog.text
+    else:
+        init_db.health_check(engine)
 
 
-def test_health_check_failure_reraises(caplog):
-    """Test a failed connection logs an exception and re-raises."""
-
-    class _FailingEngine:
-        def connect(self):
-            raise ConnectionError("db down")
-
-    with pytest.raises(ConnectionError):
-        init_db.health_check(_FailingEngine())  # ty: ignore[invalid-argument-type]
-    assert "engine health-check failed" in caplog.text
-
-
-def test_verify_pg_version_accepts_supported():
-    """Test `verify_pg_version` passes on the minimum supported server."""
-    init_db.verify_pg_version(_FakeEngine())  # ty: ignore[invalid-argument-type]
-
-
-def test_verify_pg_version_rejects_old_server(caplog):
-    """Test an unsupported major raises RuntimeError and logs an error."""
-    old = _FakeEngine(dialect=SimpleNamespace(server_version_info=(17, 9)))
-    with pytest.raises(RuntimeError, match="PostgreSQL 17 detected"):
-        init_db.verify_pg_version(old)  # ty: ignore[invalid-argument-type]
-    assert "unsupported postgres major version 17" in caplog.text
+@pytest.mark.parametrize(
+    "major",
+    [MIN_PG_MAJOR, MIN_PG_MAJOR - 1],
+    ids=["supported_min", "older_major"],
+)
+def test_verify_pg_version(caplog, major):
+    """Test `verify_pg_version` accepts the minimum server and rejects older majors."""
+    engine = _FakeEngine(dialect=SimpleNamespace(server_version_info=(major, 9)))
+    if major >= MIN_PG_MAJOR:
+        init_db.verify_pg_version(engine)  # ty: ignore[invalid-argument-type]
+    else:
+        with pytest.raises(RuntimeError, match=f"PostgreSQL {major} detected"):
+            init_db.verify_pg_version(engine)  # ty: ignore[invalid-argument-type]
+        assert "unsupported postgres major version" in caplog.text
 
 
 def test_main_dry_run_skips_engine(monkeypatch):

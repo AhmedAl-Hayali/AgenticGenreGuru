@@ -19,7 +19,6 @@ from genreguru.deezer import snippets
 from genreguru.errors import NetworkDisconnectedError
 from tests.http_stubs import (
     RETRYABLE_CODES,
-    TIMEOUTS,
     audio,
     capture_get,
     error_envelope,
@@ -71,28 +70,29 @@ class TestHappyPath:
 class TestRetryableFailures:
     """Failures that trigger a retry, succeeding on the final attempt."""
 
-    @pytest.mark.parametrize("code", RETRYABLE_CODES)
-    def test_retryable_error_code_then_success(self, monkeypatch, code):
-        """A retryable Deezer error code must be retried, succeeding on the last attempt."""
-        error = error_envelope(200, code, _PREVIEW_URL)
-        calls, result = _fetch_ok(
-            monkeypatch,
-            retry_then_success(
-                error, audio(_FAKE_AUDIO, _PREVIEW_URL), _MAX_RETRIES - 1
-            ),
-        )
-        assert result == _FAKE_AUDIO
-        assert len(calls) == _MAX_RETRIES
-
     @pytest.mark.parametrize(
-        "timeout", TIMEOUTS, ids=["connect_timeout", "read_timeout"]
+        "failure",
+        [
+            pytest.param(error_envelope(200, code, _PREVIEW_URL), id=f"code_{code}")
+            for code in RETRYABLE_CODES
+        ]
+        + [
+            pytest.param(
+                httpx.ConnectTimeout("connection timed out"),
+                id="connect_timeout",
+            ),
+            pytest.param(
+                httpx.ReadTimeout("read timed out"),
+                id="read_timeout",
+            ),
+        ],
     )
-    def test_network_timeout_retries_then_success(self, monkeypatch, timeout):
-        """A ConnectTimeout/ReadTimeout must be retried, succeeding on the last attempt."""
+    def test_retryable_then_success(self, monkeypatch, failure):
+        """A retryable failure type must be retried, succeeding on the last attempt."""
         calls, result = _fetch_ok(
             monkeypatch,
             retry_then_success(
-                timeout, audio(_FAKE_AUDIO, _PREVIEW_URL), _MAX_RETRIES - 1
+                failure, audio(_FAKE_AUDIO, _PREVIEW_URL), _MAX_RETRIES - 1
             ),
         )
         assert result == _FAKE_AUDIO

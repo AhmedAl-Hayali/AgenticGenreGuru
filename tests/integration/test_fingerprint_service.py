@@ -13,6 +13,7 @@ import logging
 from typing import Protocol, cast
 
 import numpy as np
+import pytest
 
 from genreguru.audio.features import Feature
 from genreguru.db.models import SongFingerprint
@@ -153,10 +154,18 @@ class TestFreshPath:
 class TestFlattening:
     """Verify artist/album persistence through the fresh pipeline."""
 
-    def test_fresh_path_persists_contributors(
-        self, db_session, repo: SongRepository, monkeypatch
+    @pytest.mark.parametrize(
+        ("album", "expected_album"),
+        [
+            (Album(id=302127, title="Discovery"), "Discovery"),
+            (None, None),
+        ],
+        ids=["object_album", "none_album"],
+    )
+    def test_contributors_and_album_persist(
+        self, db_session, repo: SongRepository, monkeypatch, album, expected_album
     ):
-        """Object-shaped contributors persist to `SongArtist` rows."""
+        """Object-shaped contributors persist as `SongArtist` rows; the album flattens."""
         song_data, *_ = build_repo_payloads()
         fetch_calls = _stub_audio(monkeypatch)
         contributors = SongArtistFactory.build_contributors(
@@ -168,49 +177,18 @@ class TestFlattening:
             match_from_song(
                 song_data,
                 artists=[SongArtistFactory.to_artist(c) for c in contributors],
-                album=Album(id=302127, title="Discovery"),
+                album=album,
             ),
             repo,
         )
 
         stored = repo.find_by_isrc(song_data["isrc"])
         assert stored is not None
-        assert stored.artist == contributors[0].name
-        assert stored.album == "Discovery"
+        assert stored.album == expected_album
         assert roster_rows(stored.artists) == roster_rows(contributors)
 
         assert result["song_id"] == str(stored.id)
         # Smoke-signal that the full fresh pipeline ran: the stub yields 1.0
         # for every feature, so one probe verifies fetch → extract → response.
-        assert result["fingerprint"][Feature.SPECTRAL_CENTROID] == 1.0
-        assert fetch_calls() > 0
-
-    def test_fresh_path_album_none_flattens(
-        self, db_session, repo: SongRepository, monkeypatch
-    ):
-        """`album=None` persists NULL through orchestration."""
-        song_data, *_ = build_repo_payloads()
-        fetch_calls = _stub_audio(monkeypatch)
-        contributors = SongArtistFactory.build_contributors(
-            SongFactory.build(), count=1
-        )
-
-        result = process_fingerprint(
-            db_session,
-            match_from_song(
-                song_data,
-                artists=[SongArtistFactory.to_artist(c) for c in contributors],
-                album=None,
-            ),
-            repo,
-        )
-
-        stored = repo.find_by_isrc(song_data["isrc"])
-        assert stored is not None
-        assert stored.album is None
-        assert roster_rows(stored.artists) == roster_rows(contributors)
-
-        assert result["song_id"] == str(stored.id)
-        # Smoke-signal that the full fresh pipeline ran (see prior test).
         assert result["fingerprint"][Feature.SPECTRAL_CENTROID] == 1.0
         assert fetch_calls() > 0

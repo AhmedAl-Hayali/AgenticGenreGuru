@@ -113,31 +113,22 @@ class TestCreateSongAndFingerprint:
         assert fp.audio_format == AudioFormat.MP3
         assert fp.sample_rate == 22050
 
-    def test_album_none_persisted(self, db_session, repo: SongRepository):
-        """A missing album must persist as NULL."""
-        song, _, _ = _build_and_create(repo, overrides={"album": None})
-        assert song.album is None
-
 
 class TestDedupByISRC:
     """Verify that duplicate ISRCs reuse the existing song instead of creating new rows."""
 
-    def test_same_isrc_returns_existing_song(self, repo: SongRepository):
-        """Second insert with the same ISRC must return the original song."""
+    def test_same_isrc_returns_existing_song(self, db_session, repo: SongRepository):
+        """Second insert with the same ISRC must reuse the song and its fingerprint."""
         first, second = _create_twice(repo)
         assert first.id == second.id
-
-    def test_same_isrc_no_duplicate_fingerprint(self, db_session, repo: SongRepository):
-        """Dedup must not create a second SongFingerprint for the same ISRC."""
-        _, second = _create_twice(repo)
         fp = SongFingerprint.latest_for_song(db_session, second.id)
         assert fp is not None
-        count = (
+        assert (
             db_session.query(SongFingerprint)
             .filter(SongFingerprint.song_id == second.id)
             .count()
+            == 1
         )
-        assert count == 1
 
     def test_different_isrc_creates_new_song(self, repo: SongRepository):
         """Distinct ISRCs must produce distinct Song rows."""
