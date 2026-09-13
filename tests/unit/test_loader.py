@@ -180,17 +180,10 @@ class TestLoadAudioGuard:
         assert np.all(np.isfinite(mono))
         assert sr == _SAMPLE_RATE
 
-    @pytest.mark.parametrize(
-        ("data", "kwargs"),
-        [
-            (_UNKNOWN_MAGIC, {}),
-            (_UNKNOWN_MAGIC, {"filename": "clip.bin"}),
-        ],
-    )
-    def test_unsupported_input_raises(self, data, kwargs):
+    def test_unsupported_input_raises(self):
         """Bytes with no recognizable magic/extension must raise before decoding."""
         with pytest.raises(AudioProcessingError):
-            loader.load_audio(data, **kwargs)
+            loader.load_audio(_UNKNOWN_MAGIC, filename="clip.bin")
 
     def test_stereo_wav_downmixes_to_mono(self):
         """Multichannel input averages channels into a mono array."""

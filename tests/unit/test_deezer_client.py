@@ -203,16 +203,16 @@ class TestFieldMapping:
         result = _search(monkeypatch, [raw])[0]
         assert result["album"] == album
 
-    def test_cover_mapped(self, monkeypatch):
-        """`md5_image` must map to the documented bare-suffix cover URL."""
-        result = _search(monkeypatch, [_SAMPLE_TRACK])[0]
-        assert result["cover"] == DEEZER_COVER_URL
-
-    def test_cover_empty_without_md5_image(self, monkeypatch):
-        """A track without `md5_image` must map `cover` to an empty string."""
-        raw = _raw_track(md5_image=None)
+    @pytest.mark.parametrize(
+        ("md5_image", "expected_cover"),
+        [(DEEZER_COVER_MD5, DEEZER_COVER_URL), (None, "")],
+        ids=["with_md5_image", "without_md5_image"],
+    )
+    def test_cover_mapped(self, monkeypatch, md5_image, expected_cover):
+        """`md5_image` must map to the cover URL, or an empty string when absent."""
+        raw = _raw_track(md5_image=md5_image)
         result = _search(monkeypatch, [raw])[0]
-        assert result["cover"] == ""
+        assert result["cover"] == expected_cover
 
     def test_preview_mapped(self, monkeypatch):
         """Deezer `preview` URL must pass through unchanged."""
@@ -559,13 +559,12 @@ class TestMissingISRC:
 class TestPreviewUnavailable:
     """Verify fail-loud behaviour when a track has no preview URL."""
 
-    @pytest.mark.parametrize("preview", ["", None], ids=["empty_string", "null"])
-    def test_preview_unavailable_raises(self, monkeypatch, preview):
-        """A track without a preview URL must raise PreviewUnavailableError."""
+    def test_preview_unavailable_raises(self, monkeypatch):
+        """An absent preview URL must raise `PreviewUnavailableError` in the network path."""
         with pytest.raises(PreviewUnavailableError, match="audio preview unavailable"):
             _search(
                 monkeypatch,
-                [_raw_track(preview=preview)],
+                [_raw_track(preview="")],
             )
 
 

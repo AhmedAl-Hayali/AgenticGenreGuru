@@ -41,335 +41,235 @@ MAG_SILENT = _mag(SILENT)
 MAG_LOW_ENERGY = _mag(LOW_ENERGY)
 
 
-@pytest.mark.parametrize(
-    "feature, extract, args",
-    [
+def _collapsed(extract, feat, *args, trim=0):
+    """Extract then collapse to a scalar; `trim` drops STFT edge frames."""
+    raw = extract(*args)
+    if trim:
+        raw = raw[..., trim:-trim]
+    return feature_collapse.collapse_feature(raw, feat)
+
+
+def _extractor_rows(which):
+    """`(feature, extract, args)` rows for the `which` input set."""
+    mag, audio = {
+        "sine": (MAG_SINE, SINE),
+        "silent": (MAG_SILENT, SILENT),
+        "low_energy": (MAG_LOW_ENERGY, LOW_ENERGY),
+    }[which]
+    return [
         (
             Feature.SPECTRAL_CENTROID,
             feature_extract.extract_spectral_centroid,
-            (MAG_SINE, SAMPLE_RATE),
+            (mag, SAMPLE_RATE),
         ),
-        (Feature.RMS, feature_extract.extract_rms, (SINE,)),
+        (Feature.RMS, feature_extract.extract_rms, (audio,)),
         (
             Feature.SPECTRAL_BANDWIDTH,
             feature_extract.extract_spectral_bandwidth,
-            (MAG_SINE, SAMPLE_RATE),
+            (mag, SAMPLE_RATE),
         ),
         (
             Feature.SPECTRAL_CONTRAST,
             feature_extract.extract_spectral_contrast,
-            (MAG_SINE, SAMPLE_RATE),
+            (mag, SAMPLE_RATE),
         ),
-        (
-            Feature.SPECTRAL_FLATNESS,
-            feature_extract.extract_spectral_flatness,
-            (MAG_SINE,),
-        ),
+        (Feature.SPECTRAL_FLATNESS, feature_extract.extract_spectral_flatness, (mag,)),
         (
             Feature.SPECTRAL_ROLLOFF,
             feature_extract.extract_spectral_rolloff,
-            (MAG_SINE, SAMPLE_RATE),
+            (mag, SAMPLE_RATE),
         ),
         (
             Feature.ZERO_CROSSING_RATE,
             feature_extract.extract_zero_crossing_rate,
-            (SINE,),
+            (audio,),
         ),
-        (
-            Feature.MFCC,
-            feature_extract.extract_mfcc,
-            (MAG_SINE, SAMPLE_RATE),
-        ),
-    ],
-)
+        (Feature.MFCC, feature_extract.extract_mfcc, (mag, SAMPLE_RATE)),
+    ]
+
+
+@pytest.mark.parametrize(("feature", "extract", "args"), _extractor_rows("sine"))
 def test_collapse_returns_float(feature, extract, args):
     """Collapsed scalar must be a Python float."""
     assert isinstance(feature_collapse.collapse_feature(extract(*args), feature), float)
 
 
+@pytest.mark.parametrize(
+    ("feature", "extract", "args"),
+    [
+        pytest.param(feature, extract, args, id=f"{feature.name.lower()}:{which}")
+        for which in ("silent", "low_energy")
+        for feature, extract, args in _extractor_rows(which)
+    ],
+)
+def test_edge_inputs_stay_finite(feature, extract, args):
+    """Silent/low-energy inputs must collapse to a finite scalar for every feature."""
+    assert np.isfinite(feature_collapse.collapse_feature(extract(*args), feature))
+
+
 class TestSpectralCentroid:
     """Verify `extract_spectral_centroid` numeric output and boundary behaviour."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_centroid(cls):
-        """Collapsed spectral centroid of the `SINE_FREQUENCY` Hz sine wave."""
-        raw = feature_extract.extract_spectral_centroid(MAG_SINE, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CENTROID)
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_centroid(cls):
-        """Collapsed spectral centroid of silent audio."""
-        raw = feature_extract.extract_spectral_centroid(MAG_SILENT, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CENTROID)
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def low_energy_centroid(cls):
-        """Collapsed spectral centroid of the low-energy input."""
-        raw = feature_extract.extract_spectral_centroid(MAG_LOW_ENERGY, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CENTROID)
-
-    def test_matches_ground_truth(self, sine_centroid):
+    def test_matches_ground_truth(self):
         """Centroid of a pure tone must sit close to its frequency."""
-        assert sine_centroid == pytest.approx(SINE_FREQUENCY, rel=REL_TOLERANCE)
-
-    def test_silent_input(self, silent_centroid):
-        """Silent audio must still produce a finite value (no NaN/inf)."""
-        assert np.isfinite(silent_centroid)
-
-    def test_low_energy(self, low_energy_centroid):
-        """Near-zero amplitude audio must not cause division-by-zero."""
-        assert np.isfinite(low_energy_centroid)
+        value = _collapsed(
+            feature_extract.extract_spectral_centroid,
+            Feature.SPECTRAL_CENTROID,
+            MAG_SINE,
+            SAMPLE_RATE,
+        )
+        assert value == pytest.approx(SINE_FREQUENCY, rel=REL_TOLERANCE)
 
 
 class TestRMS:
     """Verify `extract_rms` root-mean-square amplitude calculation."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_rms(cls):
-        """Collapsed RMS of the `SINE_FREQUENCY` Hz sine wave."""
-        return feature_collapse.collapse_feature(
-            feature_extract.extract_rms(SINE), Feature.RMS
-        )
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_rms(cls):
-        """Collapsed RMS of silent audio."""
-        return feature_collapse.collapse_feature(
-            feature_extract.extract_rms(SILENT), Feature.RMS
-        )
-
-    def test_matches_ground_truth(self, sine_rms):
+    def test_matches_ground_truth(self):
         """RMS of a pure tone must sit close to its amplitude divided by sqrt(2).
 
         Source: https://en.wikipedia.org/wiki/Root_mean_square
         """
-        assert sine_rms == pytest.approx(SINE_AMPLITUDE / np.sqrt(2), rel=REL_TOLERANCE)
+        value = _collapsed(feature_extract.extract_rms, Feature.RMS, SINE)
+        assert value == pytest.approx(SINE_AMPLITUDE / np.sqrt(2), rel=REL_TOLERANCE)
 
-    def test_silent_rms_zero(self, silent_rms):
+    def test_silent_rms_zero(self):
         """Silent audio must yield RMS of zero."""
-        assert silent_rms == pytest.approx(0, abs=1e-10)
+        value = _collapsed(feature_extract.extract_rms, Feature.RMS, SILENT)
+        assert value == pytest.approx(0, abs=1e-10)
 
 
 class TestSpectralBandwidth:
     """Verify `extract_spectral_bandwidth` spread measurement."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_bandwidth(cls):
-        """Collapsed bandwidth of the `SINE_FREQUENCY` Hz sine, edge STFT frames trimmed.
+    def test_sine_bandwidth_value_within_narrow_bounds(self):
+        """Pure-tone bandwidth is a small multiple of the FFT bin width sr/n_fft.
 
         `center=True` zero-pads the first/last frames, so their bandwidth is an
-        edge artifact (~64-85 bins) unrelated to the tone; trimming 2 frames per
-        side leaves the physical pure-tone leak (~1.09 bins). Test-only trim --
+        edge artifact; the trim drops those frames. Test-only trim --
         production collapse keeps all frames.
         """
-        raw = feature_extract.extract_spectral_bandwidth(MAG_SINE, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(
-            raw[..., 2:-2], Feature.SPECTRAL_BANDWIDTH
+        value = _collapsed(
+            feature_extract.extract_spectral_bandwidth,
+            Feature.SPECTRAL_BANDWIDTH,
+            MAG_SINE,
+            SAMPLE_RATE,
+            trim=2,
         )
-
-    def test_sine_bandwidth_value_within_narrow_bounds(self, sine_bandwidth):
-        """Pure-tone bandwidth is a small multiple of the FFT bin width sr/n_fft."""
-        assert (
-            0
-            < sine_bandwidth
-            < BANDWIDTH_BIN_FACTOR * (SAMPLE_RATE / feature_extract._N_FFT)
-        )
+        assert 0 < value < BANDWIDTH_BIN_FACTOR * (SAMPLE_RATE / feature_extract._N_FFT)
 
 
 class TestSpectralContrast:
     """Verify `extract_spectral_contrast` peak-valley difference."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_contrast(cls):
-        """Collapsed spectral contrast of the `SINE_FREQUENCY` Hz sine wave."""
-        raw = feature_extract.extract_spectral_contrast(MAG_SINE, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CONTRAST)
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_contrast(cls):
-        """Collapsed spectral contrast of silent audio."""
-        raw = feature_extract.extract_spectral_contrast(MAG_SILENT, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CONTRAST)
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def low_energy_contrast(cls):
-        """Collapsed spectral contrast of the low-energy input."""
-        raw = feature_extract.extract_spectral_contrast(MAG_LOW_ENERGY, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_CONTRAST)
-
-    def test_sine_contrast_is_nonzero(self, sine_contrast):
+    def test_sine_contrast_is_nonzero(self):
         """A pure tone yields a strong peak-valley difference."""
-        assert sine_contrast > 0
-
-    def test_silent_contrast_is_finite(self, silent_contrast):
-        """Silent audio must not produce NaN/inf contrast."""
-        assert np.isfinite(silent_contrast)
-
-    def test_low_energy_contrast_is_finite(self, low_energy_contrast):
-        """Near-zero amplitude must not produce NaN/inf contrast."""
-        assert np.isfinite(low_energy_contrast)
+        value = _collapsed(
+            feature_extract.extract_spectral_contrast,
+            Feature.SPECTRAL_CONTRAST,
+            MAG_SINE,
+            SAMPLE_RATE,
+        )
+        assert value > 0
 
 
 class TestSpectralFlatness:
     """Verify `extract_spectral_flatness` tonality ratio [0, 1]."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_flatness(cls):
-        """Collapsed spectral flatness of the `SINE_FREQUENCY` Hz sine wave."""
-        raw = feature_extract.extract_spectral_flatness(MAG_SINE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_FLATNESS)
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_flatness(cls):
-        """Collapsed spectral flatness of silent audio."""
-        raw = feature_extract.extract_spectral_flatness(MAG_SILENT)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_FLATNESS)
-
-    def test_sine_flatness_value_within_unit_bounds(self, sine_flatness):
+    def test_sine_flatness_value_within_unit_bounds(self):
         """Flatness must lie within [0, 1] by definition."""
-        assert 0 <= sine_flatness <= 1
+        value = _collapsed(
+            feature_extract.extract_spectral_flatness,
+            Feature.SPECTRAL_FLATNESS,
+            MAG_SINE,
+        )
+        assert 0 <= value <= 1
 
-    def test_sine_flatness_is_low(self, sine_flatness):
+    def test_sine_flatness_is_low(self):
         """A pure tone is tonal, so its flatness must sit near the 0 (peaked) end."""
-        assert sine_flatness < 0.5
-
-    def test_silent_flatness_is_finite(self, silent_flatness):
-        """Silent audio must not produce NaN/inf flatness."""
-        assert np.isfinite(silent_flatness)
+        value = _collapsed(
+            feature_extract.extract_spectral_flatness,
+            Feature.SPECTRAL_FLATNESS,
+            MAG_SINE,
+        )
+        assert value < 0.5
 
 
 class TestSpectralRolloff:
     """Verify `extract_spectral_rolloff` frequency threshold."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_rolloff(cls):
-        """Collapsed spectral rolloff of the `SINE_FREQUENCY` Hz sine wave."""
-        raw = feature_extract.extract_spectral_rolloff(MAG_SINE, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.SPECTRAL_ROLLOFF)
-
-    def test_matches_ground_truth(self, sine_rolloff):
+    def test_matches_ground_truth(self):
         """Rolloff of a pure tone must sit near the tone's frequency."""
-        assert sine_rolloff == pytest.approx(SINE_FREQUENCY, rel=REL_TOLERANCE)
+        value = _collapsed(
+            feature_extract.extract_spectral_rolloff,
+            Feature.SPECTRAL_ROLLOFF,
+            MAG_SINE,
+            SAMPLE_RATE,
+        )
+        assert value == pytest.approx(SINE_FREQUENCY, rel=REL_TOLERANCE)
 
 
 class TestZeroCrossingRate:
     """Verify `extract_zero_crossing_rate` sign-change frequency."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_zero_crossing_rate(cls):
-        """Collapsed zero crossing rate of the `SINE_FREQUENCY` Hz sine wave."""
-        raw = feature_extract.extract_zero_crossing_rate(SINE)
-        return feature_collapse.collapse_feature(raw, Feature.ZERO_CROSSING_RATE)
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_zero_crossing_rate(cls):
-        """Collapsed zero crossing rate of silent audio."""
-        raw = feature_extract.extract_zero_crossing_rate(SILENT)
-        return feature_collapse.collapse_feature(raw, Feature.ZERO_CROSSING_RATE)
-
-    def test_sine_zero_crossing_rate_is_positive(self, sine_zero_crossing_rate):
+    def test_sine_zero_crossing_rate_is_positive(self):
         """A `SINE_FREQUENCY` Hz sine crosses zero frequently; rate must be positive."""
-        assert sine_zero_crossing_rate > 0
+        value = _collapsed(
+            feature_extract.extract_zero_crossing_rate,
+            Feature.ZERO_CROSSING_RATE,
+            SINE,
+        )
+        assert value > 0
 
-    def test_silent_zero(self, silent_zero_crossing_rate):
+    def test_silent_zero(self):
         """Silent audio has no sign changes."""
-        assert silent_zero_crossing_rate == pytest.approx(0, abs=1e-10)
+        value = _collapsed(
+            feature_extract.extract_zero_crossing_rate,
+            Feature.ZERO_CROSSING_RATE,
+            SILENT,
+        )
+        assert value == pytest.approx(0, abs=1e-10)
 
 
 class TestMFCC:
     """Verify `extract_mfcc` mel-frequency cepstral coefficient."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_mfcc(cls):
-        """Collapsed mean MFCC of silent audio."""
-        raw = feature_extract.extract_mfcc(MAG_SILENT, SAMPLE_RATE)
-        return feature_collapse.collapse_feature(raw, Feature.MFCC)
-
-    def test_silent_finite(self, silent_mfcc):
-        """MFCC of silent audio must be finite (no NaN from log)."""
-        assert np.isfinite(silent_mfcc)
-
-    def test_raw_coefficient_shape(self):
-        """`extract_mfcc` must return the `(n_mfcc, n_frames)` shape."""
+    def test_raw_coefficient_array(self):
+        """`extract_mfcc` must return the `(n_mfcc, n_frames)` shape, all finite."""
         raw = feature_extract.extract_mfcc(MAG_SINE, SAMPLE_RATE)
         assert raw.ndim == 2
         assert raw.shape[0] == 20
         assert raw.shape[1] > 0
-
-    def test_raw_all_coefficients_finite(self):
-        """Every MFCC coefficient and frame must be finite."""
-        raw = feature_extract.extract_mfcc(MAG_SINE, SAMPLE_RATE)
         assert np.all(np.isfinite(raw))
 
 
 class TestExtractFeatures:
     """Verify `extract_features` + `collapse_features` yield an 8-key scalar dict."""
 
-    @pytest.fixture(scope="class")
-    @classmethod
-    def sine_features(cls):
-        """Full 8-key collapsed feature dict for the `SINE_FREQUENCY` Hz sine wave."""
-        return feature_collapse.collapse_features(
+    def test_returns_dict_with_expected_feature_keys(self):
+        """Result must be a dict of finite floats keyed by every feature."""
+        features = feature_collapse.collapse_features(
             feature_extract.extract_features(SINE, SAMPLE_RATE)
         )
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def silent_features(cls):
-        """Full 8-key collapsed feature dict for silent audio."""
-        return feature_collapse.collapse_features(
-            feature_extract.extract_features(SILENT, SAMPLE_RATE)
-        )
-
-    @pytest.fixture(scope="class")
-    @classmethod
-    def low_energy_features(cls):
-        """Full 8-key collapsed feature dict for the low-energy input."""
-        return feature_collapse.collapse_features(
-            feature_extract.extract_features(LOW_ENERGY, SAMPLE_RATE)
-        )
-
-    def test_returns_dict_with_expected_feature_keys(self, sine_features):
-        """Result must be a dict with exactly the expected feature keys."""
-        assert isinstance(sine_features, dict)
-        assert set(sine_features.keys()) == set(Feature)
-
-    def test_all_values_are_finite_floats(self, sine_features):
-        """Every feature value must be a finite float."""
+        assert isinstance(features, dict)
+        assert set(features.keys()) == set(Feature)
         for key in Feature:
-            assert isinstance(sine_features[key], float)
-            assert np.isfinite(sine_features[key])
+            assert isinstance(features[key], float)
+            assert np.isfinite(features[key])
 
-    def test_all_positive_for_sine(self, sine_features):
+    def test_all_positive_for_sine(self):
         """All features except MFCC must be positive for a pure tone."""
+        features = feature_collapse.collapse_features(
+            feature_extract.extract_features(SINE, SAMPLE_RATE)
+        )
         for key in Feature:
             if key is Feature.MFCC:
                 continue
-            assert sine_features[key] > 0
+            assert features[key] > 0
 
-    def test_silent_input_produces_valid_vector(self, silent_features):
+    def test_silent_input_produces_valid_vector(self):
         """Silent audio must still yield a full finite feature vector."""
-        assert len(silent_features) == len(Feature)
+        features = feature_collapse.collapse_features(
+            feature_extract.extract_features(SILENT, SAMPLE_RATE)
+        )
         for key in Feature:
-            assert np.isfinite(silent_features[key])
-
-    def test_low_energy_input(self, low_energy_features):
-        """Near-zero amplitude must not produce NaN or inf in any feature."""
-        assert len(low_energy_features) == len(Feature)
-        for key in Feature:
-            assert np.isfinite(low_energy_features[key])
+            assert np.isfinite(features[key])

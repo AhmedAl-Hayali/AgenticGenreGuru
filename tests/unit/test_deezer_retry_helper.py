@@ -86,29 +86,26 @@ class TestControlFlow:
         assert _run(attempt) == "ok"
         assert calls == list(range(1, _MAX_RETRIES + 1))
 
-    def test_exhausts_budget(self):
-        """Exhausting the budget must raise, carrying attempts, code, and cause."""
-        last = ValueError("busy")
+    @pytest.mark.parametrize(
+        ("code", "last", "expect_cause"),
+        [
+            (700, ValueError("busy"), True),
+            (None, httpx.ConnectTimeout("t"), False),
+        ],
+        ids=["code_700", "timeout"],
+    )
+    def test_exhausts_budget(self, code, last, expect_cause):
+        """Exhausting the budget must raise, carrying attempts/code and the last cause."""
 
         def attempt(_n: int) -> str:
-            raise RetryableError(code=700, last_exc=last)
+            raise RetryableError(code=code, last_exc=last)
 
         with pytest.raises(NetworkDisconnectedError) as exc_info:
             _run(attempt)
         assert exc_info.value.attempts == _MAX_RETRIES
-        assert exc_info.value.code == 700
-        assert exc_info.value.__cause__ is last
-
-    def test_timeout_exhausts_budget_sets_code_none(self):
-        """A budget exhausted only by timeouts propagates code=None to the error."""
-
-        def attempt(_n: int) -> str:
-            raise RetryableError(code=None, last_exc=httpx.ConnectTimeout("t"))
-
-        with pytest.raises(NetworkDisconnectedError) as exc_info:
-            _run(attempt)
-        assert exc_info.value.attempts == _MAX_RETRIES
-        assert exc_info.value.code is None
+        assert exc_info.value.code == code
+        if expect_cause:
+            assert exc_info.value.__cause__ is last
 
     def test_permanent_error_propagates_untouched(self):
         """A non-RetryableError exception must propagate unchanged."""

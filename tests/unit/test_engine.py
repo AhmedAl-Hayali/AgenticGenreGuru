@@ -23,14 +23,14 @@ from genreguru.db import engine as eng_module
 
 
 def test_engine_from_dev_db_group(engine: Engine, db_cfg: DictConfig):
-    """Test that the engine is built from the composed Hydra `db` group."""
+    """Test that the engine is built from the composed Hydra `db` group.
+
+    Covers dialect/driver wiring and that the dev components point at the
+    Genreguru database.
+    """
     assert isinstance(engine, Engine)
     assert engine.dialect.name == db_cfg.dialect
     assert engine.dialect.driver == db_cfg.driver
-
-
-def test_dev_db_group_targets_genreguru_database(engine: Engine, db_cfg: DictConfig):
-    """Test that the default dev components point at the Genreguru database."""
     assert engine.url.database == db_cfg.database
     assert engine.url.host == db_cfg.host
     assert engine.url.port == int(db_cfg.port)

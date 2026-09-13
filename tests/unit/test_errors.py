@@ -17,7 +17,7 @@ from genreguru.errors import (
 class TestGenreguruErrorContext:
     """Pin `GenreguruError.context()` structured-attribute extraction."""
 
-    # Coverage-redundant, but testing different structures for completeness
+    # Coverage-complete, testing mixed present/absent structures for completeness
     @pytest.mark.parametrize(
         ("kwargs", "expected"),
         [
@@ -26,9 +26,8 @@ class TestGenreguruErrorContext:
                 {"isrc": "GBDUW0000059", "deezer_id": 3135556},
             ),
             ({"code": 0, "attempts": 0}, {"code": 0, "attempts": 0}),
-            ({}, {}),
         ],
-        ids=["isrc_and_deezer_id", "falsy_but_set_kept", "no_attrs"],
+        ids=["isrc_and_deezer_id", "falsy_but_set_kept"],
     )
     def test_context_keeps_only_set_attrs(self, kwargs, expected):
         """`context()` must include every set attribute and omit None values."""

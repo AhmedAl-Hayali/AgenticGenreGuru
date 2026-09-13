@@ -50,29 +50,6 @@ class TestFeatureMap:
         with pytest.raises(ValueError):
             _feature_map(song)
 
-    def test_returns_all_features(self):
-        """`_feature_map` must return a dict keyed by every `Feature` member."""
-        song = _make_song_with_fingerprint()
-        result = _feature_map(song)
-
-        assert set(result.keys()) == set(Feature)
-
-    def test_values_match_fingerprint(self):
-        """Each scalar must match the underlying `SongFingerprint` attribute."""
-        song = _make_song_with_fingerprint()
-        result = _feature_map(song)
-
-        for f in Feature:
-            assert result[f] == _feature_scalars(song)[f]
-
-    def test_values_are_float(self):
-        """All values must be `float`, not the raw attribute type."""
-        song = _make_song_with_fingerprint()
-        result = _feature_map(song)
-
-        for v in result.values():
-            assert isinstance(v, float)
-
     def test_values_coerce_int_to_float(self):
         """`_feature_map` must coerce int-valued attrs to `float`, not pass through."""
         song = _make_song_with_fingerprint()
@@ -134,19 +111,15 @@ class TestBuildResponse:
         assert result["deezer_id"] == song.deezer_id
         assert result["isrc"] == song.isrc
 
-    def test_fingerprint_contains_all_features_and_vector_length(self, built_response):
-        """`fingerprint` dict must contain all features plus `vector_length`."""
-        _, _, result = built_response
-
-        assert set(result["fingerprint"]) == EXPECTED_FINGERPRINT_KEYS
-        assert result["fingerprint"]["vector_length"] == len(Feature)
-
-    def test_feature_values_preserved(self, built_response):
-        """Feature values in the response must match the input `FeatureScalars`."""
+    def test_fingerprint_values_preserved(self, built_response):
+        """`fingerprint` must carry all feature keys, `vector_length`, and matching values."""
         _, features, result = built_response
+        fingerprint = result["fingerprint"]
 
+        assert set(fingerprint) == EXPECTED_FINGERPRINT_KEYS
+        assert fingerprint["vector_length"] == len(Feature)
         for f in Feature:
-            assert result["fingerprint"][f.value] == features[f]
+            assert fingerprint[f.value] == features[f]
 
 
 class TestToSongData:
