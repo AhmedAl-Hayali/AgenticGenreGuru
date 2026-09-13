@@ -34,14 +34,18 @@ const MINIMAL_MATCH: Match = {
   cover: "",
 };
 
+const PROVIDER_ICON = "/static/fingerprint_app/images/deezer-heart.png";
+
 function renderInto(matches: Match[], handler = () => {}) {
   const list = document.createElement("ul");
+  list.dataset.providerIcon = PROVIDER_ICON;
+  list.dataset.providerName = "Deezer";
   renderCandidates(list, matches, handler);
   return { list };
 }
 
 describe("renderCandidates", () => {
-  it("renders one item per match in order: cover, body, then badge", () => {
+  it("renders one item per match in order: cover, then body with title-row above artists", () => {
     const { list } = renderInto([MATCH, MINIMAL_MATCH]);
 
     const items = Array.from(list.children);
@@ -50,17 +54,33 @@ describe("renderCandidates", () => {
     const children = Array.from(items[0]!.children);
     expect(children[0]?.classList.contains("candidate-cover")).toBe(true);
     expect(children[1]?.classList.contains("candidate-body")).toBe(true);
-    const badge = children[2];
-    expect(badge?.classList.contains("badge")).toBe(true);
-    expect(badge?.textContent).toBe("Selected");
+
+    const bodyChildren = Array.from(children[1]!.children);
+    const titleRow = bodyChildren[0];
+    expect(titleRow?.classList.contains("candidate-title-row")).toBe(true);
+    expect(bodyChildren[1]?.classList.contains("candidate-artists")).toBe(true);
+
+    const provider = titleRow?.querySelector(".candidate-provider");
+    expect(provider?.getAttribute("src")).toBe(PROVIDER_ICON);
+    expect(provider?.getAttribute("alt")).toBe("Deezer");
+    expect(provider?.hasAttribute("tabindex")).toBe(false);
+  });
+
+  it("omits the provider icon when the list carries no provider data", () => {
+    const list = document.createElement("ul");
+    renderCandidates(list, [MATCH], () => {});
+
+    expect(list.querySelector(".candidate-provider")).toBeNull();
   });
 
   it("renders the title, album meta, and the full contributor roster", () => {
     const { list } = renderInto([MATCH]);
 
     const item = list.children[0] as HTMLElement;
-    expect(item.querySelector(".candidate-title")?.textContent).toBe(MATCH.title);
-    expect(item.querySelector(".candidate-meta")?.textContent).toBe("(Discovery)");
+    const titleRow = item.querySelector(".candidate-title-row");
+    expect(titleRow?.querySelector(".candidate-title")?.textContent).toBe(MATCH.title);
+    expect(titleRow?.querySelector(".candidate-meta")?.textContent).toBe("(Discovery)");
+    expect(titleRow?.querySelector(".candidate-artists")).toBeNull();
 
     const artistNames = Array.from(item.querySelectorAll(".candidate-artist")).map(
       (el) => el.textContent,

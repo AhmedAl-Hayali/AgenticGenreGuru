@@ -59,7 +59,7 @@ export function fixtureHtml(cfg: ApiConfig): string {
       <button id="search-btn" type="submit">Search</button>
     </form>
     <p id="status" aria-live="polite"></p>
-    <ul id="candidates"></ul>
+    <ul id="candidates" data-provider-icon="/static/fingerprint_app/images/deezer-heart.png" data-provider-name="Deezer"></ul>
     <section id="result-section" class="panel hidden">
       <p id="result-title"></p>
       <dl id="result"></dl>
