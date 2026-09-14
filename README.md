@@ -342,6 +342,7 @@ Jump to: [`#project-status`](#project-status) · [`#what-genre-guru-does`](#what
 - **Live API Reference** — pdoc-deployed API reference on GitHub Pages (generated from `genreguru` docstrings via `uv run pdoc`)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributing guide
 - [`SECURITY.md`](SECURITY.md) — security policy
+- [`CHANGELOG.md`](CHANGELOG.md) — changelog
 
 ## License
 

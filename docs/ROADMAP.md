@@ -73,6 +73,8 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   section in `CONTRIBUTING.md` + enforced via `.github/PULL_REQUEST_TEMPLATE.md`
   checklist (contracts → `tasks.md`, ADRs, ARCHITECTURE rows, pdoc docstrings).
 - **#2** `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1.
+- **#8** `CHANGELOG.md` — Keep a Changelog format; `[Unreleased]` seeded with the
+  docs-navigation + README-refresh round (no tagged releases exist yet).
 - **#9** `SECURITY.md` — vulnerability reporting (GHSA + email), supported
   versions (main-only, pre-release), security model (fail-closed env, Django
   hardening, bandit; rate-limiting CHK024 disclosed as deferred).
@@ -174,9 +176,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   workflows`, keep that path. Future-proof: pick a theme behind a build-time
   config so the docs site and the deployed artifact share one source.
 - **Documentation improvement/addition plan** —
-  8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations;
-     phase/pass history currently only in git history (the old
-     `phase_3_notes.md` scratch file has been discarded).
   16. **Interactive tutorial / screenshot** — README "Preview/screenshot" item
      from Site/promo; step-by-step walkthrough showing actual terminal output
      and UI flow.
