@@ -83,99 +83,24 @@ flowchart TD
 
 ## Quick Start
 
-### Prerequisites
-
-- Python 3.14+
-- PostgreSQL 18+ running locally
-- [uv](https://docs.astral.sh/uv/) package manager
-- Node.js 26+ and npm (for the frontend JS toolchain)
-
-### Setup
+> Full walkthrough (setup, prerequisites, validation, PowerShell):
+> [`QUICKSTART.md`](QUICKSTART.md). Short path below.
 
 ```bash
-# Clone the repository
 git clone https://github.com/AhmedAl-Hayali/AgenticGenreGuru.git
 cd AgenticGenreGuru
-
-# Install dependencies
-uv sync
-
-# Install the frontend JS toolchain dependencies (eslint, prettier, vitest, typescript)
-npm ci --prefix web
-
-# Build the TypeScript browser bundle (esbuild) — the served app.js is a generated artifact
-npm run --prefix web build
-
-## Linux / macOS
-
-# Set environment variables
-export DB_USER="database-user"
-export DB_PASSWORD="database-password"
-export DB_HOST="localhost"
-export DB_PORT="5432"
-# SECRET_KEY is optional for local dev (dev group ships a fallback); required in prod.
-
-# Initialize the database
-uv run python -m genreguru.db.init_db
-
-## Windows (PowerShell)
-
-# Set environment variables
-$env:DB_USER="database-user"
-$env:DB_PASSWORD="database-password"
-$env:DB_HOST="localhost"
-$env:DB_PORT="5432"
-# SECRET_KEY is optional for local dev (dev group ships a fallback); required in prod.
-
-# Initialize the database
-uv run python -m genreguru.db.init_db
-```
-
-### Run
-
-```bash
+uv sync                                    # backend (Python) dependencies
+npm ci --prefix web                        # frontend toolchain (eslint, prettier, vitest, tsc)
+npm run --prefix web build                 # bundle TypeScript → static/fingerprint_app/app.js
+uv run python -m genreguru.db.init_db      # create schema (defaults postgres/postgres@localhost:5432/genreguru; override with DB_USER/DB_PASSWORD/DB_HOST/DB_PORT)
 uv run python web/manage.py runserver 0.0.0.0:8000
 ```
 
-Open [http://localhost:8000](http://localhost:8000) in your browser.
-
-### Validate
-
-1. Type a song title (e.g. `Harder, Better, Faster, Stronger` by Daft Punk) and click **Search**.
-2. Verify the top 5 candidate matches appear.
-3. Click a match once to select it, click again to confirm.
-4. The system fetches the audio snippet, extracts the fingerprint, and stores it.
-5. Re-submit the same song — the existing fingerprint is reused (no duplicate).
-
-### Tests
-
-```bash
-# Fullstack test suite
-uv run pytest
-
-# Core (no Django) test suite
-uv run pytest tests/unit tests/integration
-```
-
-Frontend checks run the whole toolchain — build (esbuild: TypeScript → minified ESM bundle), lint (ESLint 10 flat config), format (Prettier 3), typecheck (tsc strict on TypeScript sources, no emit), and Vitest 5 DOM contract tests against the TS source (jsdom):
-
-```bash
-npm run --prefix web check     # build + lint + format:check + typecheck + test in sequence
-
-# Coverage report (HTML + LCOV) written to web/coverage/; enforces >=95% on all metrics
-npm run --prefix web test:coverage
-
-# Individual tools
-npm run build            # esbuild: fingerprint_app/ts/pages/index-page.ts → static/.../app.js (ESM)
-npm run build:watch      # rebuild on every change (dev)
-npm run lint:check        # ESLint 10 (flat config, eslint.config.ts)
-npm run format:write     # Prettier --write (printWidth 100)
-npm run typecheck        # tsc --noEmit (strict tsconfig.json on .ts sources)
-```
+Open [http://localhost:8000](http://localhost:8000), search a song title, and confirm one of the top-5 matches.
 
 The served `static/fingerprint_app/app.js` is a **generated, gitignored artifact** — the source of truth is the `fingerprint_app/ts/` modules + the per-page `ts/pages/*-page.ts` bootstrap. A fresh `git clone` must run `npm run build` before `runserver`, and any deploy that runs `collectstatic` must execute `npm ci && npm run build` first.
 
-Build, lint, format, typecheck, tests, and coverage are also wired into CI (`tests.yml`, `web` job: `npm run check` + `npm run test:coverage` with artifact upload).
+Validation and tests — backend `uv run pytest`, frontend `npm run --prefix web check` / `test:coverage` (95% gate on all metrics, HTML + LCOV in `web/coverage/`), both wired into CI (`tests.yml`) — plus the developer workflow (hooks, commit conventions): [`QUICKSTART.md`](QUICKSTART.md) and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Architecture
 
@@ -329,6 +254,7 @@ recommendations:
 
 Jump to: [`#project-status`](#project-status) · [`#what-genre-guru-does`](#what-genreguru-does) · [`#how-it-works`](#how-it-works) · [`#features`](#features) · [`#quick-start`](#quick-start) · [`#architecture`](#architecture) · [`#data-model`](#data-model) · [`#api-endpoints`](#api-endpoints) · [`#tech-stack`](#tech-stack) · [`#project-structure`](#project-structure) · [`#configuration`](#configuration)
 
+- [`QUICKSTART.md`](QUICKSTART.md) — end-user quickstart (setup, validation)
 - [`docs/README.md`](docs/README.md) — Documentation index (architecture, API, decision records, roadmap)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Project architecture
 - [`docs/API.md`](docs/API.md) — API reference guide and API contracts

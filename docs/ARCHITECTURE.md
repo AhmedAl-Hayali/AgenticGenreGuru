@@ -13,7 +13,7 @@
 | `specs/001-song-fingerprint-engine/plan.md`                                 | Processors, dependency/stack decisions        |
 | `specs/001-song-fingerprint-engine/data-model.md`                           | `songs` / `song_fingerprints` schema, ERD     |
 | `specs/001-song-fingerprint-engine/research.md`                             | Tech selection rationale                      |
-| `specs/001-song-fingerprint-engine/quickstart.md`                           | Runtime entrypoints, validation paths         |
+| `QUICKSTART.md`                                                             | Runtime entrypoints, validation paths         |
 | `specs/001-song-fingerprint-engine/tasks.md`                                | Module map (T001-T054), execution phases      |
 | `specs/001-song-fingerprint-engine/contracts/deezer-api.md`                 | External Deezer contract, error codes         |
 | `specs/001-song-fingerprint-engine/contracts/search-api.md`                 | Internal Django API contract                  |
@@ -65,7 +65,7 @@ flowchart LR
 
 | Boundary          | Participants                                                | Governing artifact                                |
 |-------------------|-------------------------------------------------------------|---------------------------------------------------|
-| User ↔ Frontend   | Browser UI, 2-click match selection                         | `spec.md` REQ-002/003, `quickstart.md` Scenario 1 |
+| User ↔ Frontend   | Browser UI, 2-click match selection                         | `spec.md` REQ-002/003, `QUICKSTART.md` Scenario 1 |
 | Frontend ↔ Core   | `views.py` → `FingerprintService` / repositories            | `contracts/search-api.md`, `api_flow.md` §2       |
 | Core ↔ Deezer     | `genreguru/deezer/` client + snippet fetcher                | `contracts/deezer-api.md`                         |
 | Core ↔ PostgreSQL | `genreguru/db/` engine, models, repositories                | `data-model.md`                                   |

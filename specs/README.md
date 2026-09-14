@@ -15,7 +15,7 @@ directory and how the artifacts relate.
 | [`001-song-fingerprint-engine/plan.md`](001-song-fingerprint-engine/plan.md)                         | Implementation plan — processors, stack/dependency decisions, phases              |
 | [`001-song-fingerprint-engine/data-model.md`](001-song-fingerprint-engine/data-model.md)             | `songs` / `song_artists` / `song_fingerprints` schema, ERD, design rules          |
 | [`001-song-fingerprint-engine/research.md`](001-song-fingerprint-engine/research.md)                 | Technology selection rationale                                                    |
-| [`001-song-fingerprint-engine/quickstart.md`](001-song-fingerprint-engine/quickstart.md)             | Runtime entrypoints and validation paths                                          |
+| [`QUICKSTART.md`](../QUICKSTART.md)                                                                  | Runtime entrypoints and validation paths (end-user guide, repo root)              |
 | [`001-song-fingerprint-engine/tasks.md`](001-song-fingerprint-engine/tasks.md)                       | Task breakdown (T001+), checkpoints, execution status                             |
 
 ### Contracts
@@ -40,7 +40,7 @@ spec.md ──► requirements.md (EARS, docs/) ──► contracts/*.md ──�
    │
    ├──► plan.md ──► tasks.md (module map / status)
    ├──► data-model.md ──► docs/001-song-fingerprint-engine/api_flow.md
-   └──► research.md / quickstart.md ──► docs/ARCHITECTURE.md (entry point)
+   └──► research.md / QUICKSTART.md (root) ──► docs/ARCHITECTURE.md (entry point)
 ```
 
 - Design reports live in [`docs/001-song-fingerprint-engine/`](../docs/001-song-fingerprint-engine/); specs live here.

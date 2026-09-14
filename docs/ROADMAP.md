@@ -78,6 +78,10 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - **#9** `SECURITY.md` — vulnerability reporting (GHSA + email), supported
   versions (main-only, pre-release), security model (fail-closed env, Django
   hardening, bandit; rate-limiting CHK024 disclosed as deferred).
+- **Quickstart refresh** — `QUICKSTART.md` (moved from `specs/001-song-fingerprint-engine/`
+  to repo root; rewritten end-user-first: stale prereqs/deep links dropped, PowerShell
+  parity, `--prefix web`); README Quick Start points to it as the full walkthrough;
+  README `--prefix web` drift fixed across all tool invocations.
 
 ### Frontend (shipped items)
 
@@ -160,7 +164,9 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 ### Docs
 
 - **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** —
-  some drifted from the implemented API.
+  *done for quickstart + README* (quickstart rewritten end-user-first, `--prefix web`
+  normalized; README links it as the walkthrough). *Still open*: ARCHITECTURE §3.3/
+  §7.5 vs shipped preview UX, spec docs, pdoc templates.
 - **API reference look-and-feel** — pdoc's default template is functional but
   dated; the live reference is a public-facing surface (README badge → GH
   Pages). Options, cheapest first: (1) pdoc already ships a theme toggle —

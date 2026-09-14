@@ -11,6 +11,7 @@ as directory landing pages on GitHub; this is the entry point for `docs/`.
 | [`API.md`](API.md)                                     | API guide: pdoc reference, internal/external contracts, endpoint table                                                  |
 | [`adr/index.md`](adr/index.md)                         | Architecture Decision Records (ADR log)                                                                                 |
 | [`ROADMAP.md`](ROADMAP.md)                             | Idea backlog + roadmap (completed / in progress / planned)                                                              |
+| [`QUICKSTART.md`](../QUICKSTART.md)                    | End-user quickstart — setup, run, validation (repo root)                                                                |
 | [`constitution.md`](constitution.md)                   | Project constitution — core principles, engineering standards, governance                                               |
 | [`docstring-style-guide.md`](docstring-style-guide.md) | Google-style docstring conventions (enforced by Ruff `D` rules, rendered by pdoc)                                       |
 
