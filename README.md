@@ -41,6 +41,8 @@ _These constraints are tracked in the roadmap and will be addressed in future ph
 
 GenreGuru takes a song title as input and produces a compact acoustic fingerprint — a numerical signature that captures the sonic character of a track. It searches the Deezer catalog, fetches a 30-second audio preview, runs it through a DSP pipeline that extracts 8 key acoustic features, and stores the result locally for later analysis.
 
+![GenreGuru in action: search, select, confirm, fingerprint](docs/media/interaction.gif)
+
 **Built for:**
 - **Music producers** — Compare your track's sonic profile against a growing library
 - **Audio engineers** — Inspect spectral characteristics of reference tracks

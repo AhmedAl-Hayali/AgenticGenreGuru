@@ -92,6 +92,24 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - **ARCHITECTURE sync** — §3.3 frontend component table gained `preview-player.ts`/
   `lazy-image.ts`/`scroll-reveal.ts` rows (orphaned JS-toolchain row folded back into
   the table); §7.5 documents the preview-UX test suites.
+- **QUICKSTART Try-it content** — fingerprint JSON example excerpted (labeled, linked
+  to the canonical shape in `specs/001-song-fingerprint-engine/contracts/search-api.md`
+  §2) + 8-features table (feature / what it captures / what a high value sounds like,
+  sourced from the `Feature` enum labels + `data-model.md`).
+- **App media** — `docs/media/` holds `interaction.gif` (search → select → confirm →
+  fingerprint flow, recorded by the owner) + any future stills/videos; referenced from
+  README + QUICKSTART.
+- **README Try-it one-liner** — single copy-paste setup+run block in README Quick
+  Start (clone → `uv sync` → `npm ci --prefix web` → build → `init_db` → runserver);
+  full walkthrough moved to `QUICKSTART.md`.
+- **Cross-platform setup (README backlog #219)** — QUICKSTART covers Windows
+  (PowerShell) + macOS/Linux (bash) parity; `--prefix web` normalized across all tool
+  invocations so the same commands work in both.
+- **Fingerprint JSON example (README backlog #215)** — real response excerpt in
+  QUICKSTART Try-it; canonical field rules + shape live in
+  `specs/001-song-fingerprint-engine/contracts/search-api.md` §2.
+- **8-features table (README backlog #218)** — per-feature "what it captures / what a
+  high value sounds like" table in QUICKSTART Try-it (see **QUICKSTART Try-it content**).
 
 ### Frontend (shipped items)
 
@@ -210,15 +228,10 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 
 ### README backlog
 
-- [ ] Capture & add app screenshots (search results + fingerprint result) under `docs/screenshots/`, reference with relative links
-- [ ] Add "Try it" one-liner — single copy-paste bash block to run the whole stack
-- [ ] Add real fingerprint JSON output example (e.g. `spectral_centroid`, `rms`, `mfcc` values)
-- [ ] Add rendered spectrogram image with spectral centroid highlighted (DSP visualization feature)
-- [ ] Add recommendations demo — before/after feature-slider tweak yielding different similar songs
-- [ ] Add 8-features table: feature / what it captures / what a high value sounds like
-- [ ] Add Windows & macOS setup instructions (current `export` blocks are bash-only) — *Windows PowerShell block already present; extend to full Windows setup*
+- [ ] Add rendered spectrogram image with spectral centroid highlighted (DSP visualization feature) — *blocked: feature not implemented*
+- [ ] Add recommendations demo — before/after feature-slider tweak yielding different similar songs — *blocked: feature not implemented*
 - [ ] Add "Related tools / why not alternatives" positioning (Essentia, acousticDB, Chromaprint)
-- [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license
+- [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license — *superseded by the README de-dup cut (reference-only layout)*
 
 ### Frontend
 

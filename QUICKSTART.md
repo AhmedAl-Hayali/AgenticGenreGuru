@@ -64,6 +64,43 @@ Open [http://localhost:8000](http://localhost:8000).
 3. GenreGuru fetches the 30s preview, fingerprints it, and stores it.
 4. Re-submit the same song → existing fingerprint is reused (ISRC dedup, no duplicate).
 
+![Full flow in action: search, select, confirm, fingerprint](docs/media/interaction.gif)
+
+Confirm returns a fingerprint like this (exact shape + field rules: `specs/001-song-fingerprint-engine/contracts/search-api.md` §2):
+
+```json
+{
+  "status": "success",
+  "song_id": "0195a1b8-0000-7000-8000-000000000000",
+  "deezer_id": 3135556,
+  "isrc": "GBDUW0000059",
+  "fingerprint": {
+    "spectral_centroid": 2154.32,
+    "rms": 0.045,
+    "spectral_bandwidth": 1820.15,
+    "spectral_contrast": 18.42,
+    "spectral_flatness": 0.012,
+    "spectral_rolloff": 4350.80,
+    "zero_crossing_rate": 0.085,
+    "mfcc": 12.34,
+    "vector_length": 8
+  }
+}
+```
+
+| Feature              | What it captures                   | A high value sounds like                     |
+|----------------------|------------------------------------|----------------------------------------------|
+| `spectral_centroid`  | Brightness (spectral center)       | Brighter, more high-frequency energy         |
+| `rms`                | Loudness / energy                  | Louder, punchier                             |
+| `spectral_bandwidth` | Tonal spread around the centroid   | Wider, airier / grittier                     |
+| `spectral_contrast`  | Peak-to-valley separation (dB)     | Clearer partials (leads, percussion pop out) |
+| `spectral_flatness`  | Noisiness vs. tonality             | Noisier (breath, hiss); low ≈ pure tone      |
+| `spectral_rolloff`   | Frequency cutoff (Hz, ~85% energy) | Extended highs; low ≈ dark / muffled         |
+| `zero_crossing_rate` | Waveform zig-zag density           | Busier, noise-heavy signal                   |
+| `mfcc`               | Timbre summary (mel-cepstral)      | Stronger mid-range tonal color               |
+
+Full column meanings + ERD: `specs/001-song-fingerprint-engine/data-model.md`.
+
 ## Validation
 
 ```bash
