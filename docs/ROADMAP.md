@@ -72,6 +72,7 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - **#20** Docs-in-PR policy — codified as the "Docs ship with the code"
   section in `CONTRIBUTING.md` + enforced via `.github/PULL_REQUEST_TEMPLATE.md`
   checklist (contracts → `tasks.md`, ADRs, ARCHITECTURE rows, pdoc docstrings).
+- **#2** `CODE_OF_CONDUCT.md` — Contributor Covenant v2.1.
 - **#9** `SECURITY.md` — vulnerability reporting (GHSA + email), supported
   versions (main-only, pre-release), security model (fail-closed env, Django
   hardening, bandit; rate-limiting CHK024 disclosed as deferred).
@@ -173,13 +174,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   workflows`, keep that path. Future-proof: pick a theme behind a build-time
   config so the docs site and the deployed artifact share one source.
 - **Documentation improvement/addition plan** —
-  2. **`CODE_OF_CONDUCT.md`** — open-source standard companion to the
-     AGPL-3.0 license.
-- **Live API Reference URL** — render the pdoc GitHub Pages URL in the README
-  Learn More bullet once `docs.yml` deploys land (last unshipped remnant of the
-  migrated #3 README-enhancements item; shipped parts recorded under
-  Completed > Docs).
-  <!-- -->
   8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations;
      phase/pass history currently only in git history (the old
      `phase_3_notes.md` scratch file has been discarded).
