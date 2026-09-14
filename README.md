@@ -126,62 +126,15 @@ flowchart LR
     AUDIO -->|"8 feature scalars"| DB
 ```
 
-- **`genreguru/audio/`** — Signal processing (librosa, numpy, scipy). Independent of Django.
-- **`genreguru/deezer/`** — Deezer API client with retry logic. Isolated for easy mocking.
-- **`genreguru/db/`** — PostgreSQL schemas, SQLAlchemy engine, repository pattern.
-- **`web/`** — Django views, templates, and static assets. Thin UI layer.
+Component map and runtime flows: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ### Data Model
 
-The `songs` and `song_fingerprints` tables are implemented via SQLAlchemy models (`genreguru/db/models.py`), reflecting the schema below.
-
-```mermaid
-erDiagram
-    SONG ||--o| SONG_FINGERPRINT : "has 1-to-1 fingerprint"
-
-    SONG {
-        uuid id PK
-        bigint deezer_id UK
-        string isrc UK
-        string title
-        string artist
-        string album
-        string preview_url
-        int duration
-        datetime created_at
-        datetime updated_at
-    }
-
-    SONG_FINGERPRINT {
-        uuid id PK
-        uuid song_id FK
-        float spectral_centroid
-        float rms
-        float spectral_bandwidth
-        float spectral_contrast
-        float spectral_flatness
-        float spectral_rolloff
-        float zero_crossing_rate
-        float mfcc
-        string audio_format
-        int sample_rate
-        datetime created_at
-        datetime updated_at
-    }
-```
+The `songs`, `song_fingerprints`, and `song_artists` tables are implemented via SQLAlchemy models (`genreguru/db/models.py`). Entities, relationships, ERD, and state transitions: [`specs/001-song-fingerprint-engine/data-model.md`](specs/001-song-fingerprint-engine/data-model.md).
 
 ### API Endpoints
 
-`search` and `confirm` are implemented (Django routes). Catalog, visualization, and recommendation endpoints are pending (`specs/001-song-fingerprint-engine/contracts/search-api.md`).
-
-| Method | Endpoint                           | Description                                                | Status      |
-|--------|------------------------------------|------------------------------------------------------------|-------------|
-| `GET`  | `/api/search/?query={title}`       | Search songs via Deezer, returns top 5 matches             | Implemented |
-| `POST` | `/api/confirm/`                    | Confirm selection, generate or reuse fingerprint           | Implemented |
-| `GET`  | `/api/songs/`                      | List all stored songs with fingerprint metadata            | Target      |
-| `GET`  | `/api/songs/{isrc}/`               | Get full fingerprint detail for a song                     | Target      |
-| `GET`  | `/api/songs/{isrc}/visualization/` | Spectrogram + top-3 factor viz (feature-gated)             | Optional    |
-| `POST` | `/api/recommend/`                  | Cosine-similarity top-5 vs modified vector (feature-gated) | Optional    |
+Implemented: `GET /api/search/?query={title}` (top-5 matches via Deezer) and `POST /api/confirm/` (confirm selection → generate or reuse fingerprint). Full endpoint table with statuses, contracts, and errors: [`docs/API.md`](docs/API.md) and [`specs/001-song-fingerprint-engine/contracts/search-api.md`](specs/001-song-fingerprint-engine/contracts/search-api.md).
 
 ## Tech Stack
 
@@ -200,21 +153,6 @@ erDiagram
 ![pytest](https://img.shields.io/badge/pytest-9%2B-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
 ![Ruff](https://img.shields.io/badge/Ruff-0.16%2B-D7FF64?style=for-the-badge&logo=ruff&logoColor=black)
 
-| Component            | Technology                                            | Why                                                                                   |
-|----------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------|
-| Language             | Python 3.14                                           | Modern features, type annotation support                                              |
-| Web Framework        | Django 6.1+                                           | Mature, well-documented, rapid UI development                                         |
-| Database             | PostgreSQL + SQLAlchemy                               | Relational integrity, flexible querying                                               |
-| Audio DSP            | librosa, numpy, scipy                                 | Industry-standard audio analysis                                                      |
-| HTTP Client          | httpx                                                 | Async-capable, modern replacement for requests                                        |
-| Configuration        | Hydra Core                                            | Hierarchical config with CLI overrides                                                |
-| Linting              | Ruff                                                  | Fast, comprehensive rule enforcement                                                  |
-| Testing              | pytest + pytest-django                                | Django integration, fixtures, coverage                                                |
-| Frontend JS          | TypeScript ES modules (source: `fingerprint_app/ts/`) | esbuild bundles a single minified ESM `app.js` per page; type-safe browser code       |
-| Frontend Lint/Format | ESLint 10 (flat config) + Prettier 3                  | Enforced style, `eslint-config-prettier` integration                                  |
-| Frontend Tests       | Vitest 5 + jsdom + v8 coverage                        | DOM contract tests for the index-page bootstrap (Vitest 5 + jsdom), 95% coverage gate |
-| Frontend Types       | TypeScript (strict, no emit)                          | `tsc` typecheck of `.ts` sources                                                      |
-
 ## Project Structure
 
 ```text
@@ -231,7 +169,7 @@ Each folder's documentation entry point is its `README.md`:
 
 ## Configuration
 
-All non-secret settings live in the Hydra `config/` tree and are overridable from the CLI. Secrets resolve via `${oc.env:...}` interpolation. Django settings (in `genreguru_web/settings/`) contain no environment-specific values — they read the Hydra `django` and `db` groups through `genreguru/config.py`, selected by the `GENREGURU_ENV` variable (`dev` default; `prod` for production). Django and the core library share one DB connection source — the core library uses programmatic URL generation from individual components (`dialect`, `driver`, `user`, `password`, `host`, `port`, `database`) via `genreguru/db/engine.py`, and Django settings are built from the same components (`web/genreguru_web/settings/base.py`).
+All non-secret settings live in the Hydra `config/` tree, overridable from the CLI; secrets resolve via `${oc.env:...}` interpolation. Django and the core library share one DB connection source — `genreguru/db/engine.py` composes URLs programmatically from individual components, and the Django settings (`web/genreguru_web/settings/`, selected by `GENREGURU_ENV`; `dev` default, `prod` production) read the same components. Key overrides:
 
 ```bash
 # Override any config key from the CLI
@@ -239,20 +177,11 @@ uv run python -m genreguru.db.init_db db=prod
 uv run python -m genreguru.db.init_db logging.level=DEBUG
 ```
 
-### Feature Flags
-
-Enable optional features in `config/features/all.yaml` or override at runtime (defaults OFF).
-
-```yaml
-visualization:
-  enabled: true
-recommendations:
-  enabled: true
-```
+Feature flags (defaults OFF) and the full config-tree reference: [`docs/001-song-fingerprint-engine/config-report.md`](docs/001-song-fingerprint-engine/config-report.md).
 
 ## Learn More
 
-Jump to: [`#project-status`](#project-status) · [`#what-genre-guru-does`](#what-genreguru-does) · [`#how-it-works`](#how-it-works) · [`#features`](#features) · [`#quick-start`](#quick-start) · [`#architecture`](#architecture) · [`#data-model`](#data-model) · [`#api-endpoints`](#api-endpoints) · [`#tech-stack`](#tech-stack) · [`#project-structure`](#project-structure) · [`#configuration`](#configuration)
+Jump to: [`#project-status`](#project-status) · [`#what-genreguru-does`](#what-genreguru-does) · [`#how-it-works`](#how-it-works) · [`#features`](#features) · [`#quick-start`](#quick-start) · [`#architecture`](#architecture) · [`#tech-stack`](#tech-stack) · [`#project-structure`](#project-structure) · [`#configuration`](#configuration)
 
 - [`QUICKSTART.md`](QUICKSTART.md) — end-user quickstart (setup, validation)
 - [`docs/README.md`](docs/README.md) — Documentation index (architecture, API, decision records, roadmap)
