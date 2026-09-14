@@ -85,6 +85,13 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   to repo root; rewritten end-user-first: stale prereqs/deep links dropped, PowerShell
   parity, `--prefix web`); README Quick Start points to it as the full walkthrough;
   README `--prefix web` drift fixed across all tool invocations.
+- **README de-duplication** — README Quick Start/Data Model/API Endpoints/Tech Stack/
+  Config re-cut to reference `QUICKSTART.md`, `data-model.md`, `docs/API.md`, and
+  `config-report.md` instead of inlining (354 → 205 lines); stale `fingerprint_app/ts`
+  pointers dropped.
+- **ARCHITECTURE sync** — §3.3 frontend component table gained `preview-player.ts`/
+  `lazy-image.ts`/`scroll-reveal.ts` rows (orphaned JS-toolchain row folded back into
+  the table); §7.5 documents the preview-UX test suites.
 
 ### Frontend (shipped items)
 
@@ -162,23 +169,18 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 ### Docs
 
 - **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** —
-  *done for quickstart + README* (quickstart rewritten end-user-first, `--prefix web`
-  normalized; README links it as the walkthrough). *Still open*: ARCHITECTURE §3.3/
-  §7.5 vs shipped preview UX, spec docs, pdoc templates.
-- **API reference look-and-feel** — pdoc's default template is functional but
-  dated; the live reference is a public-facing surface (README badge → GH
-  Pages). Options, cheapest first: (1) pdoc already ships a theme toggle —
-  check current template/`pdoc themes` for a dark-mode option and CSS
-  overrides before touching anything else; (2) drop a custom CSS/JS embed via
-  pdoc's `--template-directory` / custom `head.mako` for branding; (3) if
-  pdoc still underwhelms, switch generators — candidates that are equally
-  plug-in-and-run against docstrings/modules: `mkdocstrings` (Material for
-  MkDocs, themable dark mode, search), `Sphinx + sphinx-rtd-dark-mode` or
-  `Furo` theme (heavier config). Keep the bar: near-zero migration cost +
-  equally productive output (module/class/function docstrings, signatures,
-  source links); pdoc deployment already lives in CI `docs.yml` + `.github/
-  workflows`, keep that path. Future-proof: pick a theme behind a build-time
-  config so the docs site and the deployed artifact share one source.
+  *done for quickstart + README + ARCHITECTURE* (quickstart rewritten end-user-first,
+  `--prefix web` normalized; README links it as the walkthrough and now points at
+  `QUICKSTART.md`/`data-model.md`/`API.md`/`config-report.md` instead of duplicating
+  them; ARCHITECTURE §3.3/§7.5 synced to the shipped preview-UX round). *Still open*:
+  spec docs, pdoc templates.
+- **API reference generator migration** — pdoc currently renders the API reference
+  (`docs.yml` → GitHub Pages); its output is functional but visually dated vs modern
+  generators. Re-evaluate, cheapest-first:
+  `mkdocstrings` + Material for MkDocs (dark mode, client-side search, polished
+  theming), then `Sphinx` + `Furo`. Bar: keep the `docs.yml` + GitHub Pages deploy
+  path and the pdoc template hooks analogue, preserve docstring rendering, signatures,
+  and source links; ship only after dark-mode + theme-toggle parity verified locally.
 - **Documentation improvement/addition plan** —
   16. **Interactive tutorial / screenshot** — README "Preview/screenshot" item
      from Site/promo; step-by-step walkthrough showing actual terminal output
