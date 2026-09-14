@@ -36,3 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`docs/screenshots/` → `docs/media/`).
 - README test badges + `## Tests` section: truthful CI-state shields (pytest,
   Vitest, Ruff, pdoc) + headlined suite counts (235 pytest / 115 Vitest).
+- `docs/API.md` endpoint provenance fixed — Implemented rows trace to
+  `web/fingerprint_app/urls.py`, Target/Optional rows labeled as unrouted planned
+  surface (US2/3/4).

@@ -24,7 +24,12 @@ contracts.
 
 ## Endpoint table
 
-From [`specs/…/contracts/search-api.md`](../specs/001-song-fingerprint-engine/contracts/search-api.md); `search` and `confirm` are implemented (Django routes).
+Implemented routes below are defined in `web/fingerprint_app/urls.py` and
+contracted payload/error shapes live in
+[`specs/…/contracts/search-api.md`](../specs/001-song-fingerprint-engine/contracts/search-api.md).
+Only **Implemented** rows are routed today; **Target**/**Optional** rows are
+planned surface (US2 catalog, US3 visualization, US4 recommendations) tracked in
+[`ROADMAP.md`](ROADMAP.md) — they are not yet in the Django URLconf.
 
 | Method | Endpoint                           | Description                                                | Status      |
 |--------|------------------------------------|------------------------------------------------------------|-------------|

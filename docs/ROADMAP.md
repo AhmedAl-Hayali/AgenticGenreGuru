@@ -113,6 +113,11 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - **Interactive walkthrough (#16)** — closed by the `interaction.gif` shipped in the
   App media bullet above (search → select → confirm → fingerprint flow covers the
   README "Preview/screenshot" item from Site/promo).
+- **API endpoint provenance (docs-wave-2 T1)** — `docs/API.md` endpoint table
+  re-sourced: Implemented rows point at `web/fingerprint_app/urls.py`; Target/Optional
+  rows labeled as unrouted planned surface (US2/3/4) tracked in `ROADMAP.md`.
+  Contracts/REQ-mapping/traceability re-audited — coherent; `tasks.md`/`plan.md`
+  post-record notes cover the `frontend/`→`web/` rename for pending rows.
 - **Test badges + Tests section (docs-wave-2 T2)** — README badge block gained
   truthful CI-state shields: pytest / Vitest (CI-gated via `tests.yml`), Ruff
   (CI-wired via `ruff.yml`), pdoc (API reference built by `docs.yml`);
@@ -196,11 +201,14 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 ### Docs
 
 - **Refresh quickstart, README, architecture doc, spec docs, pdoc templates** —
-  *done for quickstart + README + ARCHITECTURE* (quickstart rewritten end-user-first,
-  `--prefix web` normalized; README links it as the walkthrough and now points at
-  `QUICKSTART.md`/`data-model.md`/`API.md`/`config-report.md` instead of duplicating
-  them; ARCHITECTURE §3.3/§7.5 synced to the shipped preview-UX round). *Still open*:
-  spec docs, pdoc templates.
+  *done for quickstart + README + ARCHITECTURE + spec docs* (quickstart rewritten
+  end-user-first, `--prefix web` normalized; README links it as the walkthrough and
+  now points at `QUICKSTART.md`/`data-model.md`/`API.md`/`config-report.md` instead
+  of duplicating them; ARCHITECTURE §3.3/§7.5 synced to the shipped preview-UX round;
+  spec-docs reconciliation landed in the docs-wave-2 pass — API endpoint provenance
+  retargeted to `web/fingerprint_app/urls.py`, contracts/REQ-mapping/traceability
+  re-audited coherent, `frontend/`→`web/` rename covered by the tasks.md/plan.md
+  post-record notes). *Still open*: pdoc templates.
 - **API reference generator migration** — pdoc currently renders the API reference
   (`docs.yml` → GitHub Pages); its output is functional but visually dated vs modern
   generators. Re-evaluate, cheapest-first:
