@@ -110,6 +110,13 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   `specs/001-song-fingerprint-engine/contracts/search-api.md` §2.
 - **8-features table (README backlog #218)** — per-feature "what it captures / what a
   high value sounds like" table in QUICKSTART Try-it (see **QUICKSTART Try-it content**).
+- **Test badges + Tests section (docs-wave-2 T2)** — README badge block gained
+  truthful CI-state shields: pytest / Vitest (CI-gated via `tests.yml`), Ruff
+  (CI-wired via `ruff.yml`), pdoc (API reference built by `docs.yml`);
+  headlined `## Tests` with live counts (235 pytest / 115 Vitest / 8 suites,
+  2026-09-14) plus gate mapping. Concrete wording + acceptance captured at
+  the bottom of this file under "Docs wave 2 — README test badges + Tests
+  section (concrete plan)".
 
 ### Frontend (shipped items)
 
@@ -149,8 +156,7 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - Test aliases: one command for ruff (check+format) + pytest + type check
   (mypy/ty); too many separate invocations today.
 - Pre-commit hook wrapping the alias above.
-- CI: gate on `ruff check` + typing too (tests.yml currently runs pytest +
-  frontend check; extend the pytest job).
+- CI: gate on `ty check`.
 
 ### Testing
 
@@ -443,8 +449,9 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
   (coverage % + test counts posted as CI artifacts/badges — or Codecov/
   Coveralls). Deep breakdown lives in `tests/README.md` (deferred folder
   README); the root README shows headline numbers.
-  *Partial: live Codecov badges landed (`636ef5f`, `d100d21`). Ruff/vitest/
-  pdoc badges + "Tests" section still open.*
+  *Codecov badges landed (`636ef5f`, `d100d21`); ruff/vitest/pdoc badges +
+  "Tests" section landed with the docs-wave-2 commit — concrete plan and
+  wording below under "Docs wave 2 — README test badges + Tests section".*
 - A lot more visualizations and system breakdowns, both for promo, and for
   `contributing.md` support
   - state diagram for frontend?

@@ -29,3 +29,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CONTRIBUTING.md`/`SECURITY.md`/`CHANGELOG.md`.
 - `docs/ROADMAP.md` reorganized: completed docs work moved to Completed, planned
   items pruned of `*shipped*` flags.
+- README test badges + `## Tests` section: truthful CI-state shields (pytest,
+  Vitest, Ruff, pdoc) + headlined suite counts (235 pytest / 115 Vitest).

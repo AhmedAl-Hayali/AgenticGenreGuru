@@ -7,6 +7,10 @@
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 ![Coverage (Python)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=pytest&label=Python%20coverage&style=for-the-badge&logo=codecov&logoColor=white)
 ![Coverage (TypeScript)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=vitest&label=TypeScript%20coverage&style=for-the-badge&logo=codecov&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-CI%20gated-brightgreen?style=for-the-badge&logo=pytest&logoColor=white)
+![Vitest](https://img.shields.io/badge/Vitest-CI%20gated-brightgreen?style=for-the-badge&logo=vitest&logoColor=white)
+![Ruff](https://img.shields.io/badge/Ruff-CI%20gated-brightgreen?style=for-the-badge&logo=ruff&logoColor=white)
+![pdoc](https://img.shields.io/badge/pdoc-API%20Reference-blue?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)
 
 **GenreGuru** turns a song title into a machine-readable acoustic fingerprint. Type a title → it pulls a 30-second Deezer preview → runs a DSP pipeline extracting 8 acoustic features → stores the vector in PostgreSQL. Recommending sonically similar tracks by querying stored fingerprints with cosine similarity is planned (US4).
@@ -14,6 +18,7 @@
 ## Table of Contents
 
 - [Project Status](#project-status)
+- [Tests](#tests)
 - [What GenreGuru Does](#what-genreguru-does)
 - [How It Works](#how-it-works)
 - [Features](#features)
@@ -36,6 +41,15 @@ _These constraints are tracked in the roadmap and will be addressed in future ph
 - **30-second previews only** — Deezer API provides 30-second audio snippets, not full tracks. Fingerprints are based on this limited window.
 - **Deezer catalog dependency** — Song search and audio previews depend on Deezer's API availability and catalog coverage.
 - **No genre classification** — GenreGuru extracts acoustic features, not genre labels. It finds sonically similar tracks, not genre-matched ones.
+
+## Tests
+
+Counts as of 2026-09-14; coverage % via the Codecov badges above.
+
+- **Backend — pytest: 235 tests.** Covers `genreguru/` (audio DSP, Deezer client, DB layer, CLI) and `web/` (Django search/confirm API). Coverage: Codecov `pytest` flag.
+- **Frontend — Vitest: 115 tests in 8 suites.** Module suites `api`, `render`, `page-controller`, `bootstrap`, plus cross-cutting accessibility. Coverage: Codecov `vitest` flag.
+- **Where gates run** — pytest (job `pytest`) and the frontend check incl. Vitest (job `web`) both gate on CI via `.github/workflows/tests.yml`; pdoc API docs build in `docs.yml`; Ruff gates on CI via `ruff.yml`.
+- Deep per-layer breakdown (deferred `tests/README.md`).
 
 ## What GenreGuru Does
 
