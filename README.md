@@ -5,9 +5,9 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18%2B-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
-![Coverage (pytest)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=pytest&style=for-the-badge&logo=codecov&logoColor=white)
-![Coverage (Vitest)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=vitest&style=for-the-badge&logo=codecov&logoColor=white)
-![License](https://img.shields.io/github/license/AhmedAl-Hayali/AgenticGenreGuru?style=for-the-badge)
+![Coverage (Python)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=pytest&label=Python%20coverage&style=for-the-badge&logo=codecov&logoColor=white)
+![Coverage (TypeScript)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=vitest&label=TypeScript%20coverage&style=for-the-badge&logo=codecov&logoColor=white)
+![License](https://img.shields.io/badge/License-AGPL--3.0-green?style=for-the-badge)
 
 **GenreGuru** turns a song title into a machine-readable acoustic fingerprint. Type a title → it pulls a 30-second Deezer preview → runs a DSP pipeline extracting 8 acoustic features → stores the vector in PostgreSQL. Recommending sonically similar tracks by querying stored fingerprints with cosine similarity is planned (US4).
 
