@@ -101,12 +101,10 @@ cd AgenticGenreGuru
 uv sync
 
 # Install the frontend JS toolchain dependencies (eslint, prettier, vitest, typescript)
-cd web
-npm ci
+npm ci --prefix web
 
 # Build the TypeScript browser bundle (esbuild) — the served app.js is a generated artifact
-npm run build
-cd ..
+npm run --prefix web build
 
 ## Linux / macOS
 
@@ -162,11 +160,10 @@ uv run pytest tests/unit tests/integration
 Frontend checks run the whole toolchain — build (esbuild: TypeScript → minified ESM bundle), lint (ESLint 10 flat config), format (Prettier 3), typecheck (tsc strict on TypeScript sources, no emit), and Vitest 5 DOM contract tests against the TS source (jsdom):
 
 ```bash
-cd web
-npm run check            # build + lint + format:check + typecheck + test in sequence
+npm run --prefix web check     # build + lint + format:check + typecheck + test in sequence
 
-# Coverage report (HTML + LCOV) written to coverage/; enforces >=95% on all metrics
-npm run test:coverage
+# Coverage report (HTML + LCOV) written to web/coverage/; enforces >=95% on all metrics
+npm run --prefix web test:coverage
 
 # Individual tools
 npm run build            # esbuild: fingerprint_app/ts/pages/index-page.ts → static/.../app.js (ESM)

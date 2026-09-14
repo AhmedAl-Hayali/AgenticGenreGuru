@@ -103,7 +103,7 @@ genreguru/
 │   ├── tests/               # Vitest DOM contract tests for the index-page bootstrap (jsdom)
 │   ├── package.json         # JS toolchain scripts + devDependencies (ESLint, Prettier, Vitest, TypeScript, esbuild)
 │   ├── eslint.config.ts     # ESLint 10 flat config
-│   ├── vitest.config.ts     # Vitest + v8 coverage (≥90% gate, HTML + LCOV)
+│   ├── vitest.config.ts     # Vitest + v8 coverage (≥95% gate, HTML + LCOV)
 │   ├── tsconfig.json        # strict TS typecheck, no emit (ts/, tests/, configs)
 │   └── .prettierrc.json     # Prettier style (printWidth 100)
 ├── tests/                   # TDD suites
@@ -159,7 +159,7 @@ genreguru/
 | `static/fingerprint_app/app.js`                                                                                                                        | AJAX, 2-click selection state machine (Click 1 "Selected", Click 2 confirm), feature UI                                                                                                                                                                                                                       | T030, T041, T046                 |
 
 **Theming**: `style.css` is the single global stylesheet, organized into tokens / reset+base / layout / components / utilities. Colors, radii, fonts, spacing, and timing are design tokens on `:root` (`--bg`, `--radius-md`, `--font-body`, `--space-*`, `--transition-fast`, `--max-w-content`) — a theme swap is a token override, not a rule edit. A page with a different aesthetic drops its own sheet in `{% block head_extras %}` (it loads after `style.css`, so equal-specificity rules win) and tags `<body class="themed-*">` to scope element-level divergences (`.themed-retro .wrap { max-width: none; }`); `--max-w-content` on `.wrap` is the one layout token a full-bleed page flips. This is what makes mixed page aesthetics possible without touching the shared partials or their id contract. Convention: keep `style.css` single-filed until a second page actually exists, then consider splitting tokens/base/layout/components.
-| JS toolchain (dev)                                  | esbuild (TS→ESM bundle), ESLint 10 flat config, Prettier 3, `tsc` strict typecheck, Vitest 5 + jsdom contract tests (`web/tests/`), v8 coverage ≥90% gate (`npm run build`, `npm run check`, `npm run test:coverage`) | companion to T029-030         |
+| JS toolchain (dev)                                  | esbuild (TS→ESM bundle), ESLint 10 flat config, Prettier 3, `tsc` strict typecheck, Vitest 5 + jsdom contract tests (`web/tests/`), v8 coverage ≥95% gate (`npm run build`, `npm run check`, `npm run test:coverage`) | companion to T029-030         |
 
 UI files `index.html` + `partials/` + `ts/pages/` are the serial bottleneck shared by all stories; tasks touching them must run on one workstream (hard constraint from `tasks.md`).
 
@@ -324,7 +324,13 @@ Exception hierarchy with structured attributes (`isrc`, `deezer_id`, `code`, `at
 - Suites: `tests/unit/` (DSP, Deezer parsing, models), `tests/integration/` (DB, retry, repositories, recommendations, FactoryBoy fixtures), `tests/contract/` (internal API vs contracts), `tests/benchmarks/` (SC-002/005).
 - Assert no partial `Song`/`SongFingerprint` rows on error paths (contract tests T018/T019).
 - Gate: `ruff check src/ web/ tests/` + `ty check` before each story checkpoint; final sweep with `prek.toml` hooks, bandit, radon (cyclomatic ≤ 10), coverage (T048-T053).
-- Frontend JS gate: `cd web && npm run check` (esbuild build → ESLint 10 flat config → Prettier → `tsc` strict → Vitest/jsdom contract tests) plus `npm run test:coverage` (v8, ≥90% statements/branches/functions/lines, `coverage/` HTML + LCOV). Enforced in CI as the `web` job of `tests.yml` (`npm ci` + `npm run check` + `npm run test:coverage` with artifact upload). Fresh checkouts/deploys must run `npm ci && npm run build` before serving/`collectstatic` — the served `app.js` is a gitignored build artifact.
+- Frontend JS gate: `npm run --prefix web check` (esbuild build → ESLint 10 flat
+  config → Prettier → `tsc` strict → Vitest/jsdom contract tests) plus `npm run
+  --prefix web test:coverage` (v8, ≥95% statements/branches/functions/lines,
+  `web/coverage/` HTML + LCOV). Enforced in CI as the `web` job of `tests.yml`.
+  Fresh checkouts/deploys must run `npm ci --prefix web && npm run --prefix web
+  build` before serving/`collectstatic` — the served `app.js` is a gitignored
+  build artifact.
 - Artist/contributor coverage: `web/tests/` exercises `renderPreviewCard` + enrichment (stale-response guards, error fallback, hide-on-new-search); backend `tests/unit/` (`TestContributorsMapping`, `TestGetTrack`) and `tests/integration/` (`TestSongArtists`, backfill) cover `song_artists` persistence and the enrichment service path.
 
 ---
