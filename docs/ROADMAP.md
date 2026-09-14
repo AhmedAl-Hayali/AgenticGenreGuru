@@ -66,6 +66,9 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   per-flag coverage (pytest/vitest) wired via Codecov (`636ef5f`); Learn
   More links to `docs/API.md` (`f26c3c9`) and `docs/adr/index.md`
   (`e108fef`).
+- **#9** `SECURITY.md` — vulnerability reporting (GHSA + email), supported
+  versions (main-only, pre-release), security model (fail-closed env, Django
+  hardening, bandit; rate-limiting CHK024 disclosed as deferred).
 
 ### Frontend (shipped items)
 
@@ -180,9 +183,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations;
      phase/pass history currently only in git history (the old
      `phase_3_notes.md` scratch file has been discarded).
-  9. **`SECURITY.md`** — secret handling, Django security headers, CSRF
-     protection, dependency scanning (bandit).
-  <!-- -->
   16. **Interactive tutorial / screenshot** — README "Preview/screenshot" item
      from Site/promo; step-by-step walkthrough showing actual terminal output
      and UI flow.
