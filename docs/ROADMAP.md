@@ -59,6 +59,13 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   `specs/README.md` indexes + root README Project Structure collapsed to
   link pointers (per-folder `src/`/`web/`/`tests/`/`config/` READMEs dropped —
   non-idiomatic in Python; research 2026-09-13).
+- **README badge refresh** — stacked shields.io block (Python/Django/
+  PostgreSQL/TypeScript/GitHub Actions + Codecov coverage + static license
+  badge) + Table of Contents + `## Project Status` + progress indicator
+  + Known Limitations callout (`af1ccf8`, `67d4b90`, `d100d21`); live
+  per-flag coverage (pytest/vitest) wired via Codecov (`636ef5f`); Learn
+  More links to `docs/API.md` (`f26c3c9`) and `docs/adr/index.md`
+  (`e108fef`).
 
 ### Frontend (shipped items)
 
@@ -92,9 +99,7 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 
 ### Docs
 
-- **README refresh** — structural collapse shipped (#21); full refresh
-  (badges, ToC, Known Limitations callout, progress indicator) still pending
-  under #3 below.
+- *Empty — README refresh resolved; see Completed > Docs (badge refresh round above).*
 
 ---
 
@@ -167,10 +172,10 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
      `web/`/`tests/`/`config/` folder-README content (#10/#11/#12).*
   2. **`CODE_OF_CONDUCT.md`** — open-source standard companion to the
      AGPL-3.0 license.
-  3. **README.md enhancements** — add CI status badges (tests, ruff, pdoc,
-     coverage), Table of Contents anchor links, callout box for Known
-     Limitations near the top, progress indicator (phase 1 done / phase 2
-     pending), link to live API Reference (pdoc deployed on GitHub Pages).
+- **Live API Reference URL** — render the pdoc GitHub Pages URL in the README
+  Learn More bullet once `docs.yml` deploys land (last unshipped remnant of the
+  migrated #3 README-enhancements item; shipped parts recorded under
+  Completed > Docs).
   <!-- -->
   8. **`CHANGELOG.md`** — Keep-a-Changelog format tracking releases/iterations;
      phase/pass history currently only in git history (the old
@@ -187,6 +192,10 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
      2026-09-13 alongside the standards-parse below.)*
   18. **`notebooks/` documentation** — document purpose and usage of
      exploratory DSP notebooks.
+- **Live API Reference URL** — render the pdoc GitHub Pages URL in the README
+  Learn More bullet once `docs.yml` deploys land (last unshipped remnant of the
+  migrated #3 README-enhancements item; shipped parts recorded under
+  Completed > Docs).
   <!-- -->
   20. **Docs-in-PR policy** — a feature PR ships its docs with the code:
      contract → traceability → status docs (`tasks.md`), `ARCHITECTURE.md`
@@ -219,11 +228,8 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - [ ] Add recommendations demo — before/after feature-slider tweak yielding different similar songs
 - [ ] Add 8-features table: feature / what it captures / what a high value sounds like
 - [ ] Add Windows & macOS setup instructions (current `export` blocks are bash-only) — *Windows PowerShell block already present; extend to full Windows setup*
-- [ ] Document known limitations: 30s Deezer preview only, Deezer catalog dependency, no genre classification — *callout box pending #3*
 - [ ] Add "Related tools / why not alternatives" positioning (Essentia, acousticDB, Chromaprint)
-- [ ] Add Roadmap section
 - [ ] Add Contributing section
-- [ ] Expand badges: tests, coverage, ruff, uv
 - [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license
 
 ### Frontend
@@ -436,6 +442,8 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
   (coverage % + test counts posted as CI artifacts/badges — or Codecov/
   Coveralls). Deep breakdown lives in `tests/README.md` (deferred folder
   README); the root README shows headline numbers.
+  *Partial: live Codecov badges landed (`636ef5f`, `d100d21`). Ruff/vitest/
+  pdoc badges + "Tests" section still open.*
 - A lot more visualizations and system breakdowns, both for promo, and for
   `contributing.md` support
   - state diagram for frontend?
