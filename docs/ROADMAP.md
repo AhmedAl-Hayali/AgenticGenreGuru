@@ -95,30 +95,25 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   served via `{% static %}` + `data-provider-*` attrs on `#candidates`,
   replacing the redundant "Selected" pill (highlight + `aria-pressed` + status
   text keep selection clear).
+- **Slim live-preview UX** — per-candidate lazy audio preview (`ts/preview-player.ts`,
+  shared `<audio preload="none">`, one track at a time) with play/stop button in
+  a `.candidate-playback` row + linear progress gauge (`.candidate-progress`,
+  aria-driven rAF loop, triangle→square clip-path morph). Missing/invalid
+  Deezer preview → disabled button, `previewUnavailable`/`previewFailed` paths.
+  Preview card prerendered by `render.ts` (cover via `bindLazyCovers` lazy
+  loading + artists + playback row); all wired through
+  `page-controller.handleCandidatePreview`. Shallow audit verified `web/` vs
+  this list 2026-09-13.
+- **Frontend coverage** — `web/tests/` now includes `preview-player.test.ts`,
+  `lazy-image.test.ts`, `scroll-reveal.test.ts`, `a11y.test.ts` alongside
+  render/api/page-controller/bootstrap suites.
 - **Docstring-gap closure** — see #13 above.
 
 ---
 
 ## In Progress
 
-### Frontend
-
-- **Song preview card before confirm** — album art, artist, provider icon.
-  Anticipated by `docs/ARCHITECTURE.md §3.3/§7.5` (`renderPreviewCard` +
-  Deezer "D" badge); render hub + partials + `dto` fields are in place,
-  pending the card UI.
-- **No-preview edge cases (missing/invalid Deezer preview URL)** — lazy audio
-  preview per candidate done (`ts/preview-player.ts`; shared
-  `<audio preload="none">`, one track at a time; `.candidate-preview` play/stop
-  button, keyboard-accessible, `stopPropagation`); missing/invalid preview →
-  disabled button / `previewUnavailable`/`previewFailed`. Play button now lives
-  in a `.candidate-playback` row under the artists: round play/stop button +
-  linear progress bar (`.candidate-progress`, `--preview-progress`, `aria`-
-  driven rAF loop; triangle→square clip-path morph).
-
-### Docs
-
-- *Empty — README refresh resolved; see Completed > Docs (badge refresh round above).*
+*Nothing in flight — preview-player round shipped (see Completed > Frontend).*
 
 ---
 

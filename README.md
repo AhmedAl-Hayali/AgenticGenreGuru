@@ -27,7 +27,7 @@
 
 ## Project Status
 
-Partial implementation. Phase 1 core library + US1 search/confirm implemented; docs navigation skeleton shipped (2026-09-13); frontend preview UX in flight; deployment (D1–D5) designed, not implemented. Still pending: DSP visualization (US3), custom recommendations (US4), benchmarks, and end-to-end runs against a live PostgreSQL. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
+Partial implementation. Phase 1 core library + US1 search/confirm implemented; docs navigation skeleton shipped (2026-09-13); frontend preview UX shipped; deployment (D1–D5) designed, not implemented. Still pending: DSP visualization (US3), custom recommendations (US4), benchmarks, and end-to-end runs against a live PostgreSQL. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
 
 **Progress:** Phase 1 complete (core library + API endpoints + docs skeleton). Phase 2 pending (DSP viz, recommendations, benchmarks, end-to-end runs).
 
