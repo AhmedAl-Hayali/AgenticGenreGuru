@@ -1,12 +1,41 @@
 # GenreGuru
 
-![Python 3.14](https://img.shields.io/badge/python-3.14-blue)
-![License](https://img.shields.io/badge/license-AGPL--3.0-green)
-![Django](https://img.shields.io/badge/django-6.1+-092E20)
+![Python](https://img.shields.io/badge/Python-3.14%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![Django](https://img.shields.io/badge/Django-6.1%2B-092E20?style=for-the-badge&logo=django&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18%2B-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
+![Coverage (pytest)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=pytest&style=for-the-badge&logo=codecov&logoColor=white)
+![Coverage (Vitest)](https://img.shields.io/codecov/c/github/AhmedAl-Hayali/AgenticGenreGuru.svg?flag=vitest&style=for-the-badge&logo=codecov&logoColor=white)
+![License](https://img.shields.io/github/license/AhmedAl-Hayali/AgenticGenreGuru?style=for-the-badge)
 
 **GenreGuru** turns a song title into a machine-readable acoustic fingerprint. Type a title → it pulls a 30-second Deezer preview → runs a DSP pipeline extracting 8 acoustic features → stores the vector in PostgreSQL. Recommending sonically similar tracks by querying stored fingerprints with cosine similarity is planned (US4).
 
-> **Project status:** Partial implementation. The core library is implemented — audio loading + mono downmix, the `Feature` enum (`genreguru/audio/features.py`), 8-feature DSP extraction (`feature_extract.py`) and arithmetic-mean collapse (`feature_collapse.py`), Deezer search client + track lookup/enrichment + snippet fetcher with retry, SQLAlchemy engine/models/repository with ISRC dedup, and `song_artists` contributor persistence `FingerprintService` orchestration, and the shared error hierarchy — with passing unit tests. The Django `search` + `confirm` API endpoints and the 2-click browser UI (`web/fingerprint_app/ts/` modules + `pages/` bootstrap, bundled by esbuild to the served ES module, contract-tested with Vitest/jsdom) are wired, including candidate match selections with artists, album, cover art, and Deezer badge. Still pending: DSP visualization (US3), custom recommendations (US4), benchmarks, and end-to-end runs against a live PostgreSQL. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
+## Table of Contents
+
+- [Project Status](#project-status)
+- [What GenreGuru Does](#what-genreguru-does)
+- [How It Works](#how-it-works)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Configuration](#configuration)
+- [Learn More](#learn-more)
+- [License](#license)
+
+## Project Status
+
+Partial implementation. Phase 1 core library + US1 search/confirm implemented; docs navigation skeleton shipped (2026-09-13); frontend preview UX in flight; deployment (D1–D5) designed, not implemented. Still pending: DSP visualization (US3), custom recommendations (US4), benchmarks, and end-to-end runs against a live PostgreSQL. See [`specs/001-song-fingerprint-engine/tasks.md`](specs/001-song-fingerprint-engine/tasks.md) for the implementation plan.
+
+**Progress:** Phase 1 complete (core library + API endpoints + docs skeleton). Phase 2 pending (DSP viz, recommendations, benchmarks, end-to-end runs).
+
+**Known Limitations:**  
+_These constraints are tracked in the roadmap and will be addressed in future phases._
+- **30-second previews only** — Deezer API provides 30-second audio snippets, not full tracks. Fingerprints are based on this limited window.
+- **Deezer catalog dependency** — Song search and audio previews depend on Deezer's API availability and catalog coverage.
+- **No genre classification** — GenreGuru extracts acoustic features, not genre labels. It finds sonically similar tracks, not genre-matched ones.
 
 ## What GenreGuru Does
 
@@ -136,7 +165,7 @@ Frontend checks run the whole toolchain — build (esbuild: TypeScript → minif
 cd web
 npm run check            # build + lint + format:check + typecheck + test in sequence
 
-# Coverage report (HTML + LCOV) written to coverage/; enforces >=75% on all metrics
+# Coverage report (HTML + LCOV) written to coverage/; enforces >=95% on all metrics
 npm run test:coverage
 
 # Individual tools
@@ -234,6 +263,21 @@ erDiagram
 
 ## Tech Stack
 
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0%2B-D71F00?style=for-the-badge&logo=sqlalchemy&logoColor=white)
+![NumPy](https://img.shields.io/badge/NumPy-2.4%2B-013243?style=for-the-badge&logo=numpy&logoColor=white)
+![SciPy](https://img.shields.io/badge/SciPy-1.18%2B-8CAAE6?style=for-the-badge&logo=scipy&logoColor=black)
+![uv](https://img.shields.io/badge/uv-0.12-DE5FE9?style=for-the-badge&logo=uv&logoColor=black)
+![httpx](https://img.shields.io/badge/httpx-0.28%2B-0A0F17?style=for-the-badge)
+![librosa](https://img.shields.io/badge/librosa-0.11%2B-0A0F17?style=for-the-badge)
+![Node.js](https://img.shields.io/badge/Node.js-26%2B-5FA04E?style=for-the-badge&logo=nodedotjs&logoColor=white)
+
+![esbuild](https://img.shields.io/badge/esbuild-0.28%2B-FFCF00?style=for-the-badge&logo=esbuild&logoColor=black)
+![ESLint](https://img.shields.io/badge/ESLint-10-4B32C3?style=for-the-badge&logo=eslint&logoColor=white)
+![Prettier](https://img.shields.io/badge/Prettier-3-F7B93E?style=for-the-badge&logo=prettier&logoColor=black)
+![Vitest](https://img.shields.io/badge/Vitest-5-6E9F18?style=for-the-badge&logo=vitest&logoColor=white)
+![pytest](https://img.shields.io/badge/pytest-9%2B-0A9EDC?style=for-the-badge&logo=pytest&logoColor=white)
+![Ruff](https://img.shields.io/badge/Ruff-0.16%2B-D7FF64?style=for-the-badge&logo=ruff&logoColor=black)
+
 | Component            | Technology                                            | Why                                                                                   |
 |----------------------|-------------------------------------------------------|---------------------------------------------------------------------------------------|
 | Language             | Python 3.14                                           | Modern features, type annotation support                                              |
@@ -246,7 +290,7 @@ erDiagram
 | Testing              | pytest + pytest-django                                | Django integration, fixtures, coverage                                                |
 | Frontend JS          | TypeScript ES modules (source: `fingerprint_app/ts/`) | esbuild bundles a single minified ESM `app.js` per page; type-safe browser code       |
 | Frontend Lint/Format | ESLint 10 (flat config) + Prettier 3                  | Enforced style, `eslint-config-prettier` integration                                  |
-| Frontend Tests       | Vitest 5 + jsdom + v8 coverage                        | DOM contract tests for the index-page bootstrap (Vitest 5 + jsdom), 75% coverage gate |
+| Frontend Tests       | Vitest 5 + jsdom + v8 coverage                        | DOM contract tests for the index-page bootstrap (Vitest 5 + jsdom), 95% coverage gate |
 | Frontend Types       | TypeScript (strict, no emit)                          | `tsc` typecheck of `.ts` sources                                                      |
 
 ## Project Structure
@@ -286,6 +330,8 @@ recommendations:
 
 ## Learn More
 
+Jump to: [`#project-status`](#project-status) · [`#what-genre-guru-does`](#what-genreguru-does) · [`#how-it-works`](#how-it-works) · [`#features`](#features) · [`#quick-start`](#quick-start) · [`#architecture`](#architecture) · [`#data-model`](#data-model) · [`#api-endpoints`](#api-endpoints) · [`#tech-stack`](#tech-stack) · [`#project-structure`](#project-structure) · [`#configuration`](#configuration)
+
 - [`docs/README.md`](docs/README.md) — Documentation index (architecture, API, decision records, roadmap)
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — Project architecture
 - [`docs/API.md`](docs/API.md) — API reference guide and API contracts
@@ -293,12 +339,7 @@ recommendations:
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — Idea backlog and roadmap
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc
 - [`specs/README.md`](specs/README.md) — Feature specifications and design docs
-
-## Known Limitations
-
-- **30-second previews only** — Deezer API provides 30-second audio snippets, not full tracks. Fingerprints are based on this limited window.
-- **Deezer catalog dependency** — Song search and audio previews depend on Deezer's API availability and catalog coverage.
-- **No genre classification** — GenreGuru extracts acoustic features, not genre labels. It finds sonically similar tracks, not genre-matched ones.
+- **Live API Reference** — pdoc-deployed API reference on GitHub Pages (generated from `genreguru` docstrings via `uv run pdoc`)
 
 ## License
 
