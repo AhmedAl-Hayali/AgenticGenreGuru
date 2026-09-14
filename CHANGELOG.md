@@ -29,5 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CONTRIBUTING.md`/`SECURITY.md`/`CHANGELOG.md`.
 - `docs/ROADMAP.md` reorganized: completed docs work moved to Completed, planned
   items pruned of `*shipped*` flags.
+- Promo round (waves D + 2): `docs/media/interaction.gif` (owner-recorded app
+  flow) replacing the screenshots dir; QUICKSTART `## Try it` gains the GIF +
+  labeled fingerprint-JSON excerpt + 8-features table; README gains the Try-it
+  one-liner and re-points at QUICKSTART/`data-model.md`/`API.md`/`config-report.md`
+  (`docs/screenshots/` → `docs/media/`).
 - README test badges + `## Tests` section: truthful CI-state shields (pytest,
   Vitest, Ruff, pdoc) + headlined suite counts (235 pytest / 115 Vitest).

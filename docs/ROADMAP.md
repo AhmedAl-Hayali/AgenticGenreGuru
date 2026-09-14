@@ -110,6 +110,9 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   `specs/001-song-fingerprint-engine/contracts/search-api.md` §2.
 - **8-features table (README backlog #218)** — per-feature "what it captures / what a
   high value sounds like" table in QUICKSTART Try-it (see **QUICKSTART Try-it content**).
+- **Interactive walkthrough (#16)** — closed by the `interaction.gif` shipped in the
+  App media bullet above (search → select → confirm → fingerprint flow covers the
+  README "Preview/screenshot" item from Site/promo).
 - **Test badges + Tests section (docs-wave-2 T2)** — README badge block gained
   truthful CI-state shields: pytest / Vitest (CI-gated via `tests.yml`), Ruff
   (CI-wired via `ruff.yml`), pdoc (API reference built by `docs.yml`);
@@ -206,9 +209,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   path and the pdoc template hooks analogue, preserve docstring rendering, signatures,
   and source links; ship only after dark-mode + theme-toggle parity verified locally.
 - **Documentation improvement/addition plan** —
-  16. **Interactive tutorial / screenshot** — README "Preview/screenshot" item
-     from Site/promo; step-by-step walkthrough showing actual terminal output
-     and UI flow.
   17. **`AGENTS.md`** at repo root — document agentic workflow conventions,
      available skills (`caveman`, `speckit-*`, `caveman-commit`, etc.), and
      project-specific AI-assisted development instructions. *(Parked
