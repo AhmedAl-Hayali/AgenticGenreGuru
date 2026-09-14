@@ -9,8 +9,10 @@ contracts.
 
 - **Local build**: `docs/pdoc/index.html` (gitignored build output; run
   `uv run pdoc -o docs/pdoc/ -d google --mermaid -t docs/pdoc_templates genreguru genreguru_web fingerprint_app` from the repo root).
-- **Live**: deployed to GitHub Pages by `.github/workflows/docs.yml` on
-  `main` pushes touching `**.py`. Docstring conventions: [`docs/docstring-style-guide.md`](docstring-style-guide.md).
+- **Live**: [https://ahmedal-hayali.github.io/AgenticGenreGuru/](https://ahmedal-hayali.github.io/AgenticGenreGuru/)
+  — built from `genreguru` docstrings by `.github/workflows/docs.yml` (deploys
+  on `main` pushes touching `**.py`). Docstring conventions:
+  [`docs/docstring-style-guide.md`](docstring-style-guide.md).
 
 ## Contract documents
 

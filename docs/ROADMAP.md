@@ -78,6 +78,9 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - **#9** `SECURITY.md` — vulnerability reporting (GHSA + email), supported
   versions (main-only, pre-release), security model (fail-closed env, Django
   hardening, bandit; rate-limiting CHK024 disclosed as deferred).
+- **Live API Reference URL** — rendered at
+  https://ahmedal-hayali.github.io/AgenticGenreGuru/ in README Learn More,
+  `docs/API.md`, and `docs/README.md` (closes the migrated-#3 remnant).
 - **Quickstart refresh** — `QUICKSTART.md` (moved from `specs/001-song-fingerprint-engine/`
   to repo root; rewritten end-user-first: stale prereqs/deep links dropped, PowerShell
   parity, `--prefix web`); README Quick Start points to it as the full walkthrough;
@@ -191,10 +194,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
      2026-09-13 alongside the standards-parse below.)*
   18. **`notebooks/` documentation** — document purpose and usage of
      exploratory DSP notebooks.
-- **Live API Reference URL** — render the pdoc GitHub Pages URL in the README
-  Learn More bullet once `docs.yml` deploys land (last unshipped remnant of the
-  migrated #3 README-enhancements item; shipped parts recorded under
-  Completed > Docs).
   <!-- -->
   - **Superseded**: #10 `web/README.md`, #11 `tests/README.md`,
     #12 `config/README.md` (per-folder READMEs dropped in the slim #21

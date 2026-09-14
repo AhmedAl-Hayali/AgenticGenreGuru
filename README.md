@@ -262,7 +262,7 @@ Jump to: [`#project-status`](#project-status) · [`#what-genre-guru-does`](#what
 - [`docs/ROADMAP.md`](docs/ROADMAP.md) — Idea backlog and roadmap
 - [`docs/docstring-style-guide.md`](docs/docstring-style-guide.md) — Docstring conventions enforced by Ruff and rendered by pdoc
 - [`specs/README.md`](specs/README.md) — Feature specifications and design docs
-- **Live API Reference** — pdoc-deployed API reference on GitHub Pages (generated from `genreguru` docstrings via `uv run pdoc`)
+- [**Live API Reference**](https://ahmedal-hayali.github.io/AgenticGenreGuru/) — pdoc-deployed API reference on GitHub Pages (generated from `genreguru` docstrings via `uv run pdoc`)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributing guide
 - [`SECURITY.md`](SECURITY.md) — security policy
 - [`CHANGELOG.md`](CHANGELOG.md) — changelog

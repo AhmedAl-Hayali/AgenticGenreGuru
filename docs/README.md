@@ -28,7 +28,7 @@ as directory landing pages on GitHub; this is the entry point for `docs/`.
 ## Generated reference (pdoc)
 
 - `pdoc/` — generated HTML API reference (**gitignored** build artifact).
-  Build: `uv run pdoc -o docs/pdoc/ -d google --mermaid -t docs/pdoc_templates genreguru genreguru_web fingerprint_app`. Live deploy: GitHub Pages via `.github/workflows/docs.yml`.
+  Build: `uv run pdoc -o docs/pdoc/ -d google --mermaid -t docs/pdoc_templates genreguru genreguru_web fingerprint_app`. Live: [https://ahmedal-hayali.github.io/AgenticGenreGuru/](https://ahmedal-hayali.github.io/AgenticGenreGuru/) via `.github/workflows/docs.yml`.
 - `pdoc_templates/` — pdoc template overrides (`index.html.jinja2`, `module.html.jinja2`).
 
 ## Entry points
