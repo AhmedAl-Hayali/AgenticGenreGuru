@@ -125,6 +125,9 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   2026-09-14) plus gate mapping. Concrete wording + acceptance captured at
   the bottom of this file under "Docs wave 2 — README test badges + Tests
   section (concrete plan)".
+- **Mermaid revision sub-bullet** — added a leaner, nesting-corrected "Revisit
+  existing mermaid diagrams" sub-bullet under the Site/promo visualization
+  backlog row.
 
 ### Frontend (shipped items)
 
@@ -463,6 +466,8 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
 - A lot more visualizations and system breakdowns, both for promo, and for
   `contributing.md` support
   - state diagram for frontend?
+  - revisit the existing mermaid diagrams (specs, data-model, config-report)
+    — leaner variants, nesting-corrected
 
 ---
 

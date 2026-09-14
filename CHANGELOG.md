@@ -39,3 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/API.md` endpoint provenance fixed — Implemented rows trace to
   `web/fingerprint_app/urls.py`, Target/Optional rows labeled as unrouted planned
   surface (US2/3/4).
+- `docs/ROADMAP.md`: spec-docs reconciliation + README backlog close-out (#16
+  tutorial via the GIF, #215/#218/#219 landed), mermaid-revisit sub-bullet under
+  Site/promo, concrete "test badges + Tests section" plan appended at the tail.
