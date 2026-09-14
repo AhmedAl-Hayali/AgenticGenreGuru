@@ -66,6 +66,12 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   per-flag coverage (pytest/vitest) wired via Codecov (`636ef5f`); Learn
   More links to `docs/API.md` (`f26c3c9`) and `docs/adr/index.md`
   (`e108fef`).
+- **#1** `CONTRIBUTING.md` — contributor guide (orientation, prerequisites,
+  setup, test loop, prek hooks, commit/PR conventions). Written fresh — the
+  superseded #10/#11/#12 folder-README content had no real body to fold in.
+- **#20** Docs-in-PR policy — codified as the "Docs ship with the code"
+  section in `CONTRIBUTING.md` + enforced via `.github/PULL_REQUEST_TEMPLATE.md`
+  checklist (contracts → `tasks.md`, ADRs, ARCHITECTURE rows, pdoc docstrings).
 - **#9** `SECURITY.md` — vulnerability reporting (GHSA + email), supported
   versions (main-only, pre-release), security model (fail-closed env, Django
   hardening, bandit; rate-limiting CHK024 disclosed as deferred).
@@ -167,12 +173,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   workflows`, keep that path. Future-proof: pick a theme behind a build-time
   config so the docs site and the deployed artifact share one source.
 - **Documentation improvement/addition plan** —
-  1. **`CONTRIBUTING.md`** — repo root contributor guide: prerequisites
-     (Python 3.14, uv, PostgreSQL, Node 26), setup (`uv sync`, `npm ci`),
-     running tests (`uv run pytest`, `npm run check`), lint/type-check
-     commands, commit conventions (conventional-pre-commit hook), branch/PR
-     workflow, pre-commit installation. *Home for the superseded
-     `web/`/`tests/`/`config/` folder-README content (#10/#11/#12).*
   2. **`CODE_OF_CONDUCT.md`** — open-source standard companion to the
      AGPL-3.0 license.
 - **Live API Reference URL** — render the pdoc GitHub Pages URL in the README
@@ -197,15 +197,9 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   migrated #3 README-enhancements item; shipped parts recorded under
   Completed > Docs).
   <!-- -->
-  20. **Docs-in-PR policy** — a feature PR ships its docs with the code:
-     contract → traceability → status docs (`tasks.md`), `ARCHITECTURE.md`
-     decision/tree rows, README/quickstart, and pdoc template purpose rows
-     change in the SAME PR as the code. Review enforces; never land a
-     docs/impl mismatch.
   - **Superseded**: #10 `web/README.md`, #11 `tests/README.md`,
     #12 `config/README.md` (per-folder READMEs dropped in the slim #21
-    decision — their content folds into `CONTRIBUTING.md` / guides above);
-    #7 single `DECISION_LOG.md` (replaced by `docs/adr/`).
+    decision); #7 single `DECISION_LOG.md` (replaced by `docs/adr/`).
 
 ### Standards/patterns reference
 
@@ -229,7 +223,6 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - [ ] Add 8-features table: feature / what it captures / what a high value sounds like
 - [ ] Add Windows & macOS setup instructions (current `export` blocks are bash-only) — *Windows PowerShell block already present; extend to full Windows setup*
 - [ ] Add "Related tools / why not alternatives" positioning (Essentia, acousticDB, Chromaprint)
-- [ ] Add Contributing section
 - [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license
 
 ### Frontend
