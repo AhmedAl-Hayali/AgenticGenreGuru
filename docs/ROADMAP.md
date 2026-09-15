@@ -129,6 +129,12 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   existing mermaid diagrams" sub-bullet under the Site/promo visualization
   backlog row.
 
+- **Reorder README** — hero → demo/screenshots → features grid → how it works →
+  quick start → recommendation+viz → architecture → API → stack → structure →
+  config → roadmap → contributing → license. Completed as part of #90 README
+  de-dup (354→205 lines, references QUICKSTART.md/data-model.md/docs/API.md/config-report.md
+  instead of inline content).
+
 ### Frontend (shipped items)
 
 - **Multi-artist previews** — `dto.ts` carries `artists[]` + `cover`; `render.ts`
@@ -248,7 +254,7 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
 - [ ] Add rendered spectrogram image with spectral centroid highlighted (DSP visualization feature) — *blocked: feature not implemented*
 - [ ] Add recommendations demo — before/after feature-slider tweak yielding different similar songs — *blocked: feature not implemented*
 - [ ] Add "Related tools / why not alternatives" positioning (Essentia, acousticDB, Chromaprint)
-- [ ] Reorder README: hero → demo/screenshots → features grid → how it works → quick start → recommendation+viz → architecture → API → stack → structure → config → roadmap → contributing → license — *superseded by the README de-dup cut (reference-only layout)*
+
 
 ### Frontend
 
