@@ -30,6 +30,7 @@ ALLOWED_HOSTS: list[str] = [h.strip() for h in cfg.django.allowed_hosts.split(",
 SECRET_KEY = cfg.django.secret_key
 
 SECURE_SSL_REDIRECT = bool(cfg.django.secure_ssl_redirect)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = bool(cfg.django.session_cookie_secure)
 CSRF_COOKIE_SECURE = bool(cfg.django.csrf_cookie_secure)
 X_FRAME_OPTIONS = cfg.django.x_frame_options
