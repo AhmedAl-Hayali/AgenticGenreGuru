@@ -5,9 +5,9 @@ tracked here and triaged when planning next phases; adopted ideas get
 specified under `specs/`. Items are grouped as **Completed**, **In
 Progress**, or **Planned**. Each Planned section is its own workstream.
 
-> **Status at a glance (2026-09-13)**: core library + US1 search/confirm
+> **Status at a glance (2026-09-15)**: core library + US1 search/confirm
 > implemented; docs navigation skeleton shipped (this snapshot); frontend
-> preview UX in flight; deployment (D1–D5) designed, not implemented.
+> preview UX shipped; deployment (D1–D5) implemented.
 > When this file outgrows triage, the raw backlog migrates to GitHub
 > Issues + Milestones (see #roadmap-home note).
 
@@ -158,11 +158,38 @@ Progress**, or **Planned**. Each Planned section is its own workstream.
   render/api/page-controller/bootstrap suites.
 - **Docstring-gap closure** — see #13 above.
 
----
+### Infrastructure
 
-## In Progress
+- **D1 — Deploy target: local prod-sim first, cloud later.** `Dockerfile` +
+  `compose.yaml` (web + postgres + TLS reverse proxy) mimicking prod wiring
+  locally via `GENREGURU_ENV=prod` config groups.
+- **D2 — App server: Gunicorn (WSGI, sync workers), no `--preload`.**
+  Views are sync today (`fingerprint_app/views.py`); wsgi.py + asgi.py
+  entrypoints exist, ASGI path unused. Per-worker import runs
+  `runtime.init_runtime()` per process (safe); `--preload` would share one
+  psycopg3 engine/pool across forked fds (risk — keep off).
+- **D3 — Static: Whitenoise in-container.** esbuild output
+  (`fingerprint_app/static/.../app.js`) is gitignored → frontend must build
+  inside the image (Node 26 builder stage); serve via collectstatic +
+  whitenoise.
+- **D4 — DB reliability: compose PG18 + named volume + healthcheck +
+  release-step schema job + `pg_dump` backup.** Native `uuidv7()` requires
+  PG18+ (CI already pins `postgres:18`). Schema via one-off `migrate`
+  compose service running `uv run python -m genreguru.db.init_db`, gated
+  `service_completed_successfully`; no racing on-boot mutations. A
+  one-off `backup` service runs `pg_dump -Fc` to a named volume, gated
+  `service_healthy`.
+- **D5 — Scale/hardening: single instance, standard hardening.** prod
+  settings already `DEBUG=0`, secure cookies, HSTS, fail-closed
+  `DJANGO_ALLOWED_HOSTS`/`DJANGO_SECRET_KEY`/`DB_*` via env. Add
+  `SECURE_PROXY_SSL_HEADER` (TLS-terminating proxy) since
+  `secure_ssl_redirect: true` would otherwise loop behind the proxy.
+  Rate-limiting (CHK024) stays deferred.
+- `runtime.init_runtime()` threading.Lock double-checked locking (`runtime.py`)
+  — implemented as part of D2.
+### Architecture
 
-*Nothing in flight — preview-player round shipped (see Completed > Frontend).*
+- **ADRs 0008-0014**: all decisions accepted and implemented.
 
 ---
 
@@ -374,52 +401,21 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
 
 ### Infrastructure
 
-- **Deployment & containerization** — ship the app to a prod-grade environment.
-    Directions settled (decisions D1–D5; each records its future-proof path so a
-    later scale-up slots in with minimal churn). All implemented.
-  - **D1 — Deploy target: local prod-sim first, cloud later.** `Dockerfile` +
-    `compose.yaml` (web + postgres + TLS reverse proxy) mimicking prod wiring
-    locally via `GENREGURU_ENV=prod` config groups. Future-proof: the same
-    image deploys to a PaaS (Fly.io/Render/Railway — managed TLS, deploy from
-    git) behind a GH Actions build→registry→`fly deploy`/`render deploy`
-    workflow; does not change when multi-node arrives.
-  - **D2 — App server: Gunicorn (WSGI, sync workers), no `--preload`.**
-    Views are sync today (`fingerprint_app/views.py`); wsgi.py + asgi.py
-    entrypoints exist, ASGI path unused. Per-worker import runs
-    `runtime.init_runtime()` per process (safe); `--preload` would share one
-    psycopg3 engine/pool across forked fds (risk — keep off). Future-proof:
-    uvicorn/granian ASGI when async views land; `--threads` for IO-heavy
+- **Still open (verify when implementing)**: Gunicorn wheels on Python 3.14
+  (fallback uvicorn/granian if unsupported — D2 keeps the slot, driver
+  swappable).
+- **Future-proof**:
+  - D1: same image deploys to a PaaS (Fly.io/Render/Railway) behind a GH
+    Actions build→registry→deploy workflow; does not change when multi-node arrives.
+  - D2: uvicorn/granian ASGI when async views land; `--threads` for IO-heavy
     paths; multi-replica needs the `runtime.init_runtime()` `threading.Lock`
-    fix (Architecture bullet) + per-replica `create_engine` (already
-    per-process).
-  - **D3 — Static: Whitenoise in-container.** esbuild output
-    (`fingerprint_app/static/.../app.js`) is gitignored → frontend must build
-    inside the image (Node 26 builder stage); serve via collectstatic +
-    whitenoise. Future-proof: `ManifestStaticFilesStorage` cache-busting;
-    object storage/CDN (MinIO/S3) when media/uploads grow; no settings churn
-    at either step.
-   - **D4 — DB reliability: compose PG18 + named volume + healthcheck +
-     release-step schema job + `pg_dump` backup.** Native `uuidv7()` requires
-     PG18+ (CI already pins `postgres:18`). Schema via one-off `migrate`
-     compose service running `uv run python -m genreguru.db.init_db`, gated
-     `service_completed_successfully`; no racing on-boot mutations. A
-     one-off `backup` service runs `pg_dump -Fc` to a named volume, gated
-     `service_healthy`.
-     Future-proof: swap db service for managed Postgres (Fly/Render/Neon) with
-     PITR — same `DB_*` env contract; pgbouncer/read-replica when load grows;
-     backups escalate pg_dump → WAL/PITR.
-  - **D5 — Scale/hardening: single instance, standard hardening.** prod
-    settings already `DEBUG=0`, secure cookies, HSTS, fail-closed
-    `DJANGO_ALLOWED_HOSTS`/`DJANGO_SECRET_KEY`/`DB_*` via env. Add
-    `SECURE_PROXY_SSL_HEADER` (TLS-terminating proxy) since
-    `secure_ssl_redirect: true` would otherwise loop behind the proxy.
-    Rate-limiting (CHK024) stays deferred. Future-proof: multi-replica, WAF/
-    ingress, secrets manager, pool-size/`CONN_MAX_AGE` tuning per replica.
-Still open (verify when implementing): Gunicorn wheels on Python 3.14
-(fallback uvicorn/granian if unsupported — D2 keeps the slot, driver
-swappable).
-- **ADR status**: D1–D5 are recorded as accepted decisions
-(`docs/adr/` 0008-0014), all implemented.
+    fix + per-replica `create_engine`.
+  - D3: `ManifestStaticFilesStorage` cache-busting; object storage/CDN
+    (MinIO/S3) when media/uploads grow.
+  - D4: swap db service for managed Postgres (Fly/Render/Neon) with PITR;
+    pgbouncer/read-replica when load grows; backups escalate pg_dump → WAL/PITR.
+  - D5: multi-replica, WAF/ingress, secrets manager, pool-size/`CONN_MAX_AGE`
+    tuning per replica.
 
 ### Architecture
 
@@ -432,12 +428,6 @@ swappable).
   `fingerprint_app/views.py` uses constructor defaults (search URL, limit,
   timeouts, retry budget) rather than `cfg`. The deezer search tuning should
   flow from config like the rest of the cross-boundary constants.
-- `genreguru_web/runtime.py::init_runtime()` guards one-time init with a bare
-  module-global `_initialized`. Fine today (entrypoints call it at import,
-  single-threaded), but under ASGI concurrency or forked workers that is a
-  race. Fix sketch: hold a module-level `threading.Lock`, do the create-engine
-  + logging-setup inside it after re-checking `_initialized`
-  (double-checked), or make `LoggingManager.setup` tolerant of re-invocation.
 - Enforce rate-limiting & abuse-prevention for the internal search API (per
   CHK024 in `api.md` / `search-api.md`).
 
