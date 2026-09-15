@@ -5,8 +5,6 @@ rich: false
 formatters:
   console:
     format: "%(levelname)s %(name)s %(message)s"
-  json:
-    class: genreguru.gglogging.JsonFormatter
 filters:
   non_error:
     (): genreguru.gglogging.NonErrorFilter
@@ -22,18 +20,9 @@ handlers:
     level: ERROR
     formatter: console
     stream: ext://sys.stderr
-  file_all:
-    class: genreguru.gglogging.SafeRotatingFileHandler
-    level: INFO
-    formatter: json
-    filename: logs/genreguru.log.jsonl
-    maxBytes: 20971520
-    backupCount: 5
-    encoding: utf-8
-    delay: true
 root:
   level: INFO
-  handlers: [stdout, stderr, file_all]
+  handlers: [stdout, stderr]
 loggers:
   httpx:
     level: WARNING
