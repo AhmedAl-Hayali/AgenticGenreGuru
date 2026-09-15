@@ -8,11 +8,14 @@ serving. Tests build their own engine fixtures (see `tests/conftest.py`)
 and never invoke this.
 """
 
+import threading
+
 from genreguru.config import get_config
 from genreguru.db.engine import create_engine
 from genreguru.gglogging import LoggingManager
 
 _initialized = False
+_init_lock = threading.Lock()
 
 
 def init_runtime() -> None:
@@ -22,9 +25,14 @@ def init_runtime() -> None:
     are no-ops after the first. Safe to call before `django.setup()`.
     """
     global _initialized
+    # Outer check: avoid lock acquisition once initialized.
     if _initialized:
         return
-    cfg = get_config()
-    LoggingManager().setup(cfg.logging)
-    create_engine(cfg.db)
-    _initialized = True
+    with _init_lock:
+        # Inner check: another thread may have initialized first.
+        if _initialized:
+            return
+        cfg = get_config()
+        LoggingManager().setup(cfg.logging)
+        create_engine(cfg.db)
+        _initialized = True
