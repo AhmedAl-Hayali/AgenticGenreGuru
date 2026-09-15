@@ -120,7 +120,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 
 - **REQ-013**: If a network interruption occurs during audio snippet fetching, then the system shall retry fetching up to 3 times with 5-second delays between attempts.
 - **REQ-014**: If all 3 retries fail during a network interruption, then the system shall display a "network disconnected" error message.
-- **REQ-015**: If fetched MP3, WAV, or FLAC audio data fails digital signal processing, then the system shall display an "audio file cannot be processed" error message.
+- **REQ-015**: If fetched MP3, WAV, FLAC, OGG, or M4A audio data fails digital signal processing, then the system shall display an "audio file cannot be processed" error message.
 - **REQ-016**: If the external platform response is missing the ISRC, then the system shall throw an exception.
 - **REQ-017**: If the external platform response omits or returns an empty `preview` URL, then the system shall display a "preview unavailable" error message to the UI.
 
@@ -154,7 +154,7 @@ As a music producer or listener, I want to manually adjust acoustic feature slid
 ## Assumptions
 
 - Target users have an active internet connection required to fetch online song snippets.
-- Online audio fetching currently utilizes publicly accessible, user-independent audio preview snippets in MP3, WAV, or FLAC formats via Deezer API.
+- Online audio fetching currently utilizes publicly accessible, user-independent audio preview snippets in MP3, WAV, FLAC, OGG, or M4A formats via Deezer API.
 - Future versions may introduce user authentication (e.g., via `deezer-python`) to access personal user libraries on Deezer, Spotify, YouTube Music, Apple Music, Amazon Music, etc.
 - Audio source is assumed reliable regarding file truncation/corruption; unprocessable audio displays explicit error.
 - The local relational database is initialized and accessible on the local system environment.

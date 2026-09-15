@@ -83,12 +83,12 @@ These interrupt the happy path and must surface an expected error instead of pro
 
 ### 3.3 Audio / DSP processing
 
-| Fault                                              | Expected Behavior                                                                                 |
-|----------------------------------------------------|---------------------------------------------------------------------------------------------------|
-| Fetched MP3/WAV/FLAC corrupted or unprocessable    | show `"audio file cannot be processed"` (400) (REQ-015)                                           |
-| Multi-channel audio                                | downmixed to mono before DSP; no error                                                            |
-| Silent / non-musical file                          | valid zero/low-energy vector; no failure (edge case)                                              |
-| `preview` empty string (unavailable/region-locked) | treat as fetch failure; surface `"network disconnected"` or fetch error so no success is produced |
+| Fault                                                   | Expected Behavior                                                                                 |
+|---------------------------------------------------------|---------------------------------------------------------------------------------------------------|
+| Fetched MP3/WAV/FLAC/OGG/M4A corrupted or unprocessable | show `"audio file cannot be processed"` (400) (REQ-015)                                           |
+| Multi-channel audio                                     | downmixed to mono before DSP; no error                                                            |
+| Silent / non-musical file                               | valid zero/low-energy vector; no failure (edge case)                                              |
+| `preview` empty string (unavailable/region-locked)      | treat as fetch failure; surface `"network disconnected"` or fetch error so no success is produced |
 
 ### 3.4 Database / API-side errors
 
@@ -162,7 +162,7 @@ sequenceDiagram
 - ISRC is mandatory and read from the Deezer response; missing → fail loud, neither fallback nor silent. `REQ-007`, `REQ-008`
 - Local miss is NOT an error → generates a new vector after fetching preview and running DSP. `REQ-008`
 - DSP: 8 collapsed features, mono downmix, arithmetic-mean collapse. `REQ-005`
-- MP3/WAV/FLAC only. `REQ-004`
+- Formats MP3/WAV/FLAC/OGG/M4A. `REQ-004`
 - 3 retries / 5s on fetch failure. `REQ-013`, `NFR/Deezer §2`.
 
 **Note to future readers**: maintain the [search-api.md](../../specs/001-song-fingerprint-engine/contracts/search-api.md) + [deezer-api.md](../../specs/001-song-fingerprint-engine/contracts/deezer-api.md) field references as the single source of truth for payload shapes; whenever Deezer changes its schema, those files change first, then re-read this flow diagram.
