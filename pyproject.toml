@@ -30,6 +30,7 @@ dependencies = [
     "rich>=15.0.0",
     "scipy>=1.18.0",
     "sqlalchemy>=2.0.52",
+    "whitenoise>=6.7.0",
 ]
 
 [project.urls]
