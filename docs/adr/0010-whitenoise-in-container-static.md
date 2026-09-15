@@ -2,7 +2,6 @@
 
 - **Status**: Accepted
 - **Date**: 2026-09-07
-- **Note**: Decision recorded; not yet implemented.
 
 ## Context
 
