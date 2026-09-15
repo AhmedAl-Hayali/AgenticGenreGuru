@@ -3,7 +3,6 @@
 .idea
 .git
 
-uv.lock
 skills-lock.json
 
 !.specify/*

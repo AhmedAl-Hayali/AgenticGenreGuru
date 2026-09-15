@@ -411,8 +411,7 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
   (fallback uvicorn/granian if unsupported — D2 keeps the slot, driver
   swappable); prod logging `file_all` handler writes
   `logs/genreguru.log.jsonl` — container path is ephemeral, pick stdout-only
-  override vs mounted volume; `uv.lock` is gitignored — commit it or
-  `uv sync --no-lock` for fresh clones; whether Deezer preview URLs need a
+  override vs mounted volume; whether Deezer preview URLs need a
   proxy/allowlist for CORS in prod.
   - **ADR status**: D1–D5 are recorded as accepted decisions
     (`docs/adr/` 0008-0012), noting "decision recorded; not yet implemented".
