@@ -1,4 +1,8 @@
-"""ASGI entrypoint for the GenreGuru web application."""
+"""ASGI entrypoint for the GenreGuru web application.
+
+When async views land (ADR-0009 follow-up), replace this WSGI-based
+ASGI handler with an async-capable server (uvicorn or granian).
+"""
 
 import os
 
