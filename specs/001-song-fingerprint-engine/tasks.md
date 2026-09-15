@@ -26,8 +26,8 @@
 
 ## Path Conventions (from plan.md)
 
-- **core library**: `genreguru/audio/`, `genreguru/deezer/`, `genreguru/db/` at repository root
-- **web app**: `frontend/fingerprint_app/`, `frontend/genreguru_web/`
+- **core library**: `src/genreguru/audio/`, `src/genreguru/deezer/`, `src/genreguru/db/` (package root `src/genreguru/`)
+- **web app**: `web/fingerprint_app/`, `web/genreguru_web/`
 - **tests**: `tests/unit/`, `tests/integration/`, `tests/contract/`, `tests/benchmarks`
 - **Stack**: Python 3.14, Django, SQLAlchemy + psycopg, librosa/numpy/scipy, httpx, PostgreSQL
 - **Dev tooling**: pytest, pytest-django, pytest-mock, factory_boy, pytest-cov, bandit, radon, ruff, ty
@@ -102,7 +102,7 @@
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, the story's `pytest` tasks, and the frontend JS gate from `frontend/` (`npm run check`; `npm run test:coverage` for the ≥90% coverage report). All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks, and the frontend JS gate from `web/` (`npm run check`; `npm run test:coverage` for the ≥90% coverage report). All MUST pass.
 
 ---
 
@@ -120,14 +120,15 @@
 ### Implementation for User Story 2
 
 - [ ] T033 \[P\] \[US2\] Add `list_songs()` + `get_fingerprint_by_isrc()` methods in `genreguru/db/repositories.py`
-- [ ] T034 \[US2\] Implement catalog list view `GET /api/catalog/` in `frontend/fingerprint_app/views.py` (summary of songs + fingerprint metadata)
-- [ ] T035 \[US2\] Implement song detail view `GET /api/catalog/{isrc}/` in `frontend/fingerprint_app/views.py` (structured full fingerprint + song metadata)
-- [ ] T036 \[US2\] Add catalog listing + song detail render sections in `frontend/fingerprint_app/templates/fingerprint_app/index.html`
-- [ ] T037 \[US2\] Register `/api/catalog/` and `/api/catalog/{isrc}/` routes in `frontend/fingerprint_app/urls.py`
+- [ ] T034 \[US2\] Implement catalog list view `GET /api/catalog/` in `web/fingerprint_app/views.py` (summary of songs + fingerprint metadata)
+- [ ] T035 \[US2\] Implement song detail view `GET /api/catalog/{isrc}/` in `web/fingerprint_app/views.py` (structured full fingerprint + song metadata)
+- [ ] T036 \[US2\] Add catalog listing + song detail render sections in `web/fingerprint_app/templates/fingerprint_app/index.html`
+- [ ] T037 \[US2\] Register `/api/catalog/` and `/api/catalog/{isrc}/` routes in `web/fingerprint_app/urls.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
 > **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks. All MUST pass.
 
 ---
 
@@ -146,14 +147,14 @@
 ### Implementation for User Story 3
 
 - [ ] T039 \[P\] \[US3\] Implement spectrogram/visualization data generation (spectrogram, spectral-centroid overlay, top 3 feature factors by normalized contribution magnitude via librosa matplotlib/numpy) in `genreguru/audio/visualization.py`; module logger: INFO generation complete (`song_id`), DEBUG spectrogram params (never log the spectrogram matrix)
-- [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
-- [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `frontend/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
-- [ ] T042 \[US3\] Register visualization route in `frontend/fingerprint_app/urls.py`
-- [ ] T040 \[US3\] Implement `GET /api/catalog/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
+- [ ] T040 \[US3\] Implement `GET /api/catalog/{isrc}/visualization/` endpoint in `web/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
+- [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `web/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `web/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
+- [ ] T042 \[US3\] Register visualization route in `web/fingerprint_app/urls.py`
 
 **Checkpoint**: User Story 3 functional and testable independently
 
 > **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks. All MUST pass.
 
 ---
 
@@ -172,13 +173,14 @@
 ### Implementation for User Story 4
 
 - [ ] T044 \[P\] \[US4\] Implement `RecommendationService` (cosine similarity over the 8-dimensional fingerprint vectors, returns top-N=5 matches) in `genreguru/recommendations.py`; module logger: INFO result size + top-N=5 similarity scores, WARNING on fewer candidates than N=5 or degenerate (all-zero) query vector
-- [ ] T045 \[US4\] Implement `POST /api/recommend/` endpoint (accepts modified vector, returns top matches; only active when `features.recommendations.enabled=true`, else 404) in `frontend/fingerprint_app/views.py`
-- [ ] T046 \[US4\] Add acoustic feature slider controls + recommendation list render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `frontend/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
-- [ ] T047 \[US4\] Register `/api/recommend/` route in `frontend/fingerprint_app/urls.py`
+- [ ] T045 \[US4\] Implement `POST /api/recommend/` endpoint (accepts modified vector, returns top matches; only active when `features.recommendations.enabled=true`, else 404) in `web/fingerprint_app/views.py`
+- [ ] T046 \[US4\] Add acoustic feature slider controls + recommendation list render in `web/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `web/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
+- [ ] T047 \[US4\] Register `/api/recommend/` route in `web/fingerprint_app/urls.py`
 
 **Checkpoint**: All user stories should now be independently functional
 
 > **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks. All MUST pass.
 
 ---
 
@@ -189,17 +191,18 @@
 **Note**: Per-story checkpoint gates (Phases 3-6) enforce `ruff check` + `ty check` + story tests before each story checkpoint is marked complete. T048-T051 are the final full-tree sweep, not the first lint/type/security run.
 
 - [ ] T048 \[P\] Validate `.prek.toml` (ruff, bandit, ty hooks) and run it on the full tree as the final sweep
-- [ ] T049 \[P\] Run bandit security audit over `src/` and `frontend/`; fix findings
-- [ ] T050 \[P\] Run radon complexity analysis on `genreguru/`; refactor any module exceeding cyclomatic complexity 10
+- [ ] T049 \[P\] Run bandit security audit over `src/` and `web/`; fix findings
+- [ ] T050 \[P\] Run radon complexity analysis on `src/genreguru/`; refactor any module exceeding cyclomatic complexity 10
 - [ ] T051 \[P\] Run coverage report over `tests/`; add missing tests to satisfy Constitution III coverage expectations
 - [ ] T052 \[P\] Benchmark performance: confirm SC-002 (<10s extraction per snippet) and SC-005 (<500ms ISRC reuse lookup) in `tests/benchmarks/`. Standard consumer hardware can be comparable to a GitHub Actions [`ubuntu-slim` private repository CI runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for--private-repositories), i.e., Ubuntu 24.04.4 LTS x64, 1 CPU, 5GB RAM, and 14GB storage
 - [ ] T053 \[P\] Validate QUICKSTART.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus — captured as a versioned snapshot fixture rather than live network calls), SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors), and SC-004 (users can initiate a run and confirm a top-5 match)
 - [ ] T054 \[P\] Update `docs/001-song-fingerprint-engine/` with implementation notes and any contract deviations
 - [ ] T055 \[P\] Add soft-delete flag (`deleted_at`) to `TimestampedMixin` in `genreguru/db/base.py`; add `deleted_at` index to both models; add `active` query property on `Song`/`SongFingerprint` that filters `WHERE deleted_at IS NULL`; update repository methods (T024, T033) to use the active scope by default
+- [ ] T055 \[P\] Add soft-delete flag (`deleted_at`) to `TimestampedMixin` in `src/genreguru/db/base.py`; add `deleted_at` index to both models; add `active` query property on `Song`/`SongFingerprint` that filters `WHERE deleted_at IS NULL`; update repository methods (T024, T033) to use the active scope by default.
 - [ ] T056 \[P\] Review `spectral_flatness` / `spectral_contrast` collinearity across a music corpus (cross-ref: `research.md` §2 flatness rationale). Both summarize spectral peakedness; if fingerprint dimensionality/precision becomes a concern (e.g. US4 recommendation cosine similarity), confirm whether to keep both or fold one out. No change expected for V1 8-feature fingerprint — documentation/analysis task only
 - [ ] T057 \[P\] Investigate `spectral_rolloff` sensitivity to the `roll_percent` parameter (cross-ref: `research.md` §2 rolloff note). V1 uses librosa's default 0.85 (85%); on a music corpus, analyze how the collapsed rolloff scalar changes at higher percents (0.9, 0.95, 0.99) and lower percents (0.01, 0.05, 0.1). Confirm whether a single 0.85 scalar suffices for fingerprint discrimination or whether a multi-percent rolloff set adds signal (e.g. US4 recommendation cosine similarity). No change expected for V1 8-feature fingerprint — documentation/analysis task only
 - [ ] T058a \[P\] Investigate async streaming DSP (spec.md Notes "Streaming DSP"): feed audio chunks to the DSP pipeline as they arrive so preview processing starts before the full snippet downloads, pipelining fetch → extraction to minimize waiting-around time. Assess how V1's load-then-extract flow (`genreguru/deezer/snippets.py` fetch + `genreguru/audio/loader.py`/`feature_extract.py`) would need to become incremental (`httpx` streaming / `bytes` iterators), and document the minimal design. No change expected for V1 — documentation/analysis task only
-- [ ] T058b \[P\] Investigate async + non-blocking retry: migrate the fetch path from synchronous `time.sleep(5)` + `httpx.get` (blocks the WSGI request thread; see the shared retry loop `genreguru/deezer/_retry.py` + `genreguru/deezer/snippets.py`) to `httpx.AsyncClient` + `await asyncio.sleep(...)` so backoff doesn't block the event loop and requests can run concurrently. Revisit the fixed-5s delay policy (currently a REQ-013/REQ-014 contract) toward **exponential backoff with jitter** for robustness against thundering-herd on QUOTA(4)/SERVICE_BUSY(700); any delay-policy change requires updating spec REQ-013/REQ-014, `deezer-api.md` NFR §2, and the retry tests (`tests/integration/test_deezer_retry.py`), and the sync→async conversion propagates through `genreguru/fingerprint_service.py` + the confirm view; document the minimal design. No change expected for V1 — documentation/analysis task only
+- [ ] T058b \[P\] Investigate async + non-blocking retry: migrate the fetch path from synchronous `time.sleep(5)` + `httpx.get` (blocks the WSGI request thread; see the shared retry loop `genreguru/deezer/_retry.py` + `genreguru/deezer/snippets.py`) to `httpx.AsyncClient` + `await asyncio.sleep(...)` so backoff doesn't block the event loop and requests can run concurrently. Revisit the fixed-5s delay policy (currently a REQ-013/REQ-014 contract) toward **exponential backoff with jitter** for robustness against thundering-herd on QUOTA(4)/SERVICE_BUSY(700); any delay-policy change requires updating spec REQ-013/REQ-014, `deezer-api.md` NFR §2, and the retry tests (`tests/integration/test_snippet_retry.py`), and the sync→async conversion propagates through `genreguru/fingerprint_service.py` + the confirm view; document the minimal design. No change expected for V1 — documentation/analysis task only
 
 ---
 
@@ -316,7 +319,7 @@ With multiple developers:
    - Developer A: User Story 1 (core + endpoints + UI for search/confirm)
    - Developer B: User Story 2 (core + endpoints)
    - Developer C: User Story 3 / 4 (core + endpoints)
-3. UI integration is the serial bottleneck: US1/2/3/4 frontend tasks all edit the SAME files (`frontend/fingerprint_app/templates/fingerprint_app/index.html` + `.../partials/` + `.../ts/pages/*.ts`; `app.js` is the esbuild-generated artifact). These tasks (T029/T030, T036, T041, T046) MUST be done sequentially ON ONE workstream to avoid merge conflicts — they can NOT run in parallel.
+3. UI integration is the serial bottleneck: US1/2/3/4 frontend tasks all edit the SAME files (`web/fingerprint_app/templates/fingerprint_app/index.html` + `.../partials/` + `.../ts/pages/*.ts`; `app.js` is the esbuild-generated artifact). These tasks (T029/T030, T036, T041, T046) MUST be done sequentially ON ONE workstream to avoid merge conflicts — they can NOT run in parallel.
 4. Core/endpoint tasks per story run in parallel; UI tasks are consolidated and merged into `index.html`/`partials/`/`ts/pages/` one story at a time.
 
 ---
@@ -331,5 +334,5 @@ With multiple developers:
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
 - UI tasks share `index.html`/`partials/`/`ts/pages/` — mark them non-parallel and serialize across stories
-- Performance targets: SC-001 95% query success, SC-002 <10s/snippet, SC-003 100% persistence, SC-005 <500ms reuse lookup
-- Frontend tests live in `frontend/tests/` as module-mirrored files — `api.test.ts` ↔ `ts/api.ts`, `render.test.ts` ↔ `ts/render.ts`, `scroll-reveal.test.ts` ↔ `ts/scroll-reveal.ts`, `page-controller.test.ts` ↔ `ts/page-controller.ts` (behavior suite), `bootstrap.test.ts` ↔ `ts/config.ts` + `ts/pages/index-page.ts`, plus cross-cutting `a11y.test.ts` — sharing `helpers.ts`/`setup.ts` (loaded via `setupFiles`); behavior flows fold into the module suites rather than a single `app.test.ts`
+- Performance targets: SC-001 95% query success, SC-002 <10s/snippet, SC-003 100% persistence, SC-005 <500ms reuse lookup 
+- Frontend tests live in `web/tests/` as module-mirrored files — `api.test.ts` ↔ `ts/api.ts`, `render.test.ts` ↔ `ts/render.ts`, `scroll-reveal.test.ts` ↔ `ts/scroll-reveal.ts`, `page-controller.test.ts` ↔ `ts/page-controller.ts` (behavior suite), `bootstrap.test.ts` ↔ `ts/config.ts` + `ts/pages/index-page.ts`, plus cross-cutting `a11y.test.ts` — sharing `helpers.ts`/`setup.ts` (loaded via `setupFiles`); behavior flows fold into the module suites rather than a single `app.test.ts`
