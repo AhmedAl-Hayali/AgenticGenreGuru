@@ -398,14 +398,16 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
     whitenoise. Future-proof: `ManifestStaticFilesStorage` cache-busting;
     object storage/CDN (MinIO/S3) when media/uploads grow; no settings churn
     at either step.
-  - **D4 — DB reliability: compose PG18 + named volume + healthcheck +
-    release-step schema job + `pg_dump` backup.** Native `uuidv7()` requires
-    PG18+ (CI already pins `postgres:18`). Schema via one-off `migrate`
-    compose service running `uv run python -m genreguru.db.init_db`, gated
-    `service_completed_successfully`; no racing on-boot mutations.
-    Future-proof: swap db service for managed Postgres (Fly/Render/Neon) with
-    PITR — same `DB_*` env contract; pgbouncer/read-replica when load grows;
-    backups escalate pg_dump → WAL/PITR.
+   - **D4 — DB reliability: compose PG18 + named volume + healthcheck +
+     release-step schema job + `pg_dump` backup.** Native `uuidv7()` requires
+     PG18+ (CI already pins `postgres:18`). Schema via one-off `migrate`
+     compose service running `uv run python -m genreguru.db.init_db`, gated
+     `service_completed_successfully`; no racing on-boot mutations. A
+     one-off `backup` service runs `pg_dump -Fc` to a named volume, gated
+     `service_healthy`.
+     Future-proof: swap db service for managed Postgres (Fly/Render/Neon) with
+     PITR — same `DB_*` env contract; pgbouncer/read-replica when load grows;
+     backups escalate pg_dump → WAL/PITR.
   - **D5 — Scale/hardening: single instance, standard hardening.** prod
     settings already `DEBUG=0`, secure cookies, HSTS, fail-closed
     `DJANGO_ALLOWED_HOSTS`/`DJANGO_SECRET_KEY`/`DB_*` via env. Add
@@ -413,14 +415,11 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
     `secure_ssl_redirect: true` would otherwise loop behind the proxy.
     Rate-limiting (CHK024) stays deferred. Future-proof: multi-replica, WAF/
     ingress, secrets manager, pool-size/`CONN_MAX_AGE` tuning per replica.
-  Still open (verify when implementing): Gunicorn wheels on Python 3.14
-  (fallback uvicorn/granian if unsupported — D2 keeps the slot, driver
-  swappable); prod logging `file_all` handler writes
-  `logs/genreguru.log.jsonl` — container path is ephemeral, pick stdout-only
-  override vs mounted volume; whether Deezer preview URLs need a
-  proxy/allowlist for CORS in prod.
-  - **ADR status**: D1–D5 are recorded as accepted decisions
-    (`docs/adr/` 0008-0012), noting "decision recorded; not yet implemented".
+Still open (verify when implementing): Gunicorn wheels on Python 3.14
+(fallback uvicorn/granian if unsupported — D2 keeps the slot, driver
+swappable).
+- **ADR status**: D1–D5 are recorded as accepted decisions
+(`docs/adr/` 0008-0014), all implemented.
 
 ### Architecture
 

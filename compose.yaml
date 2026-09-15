@@ -43,6 +43,21 @@ services:
     depends_on:
       - web
 
+  backup:
+    image: postgres:18
+    env_file: .env
+    environment:
+      PGHOST: db
+      PGUSER: ${DB_USER}
+      PGPASSWORD: ${DB_PASSWORD}
+      PGDATABASE: ${DB_NAME}
+    volumes:
+      - backups:/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    command: sh -c "pg_dump -Fc > /backups/$(date +%Y%m%d_%H%M%S).dump"
+
   init_db:
     build: .
     env_file: .env
@@ -59,3 +74,4 @@ services:
 volumes:
   pgdata:
   certs:
+  backups:
