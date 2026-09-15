@@ -375,8 +375,8 @@ clean; `uv run pytest tests/unit -q` all existing + new green.
 ### Infrastructure
 
 - **Deployment & containerization** — ship the app to a prod-grade environment.
-  Directions settled (decisions D1–D5; each records its future-proof path so a
-  later scale-up slots in with minimal churn). None implemented yet.
+    Directions settled (decisions D1–D5; each records its future-proof path so a
+    later scale-up slots in with minimal churn). All implemented.
   - **D1 — Deploy target: local prod-sim first, cloud later.** `Dockerfile` +
     `compose.yaml` (web + postgres + TLS reverse proxy) mimicking prod wiring
     locally via `GENREGURU_ENV=prod` config groups. Future-proof: the same

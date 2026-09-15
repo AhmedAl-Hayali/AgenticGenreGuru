@@ -101,6 +101,70 @@ Confirm returns a fingerprint like this (exact shape + field rules: `specs/001-s
 
 Full column meanings + ERD: `specs/001-song-fingerprint-engine/data-model.md`.
 
+## Docker — Prod-Sim (D1–D5)
+
+The full production environment runs locally via Docker Compose.
+
+### Prerequisites
+
+- Docker + Docker Compose installed
+- `cp .env.example .env` — set `DJANGO_SECRET_KEY` to a real value
+
+### Build & start
+
+```bash
+docker compose up
+```
+
+PowerShell equivalent: same as bash — `docker compose` commands are identical in both shells.
+
+Open [https://localhost](https://localhost) — self-signed cert, browser warning expected.
+
+### Verify
+
+```bash
+docker compose ps
+docker compose logs web
+```
+
+### Schema
+
+`init_db` runs automatically on startup, gated behind `db` being healthy.
+To force a fresh schema:
+
+```bash
+docker compose up init_db
+```
+
+### Backup
+
+One-off `pg_dump` to the `backups` named volume:
+
+```bash
+docker compose up backup
+```
+
+### Teardown
+
+```bash
+docker compose down
+docker compose down -v  # also remove named volumes (pgdata, certs, backups)
+```
+
+### How it works
+
+| Service | What it does |
+|---------|-------------|
+| `db` | PostgreSQL 18 + named volume `pgdata` + healthcheck |
+| `web` | Gunicorn (3 workers, 4 threads), Django production settings |
+| `reverse-proxy` | `nginx:stable`, TLS termination, self-signed certs |
+| `init_db` | Creates tables via `genreguru.db.init_db`, gated `service_completed_successfully` |
+| `backup` | `pg_dump -Fc` to `/backups/`, gated `service_healthy` |
+
+The `web` service waits for `init_db` to complete before starting Gunicorn.
+`entrypoint.sh` runs `pg_isready` before executing the service command,
+so no service starts until PostgreSQL accepts connections.
+
 ## Validation
 
 ```bash
