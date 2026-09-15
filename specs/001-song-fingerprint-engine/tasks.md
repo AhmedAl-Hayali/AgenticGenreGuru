@@ -9,6 +9,21 @@
 > single `DATABASE_URL` (referenced in T005a/T012a below) to per-component
 > `DB_*` env vars (`DB_DIALECT`/`DB_DRIVER`/`DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT`/`DB_NAME`),
 > resolved via `${oc.env:DB_*}` in `config/db/prod.yaml`.
+>
+> **Note (post-record):** `GET /api/search/` zero-match semantics — a valid
+> query with zero Deezer matches returns **200** with an empty `matches` array
+> (`{"status":"success","matches":[]}`), per `contracts/search-api.md` §1
+> zero-match note; the 404 `TrackNotFoundError` referenced in T018/T026 is
+> reserved for the empty/whitespace `query` client error only.
+>
+> **Note (post-record):** the snippet-fetch retry integration test in T016 was
+> implemented as `tests/integration/test_snippet_retry.py` (not the
+> `test_deezer_retry.py` name referenced there and in T058b).
+>
+> **Note (post-record):** the `SongArtist` model (`song_artists` table) was
+> added after T009a was written, per `data-model.md` §SongArtist (canonical
+> main-first contributor rows + best-effort backfill on the ISRC-reuse path);
+> T009a's `Song`/`SongFingerprint` scope is unchanged.
 
 **Input**: Design documents from `/specs/001-song-fingerprint-engine/`
 
@@ -127,8 +142,7 @@
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks, and the frontend JS gate from `web/` (`npm run check`; `npm run test:coverage` for the ≥90% coverage report). All MUST pass.
 
 ---
 
@@ -153,8 +167,7 @@
 
 **Checkpoint**: User Story 3 functional and testable independently
 
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks, and the frontend JS gate from `web/` (`npm run check`; `npm run test:coverage` for the ≥90% coverage report). All MUST pass.
 
 ---
 
@@ -179,8 +192,7 @@
 
 **Checkpoint**: All user stories should now be independently functional
 
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ frontend/ tests/`, `ty check src/ frontend/`, and the story's `pytest` tasks. All MUST pass.
-> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks. All MUST pass.
+> **Checkpoint gate**: Before marking this story complete, run `ruff check src/ web/ tests/`, `ty check src/ web/`, the story's `pytest` tasks, and the frontend JS gate from `web/` (`npm run check`; `npm run test:coverage` for the ≥90% coverage report). All MUST pass.
 
 ---
 
@@ -197,8 +209,7 @@
 - [ ] T052 \[P\] Benchmark performance: confirm SC-002 (<10s extraction per snippet) and SC-005 (<500ms ISRC reuse lookup) in `tests/benchmarks/`. Standard consumer hardware can be comparable to a GitHub Actions [`ubuntu-slim` private repository CI runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for--private-repositories), i.e., Ubuntu 24.04.4 LTS x64, 1 CPU, 5GB RAM, and 14GB storage
 - [ ] T053 \[P\] Validate QUICKSTART.md Scenario 1 end-to-end (search → 2-click confirm → fingerprint → dedup reuse) and run `pytest tests/` and `tests/benchmarks/`; assert SC-001 (≥95% of valid queries complete without error, using odd-numbered placings on the Billboard Hot 100 as a corpus — captured as a versioned snapshot fixture rather than live network calls), SC-003 (100% of generated fingerprints persisted w/ complete 8-feature vectors), and SC-004 (users can initiate a run and confirm a top-5 match)
 - [ ] T054 \[P\] Update `docs/001-song-fingerprint-engine/` with implementation notes and any contract deviations
-- [ ] T055 \[P\] Add soft-delete flag (`deleted_at`) to `TimestampedMixin` in `genreguru/db/base.py`; add `deleted_at` index to both models; add `active` query property on `Song`/`SongFingerprint` that filters `WHERE deleted_at IS NULL`; update repository methods (T024, T033) to use the active scope by default
-- [ ] T055 \[P\] Add soft-delete flag (`deleted_at`) to `TimestampedMixin` in `src/genreguru/db/base.py`; add `deleted_at` index to both models; add `active` query property on `Song`/`SongFingerprint` that filters `WHERE deleted_at IS NULL`; update repository methods (T024, T033) to use the active scope by default.
+- [ ] T055 \[P\] Add soft-delete flag (`deleted_at`) to `TimestampedMixin` in `src/genreguru/db/base.py`; add `deleted_at` index to both models; add `active` query property on `Song`/`SongFingerprint` that filters `WHERE deleted_at IS NULL`; update repository methods (T024, T033) to use the active scope by default. Column: nullable `DateTime (UTC)`, default `NULL` = active, non-NULL = soft-deleted; index on `deleted_at` alongside the existing unique/query indexes so the `active` scope stays index-assisted. **Note:** this introduces `deleted_at` to the persisted schema — flush `data-model.md` (`songs`, `song_fingerprints`, `song_artists` tables + ERD) with the new column in the same change
 - [ ] T056 \[P\] Review `spectral_flatness` / `spectral_contrast` collinearity across a music corpus (cross-ref: `research.md` §2 flatness rationale). Both summarize spectral peakedness; if fingerprint dimensionality/precision becomes a concern (e.g. US4 recommendation cosine similarity), confirm whether to keep both or fold one out. No change expected for V1 8-feature fingerprint — documentation/analysis task only
 - [ ] T057 \[P\] Investigate `spectral_rolloff` sensitivity to the `roll_percent` parameter (cross-ref: `research.md` §2 rolloff note). V1 uses librosa's default 0.85 (85%); on a music corpus, analyze how the collapsed rolloff scalar changes at higher percents (0.9, 0.95, 0.99) and lower percents (0.01, 0.05, 0.1). Confirm whether a single 0.85 scalar suffices for fingerprint discrimination or whether a multi-percent rolloff set adds signal (e.g. US4 recommendation cosine similarity). No change expected for V1 8-feature fingerprint — documentation/analysis task only
 - [ ] T058a \[P\] Investigate async streaming DSP (spec.md Notes "Streaming DSP"): feed audio chunks to the DSP pipeline as they arrive so preview processing starts before the full snippet downloads, pipelining fetch → extraction to minimize waiting-around time. Assess how V1's load-then-extract flow (`genreguru/deezer/snippets.py` fetch + `genreguru/audio/loader.py`/`feature_extract.py`) would need to become incremental (`httpx` streaming / `bytes` iterators), and document the minimal design. No change expected for V1 — documentation/analysis task only
