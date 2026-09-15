@@ -108,7 +108,7 @@ Allowed types: `chore` `docs` `feat` `fix` `refactor` `style` `test`.
 
 Good examples:
 
-- `feat(api): add /api/songs listing endpoint`
+- `feat(api): add /api/catalog listing endpoint`
 - `refactor(dsp): extract mfcc into its own module`
 - `docs(contributing): document prek hook usage`
 

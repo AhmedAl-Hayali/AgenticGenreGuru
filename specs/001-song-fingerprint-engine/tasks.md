@@ -115,15 +115,15 @@
 ### Tests for User Story 2 (REQUIRED - write FIRST, confirm FAIL, then implement) ⚠️
 
 - [ ] T031 \[P\] \[US2\] Integration test for repository `list_songs()` + `get_fingerprint_by_isrc()` in `tests/integration/test_repository_queries.py`
-- [ ] T032 \[P\] \[US2\] Contract test for `GET /api/songs/` (catalog summary) and `GET /api/songs/{isrc}/` (full fingerprint detail) in `tests/contract/test_songs_api.py`
+- [ ] T032 \[P\] \[US2\] Contract test for `GET /api/catalog/` (catalog summary) and `GET /api/catalog/{isrc}/` (full fingerprint detail) in `tests/contract/test_catalog_api.py`
 
 ### Implementation for User Story 2
 
 - [ ] T033 \[P\] \[US2\] Add `list_songs()` + `get_fingerprint_by_isrc()` methods in `genreguru/db/repositories.py`
-- [ ] T034 \[US2\] Implement catalog list view `GET /api/songs/` in `frontend/fingerprint_app/views.py` (summary of songs + fingerprint metadata)
-- [ ] T035 \[US2\] Implement song detail view `GET /api/songs/{isrc}/` in `frontend/fingerprint_app/views.py` (structured full fingerprint + song metadata)
+- [ ] T034 \[US2\] Implement catalog list view `GET /api/catalog/` in `frontend/fingerprint_app/views.py` (summary of songs + fingerprint metadata)
+- [ ] T035 \[US2\] Implement song detail view `GET /api/catalog/{isrc}/` in `frontend/fingerprint_app/views.py` (structured full fingerprint + song metadata)
 - [ ] T036 \[US2\] Add catalog listing + song detail render sections in `frontend/fingerprint_app/templates/fingerprint_app/index.html`
-- [ ] T037 \[US2\] Register `/api/songs/` and `/api/songs/{isrc}/` routes in `frontend/fingerprint_app/urls.py`
+- [ ] T037 \[US2\] Register `/api/catalog/` and `/api/catalog/{isrc}/` routes in `frontend/fingerprint_app/urls.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -149,6 +149,7 @@
 - [ ] T040 \[US3\] Implement `GET /api/songs/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
 - [ ] T041 \[US3\] Add visualization toggle + spectrogram render in `frontend/fingerprint_app/templates/fingerprint_app/index.html` (+ `partials/`) and `frontend/fingerprint_app/ts/` (`render.ts` + `pages/index-page.ts`)
 - [ ] T042 \[US3\] Register visualization route in `frontend/fingerprint_app/urls.py`
+- [ ] T040 \[US3\] Implement `GET /api/catalog/{isrc}/visualization/` endpoint in `frontend/fingerprint_app/views.py` (only active when `features.visualization.enabled=true`, else 404)
 
 **Checkpoint**: User Story 3 functional and testable independently
 
@@ -267,8 +268,8 @@ Task: "Implement SongRepository in genreguru/db/repositories.py"
 ```bash
 # Launch US2 tasks together (tests first, then implementation):
 Task: "Integration tests for repository queries in tests/integration/test_repository_queries.py"
-Task: "Contract tests for songs API in tests/contract/test_songs_api.py"
-Task: "Add list_songs + get_by_isrc in genreguru/db/repositories.py"
+Task: "Contract tests for catalog API in tests/contract/test_catalog_api.py"
+Task: "Add list_songs + get_by_isrc in src/genreguru/db/repositories.py"
 ```
 
 ## Parallel Example: User Story 3

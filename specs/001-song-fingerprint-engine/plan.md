@@ -57,7 +57,9 @@ specs/001-song-fingerprint-engine/
 ├── quickstart.md        # Phase 1 output (/speckit-plan command)
 └── contracts/           # Phase 1 output (/speckit-plan command)
     ├── deezer-api.md
-    └── search-api.md
+    ├── search-api.md
+    ├── catalog-api.md
+    └── traceability.md
 ```
 
 ### Source Code Structure

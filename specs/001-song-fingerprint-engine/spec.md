@@ -56,7 +56,7 @@ As a music theorist, educator, or audio engineer, I want to view and inspect sto
 
 **Acceptance Scenarios**:
 
-1. **Given** a song whose fingerprint has been stored in the database, **When** a user requests feature details for that song, **Then** the system presents all stored feature components of the fingerprint in a structured, readable format (the structured `GET /api/songs/{isrc}/` JSON response: song metadata plus the 8 collapsed feature scalars), as the outline for the JSON schema is specified in plan.md.
+1. **Given** a song whose fingerprint has been stored in the database, **When** a user requests feature details for that song, **Then** the system presents all stored feature components of the fingerprint in a structured, readable format (the structured `GET /api/catalog/{isrc}/` JSON response: song metadata plus the 8 collapsed feature scalars), as the outline for the JSON schema is specified in [contracts/catalog-api.md](contracts/catalog-api.md).
 2. **Given** multiple stored song fingerprints in the database, **When** a user lists stored catalog entries, **Then** the system returns a summary list of all available songs and their fingerprint metadata.
 
 ---

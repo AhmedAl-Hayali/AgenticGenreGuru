@@ -153,7 +153,7 @@ genreguru/
 | Component                                                                    | Responsibility                                                                                                                                                                                                                                                                                            | Tasks                          |
 |------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------|
 | `genreguru_web/`                                                             | Project settings (Hydra compose, pdoc docformat), root URL router, WSGI/ASGI entrypoints, middleware                                                                                                                                                                                                      | T003                           |
-| `fingerprint_app/` views                                                     | `GET /api/search/` (with best-effort artist/cover enrichment), `POST /api/confirm/` (match carried in request body, no id in path), `GET /api/songs/`, `GET /api/songs/{isrc}/`, feature-gated visualization + recommend endpoints                                                                        | T026-027, T034-035, T040, T045 |
+| `fingerprint_app/` views                                                     | `GET /api/search/` (with best-effort artist/cover enrichment), `POST /api/confirm/` (match carried in request body, no id in path), `GET /api/catalog/`, `GET /api/catalog/{isrc}/`, feature-gated visualization + recommend endpoints                                                                    | T026-027, T034-035, T040, T045 |
 | `fingerprint_app/urls.py` + `genreguru_web/urls.py`                          | Route registration                                                                                                                                                                                                                                                                                        | T028, T037, T042, T047         |
 | `index.html` template                                                        | Search bar, top-5 candidates, selected-track preview card (artists/album/cover + Deezer "D" badge), result/catalog/detail/visualization sections                                                                                                                                                          | T029, T036, T041, T046         |
 | `static/fingerprint_app/app.js`                                              | AJAX, 2-click selection state machine (Click 1 "Selected", Click 2 confirm), feature UI                                                                                                                                                                                                                   | T030, T041, T046               |
@@ -264,14 +264,14 @@ sequenceDiagram
 
 ### 6.1 Internal REST API (`contracts/search-api.md`)
 
-| Endpoint                           | Method | Purpose                                                                                  | Key errors                      |
-|------------------------------------|--------|------------------------------------------------------------------------------------------|---------------------------------|
-| `/api/search/?query=`              | GET    | Top-5 matches (best-effort enriched with artists/cover)                                  | 404 `TrackNotFoundError`, 503   |
-| `/api/confirm/`                    | POST   | ISRC dedup → reuse or fetch→extract→store (match carried in request body, no id in path) | 400 `AudioProcessingError`, 503 |
-| `/api/songs/`                      | GET    | Catalog summary (US2, planned)                                                           | -                               |
-| `/api/songs/{isrc}/`               | GET    | Full fingerprint detail (US2, planned)                                                   | 404                             |
-| `/api/songs/{isrc}/visualization/` | GET    | Spectrogram + top-3 factors (US3, feature-gated, planned)                                | 404 when disabled               |
-| `/api/recommend/`                  | POST   | Cosine-similarity top-5 vs modified vector (US4, feature-gated, planned)                 | 404 when disabled               |
+| Endpoint                             | Method | Purpose                                                                                  | Key errors                      |
+|--------------------------------------|--------|------------------------------------------------------------------------------------------|---------------------------------|
+| `/api/search/?query=`                | GET    | Top-5 matches (best-effort enriched with artists/cover)                                  | 404 `TrackNotFoundError`, 503   |
+| `/api/confirm/`                      | POST   | ISRC dedup → reuse or fetch→extract→store (match carried in request body, no id in path) | 400 `AudioProcessingError`, 503 |
+| `/api/catalog/`                      | GET    | Catalog summary (US2, planned)                                                           | -                               |
+| `/api/catalog/{isrc}/`               | GET    | Full fingerprint detail (US2, planned)                                                   | 404                             |
+| `/api/catalog/{isrc}/visualization/` | GET    | Spectrogram + top-3 factors (US3, feature-gated, planned)                                | 404 when disabled               |
+| `/api/recommend/`                    | POST   | Cosine-similarity top-5 vs modified vector (US4, feature-gated, planned)                 | 404 when disabled               |
 
 Response fingerprint object carries all 8 collapsed scalars + `vector_length: 8`.
 

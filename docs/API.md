@@ -19,6 +19,7 @@ contracts.
 | Contract                                                                                      | Scope                                                                 | Status      |
 |-----------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|-------------|
 | [`contracts/search-api.md`](../specs/001-song-fingerprint-engine/contracts/search-api.md)     | Internal Django REST API (`/api/search/`, `/api/confirm/`)            | Implemented |
+| [`contracts/catalog-api.md`](../specs/001-song-fingerprint-engine/contracts/catalog-api.md)   | Internal Django REST API (`/api/catalog/`, `/api/catalog/{isrc}/`)    | Target      |
 | [`contracts/deezer-api.md`](../specs/001-song-fingerprint-engine/contracts/deezer-api.md)     | External Deezer API (`/search`, `/track/{id}`, previews), error codes | Live        |
 | [`contracts/traceability.md`](../specs/001-song-fingerprint-engine/contracts/traceability.md) | Contract-to-requirement mapping                                       | Tracking    |
 
@@ -31,14 +32,14 @@ Only **Implemented** rows are routed today; **Target**/**Optional** rows are
 planned surface (US2 catalog, US3 visualization, US4 recommendations) tracked in
 [`ROADMAP.md`](ROADMAP.md) — they are not yet in the Django URLconf.
 
-| Method | Endpoint                           | Description                                                | Status      |
-|--------|------------------------------------|------------------------------------------------------------|-------------|
-| `GET`  | `/api/search/?query={title}`       | Search songs via Deezer, returns top 5 matches             | Implemented |
-| `POST` | `/api/confirm/`                    | Confirm selection, generate or reuse fingerprint           | Implemented |
-| `GET`  | `/api/songs/`                      | List all stored songs with fingerprint metadata            | Target      |
-| `GET`  | `/api/songs/{isrc}/`               | Get full fingerprint detail for a song                     | Target      |
-| `GET`  | `/api/songs/{isrc}/visualization/` | Spectrogram + top-3 factor viz (feature-gated)             | Optional    |
-| `POST` | `/api/recommend/`                  | Cosine-similarity top-5 vs modified vector (feature-gated) | Optional    |
+| Method | Endpoint                             | Description                                                | Status      |
+|--------|--------------------------------------|------------------------------------------------------------|-------------|
+| `GET`  | `/api/search/?query={title}`         | Search songs via Deezer, returns top 5 matches             | Implemented |
+| `POST` | `/api/confirm/`                      | Confirm selection, generate or reuse fingerprint           | Implemented |
+| `GET`  | `/api/catalog/`                      | List all stored songs with fingerprint metadata            | Target      |
+| `GET`  | `/api/catalog/{isrc}/`               | Get full fingerprint detail for a song                     | Target      |
+| `GET`  | `/api/catalog/{isrc}/visualization/` | Spectrogram + top-3 factor viz (feature-gated)             | Optional    |
+| `POST` | `/api/recommend/`                    | Cosine-similarity top-5 vs modified vector (feature-gated) | Optional    |
 
 ## Related
 - [`docs/README.md`](README.md) — full documentation index.
