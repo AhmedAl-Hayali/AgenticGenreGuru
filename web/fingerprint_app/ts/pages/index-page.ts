@@ -1,5 +1,6 @@
 import { loadConfig } from "../config.ts";
 import { PageController } from "../page-controller.ts";
+import { mountThemeSwitch } from "../theme.ts";
 
 /** Get an element by `id` and cast to `T`; throws on missing so misconfigured partials fail loudly at boot. */
 function requireById<T extends HTMLElement>(id: string): T {
@@ -25,3 +26,5 @@ const containers = {
 
 const controller = new PageController(loadConfig(), containers);
 controller.mount();
+
+mountThemeSwitch();

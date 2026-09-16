@@ -1,0 +1,30 @@
+/* ============ selenized themes ============ */
+:root[data-theme="selenized-black"] {
+    --bg: #12141a;
+    --panel: #1b1f28;
+    --panel-2: #232936;
+    --border: #303848;
+    --text: #e6e9f0;
+    --muted: #8b93a5;
+    --accent: #6ea8fe;
+    --accent-strong: #3d7bfd;
+    --selected: #243b5e;
+    --err: #ff8f8f;
+    --ok: #7ed492;
+    --text-on-accent: #fff;
+}
+
+:root[data-theme="selenized-light"] {
+    --bg: #f4f1eb;
+    --panel: #e8e4dc;
+    --panel-2: #d0c7c0;
+    --border: #585250;
+    --text: #2d2a2e;
+    --muted: #6b6a6c;
+    --accent: #3182ce;
+    --accent-strong: #2c5f8a;
+    --selected: #e0e0e0;
+    --err: #cc6666;
+    --ok: #38a54d;
+    --text-on-accent: #000;
+}

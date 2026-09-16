@@ -6,8 +6,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="{% static 'fingerprint_app/images/favicon.svg' %}">
+    <!-- Pre-paint: set data-theme on <html> before CSS parses to prevent flash of wrong theme. Inline (not a separate file) to execute synchronously before the stylesheet loads. -->
+    <script>
+      (function(){try{var e=localStorage.getItem("gg-theme");if(e==="selenized-light"||e==="selenized-black"){document.documentElement.setAttribute("data-theme",e)}else{document.documentElement.setAttribute("data-theme",window.matchMedia("(prefers-color-scheme: light)").matches?"selenized-light":"selenized-black")}}catch(e){document.documentElement.setAttribute("data-theme",window.matchMedia("(prefers-color-scheme: light)").matches?"selenized-light":"selenized-black")}})();
+    </script>
     <link rel="stylesheet" href="{% static 'fingerprint_app/fonts.css' %}">
     <link rel="stylesheet" href="{% static 'fingerprint_app/style.css' %}">
+    <link rel="stylesheet" href="{% static 'fingerprint_app/themes.css' %}">
     {% block head_extras %}{% endblock %}
 </head>
 <body>

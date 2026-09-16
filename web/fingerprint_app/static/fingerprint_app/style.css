@@ -258,6 +258,44 @@ dl#result dd { margin: 0; font-family: var(--font-mono); font-size: 0.95rem; }
 /* ============ utilities ============ */
 .hidden { display: none; }
 
+/* Theme toggle button: inline within header, small and positioned top-right of header */
+.theme-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.theme-toggle:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+.theme-toggle svg {
+    width: 24px;
+    height: 24px;
+    fill: currentColor;
+}
+.theme-toggle .sun { display: none; }
+[data-theme="selenized-black"] .theme-toggle .sun { display: block; }
+[data-theme="selenized-black"] .theme-toggle .moon { display: none; }
+[data-theme="selenized-light"] .theme-toggle .sun { display: none; }
+[data-theme="selenized-light"] .theme-toggle .moon { display: block; }
+
+header {
+    position: relative;
+    margin-bottom: 1.5rem;
+}
+
 /*
 Themed-page example (see docs/ARCHITECTURE.md §3.3):
 a differently-styled page drops its own stylesheet in {% block head_extras %}
