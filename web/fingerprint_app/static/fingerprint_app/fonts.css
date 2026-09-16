@@ -1,0 +1,21 @@
+/* ============ fonts ============ */
+@font-face {
+    font-family: "Atkinson Hyperlegible";
+    font-style: normal;
+    font-weight: 400;
+    src: url("../fingerprint_app/fonts/atkinson-hyperlegible/atkinson-hyperlegible-latin-400-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Atkinson Hyperlegible";
+    font-style: normal;
+    font-weight: 700;
+    src: url("../fingerprint_app/fonts/atkinson-hyperlegible/atkinson-hyperlegible-latin-700-normal.woff2") format("woff2");
+}
+
+@font-face {
+    font-family: "Atkinson Hyperlegible Mono";
+    font-style: normal;
+    font-weight: 400;
+    src: url("../fingerprint_app/fonts/atkinson-hyperlegible-mono/atkinson-hyperlegible-mono-latin-400-normal.woff2") format("woff2");
+}
