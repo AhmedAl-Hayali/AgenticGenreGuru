@@ -108,7 +108,10 @@ The full production environment runs locally via Docker Compose.
 ### Prerequisites
 
 - Docker + Docker Compose installed
-- `cp .env.example .env` — set `DJANGO_SECRET_KEY` to a real value
+- `cp .env.example .env`
+- Fill the six build-secret vars (`DB_USER`, `DB_PASSWORD`, `DB_HOST`,
+  `DB_PORT`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`) — no separate
+  secret files; `.env` is the source.
 
 ### Build & start
 
@@ -127,13 +130,54 @@ docker compose ps
 docker compose logs web
 ```
 
+Expected `docker compose ps` output:
+
+```
+NAME                        IMAGE          COMMAND                  SERVICE         CREATED          STATUS                    PORTS
+genreguru-db-1              postgres:18    "docker-entrypoint.s…"   db              22 minutes ago   Up 14 minutes (healthy)   0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp
+genreguru-reverse-proxy-1   nginx:stable   "/docker-entrypoint.…"   reverse-proxy   22 minutes ago   Up 14 minutes             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0:443->443/tcp, [::]:443->443/tcp
+genreguru-web-1             sha256:...     "/app/config/docker/…"   web             20 minutes ago   Up 14 minutes (healthy)   0.0.0.0:8000->8000/tcp, [::]:8000->8000/tcp
+```
+
+Expected `docker compose logs web` output:
+
+```
+web-1  | db:5432 - accepting connections
+web-1  | [...] [1] [INFO] Starting gunicorn 26.2.0
+web-1  | [...] [1] [INFO] Listening at: http://0.0.0.0:8000 (1)
+web-1  | [...] [1] [INFO] Using worker: gthread
+web-1  | [...] [##] [INFO] Booting worker with pid: ##
+web-1  | [...] [1] [INFO] Control socket listening at /root/.gunicorn/gunicorn.ctl
+web-1  | INFO genreguru.db.engine engine initialized host=db database=genreguru pool_size=10 max_overflow=20 dialect=postgresql
+```
+After shutting down at least once, the following logs would also appear:
+```
+web-1  | [...] [1] [INFO] Handling signal: term
+web-1  | [...] [##] [INFO] Worker exiting (pid: ##)
+web-1  | [...] [1] [INFO] Shutting down: Master
+```
+
 ### Schema
 
 `init_db` runs automatically on startup, gated behind `db` being healthy.
 To force a fresh schema:
 
 ```bash
-docker compose up init_db
+docker compose up --force-recreate init_db
+```
+
+### Rebuild
+
+To rebuild images after code changes:
+
+```bash
+docker compose up --build
+```
+
+To rebuild and start fresh:
+
+```bash
+docker compose down && docker compose up --build
 ```
 
 ### Backup
@@ -153,17 +197,15 @@ docker compose down -v  # also remove named volumes (pgdata, certs, backups)
 
 ### How it works
 
-| Service | What it does |
-|---------|-------------|
-| `db` | PostgreSQL 18 + named volume `pgdata` + healthcheck |
-| `web` | Gunicorn (3 workers, 4 threads), Django production settings |
-| `reverse-proxy` | `nginx:stable`, TLS termination, self-signed certs |
-| `init_db` | Creates tables via `genreguru.db.init_db`, gated `service_completed_successfully` |
-| `backup` | `pg_dump -Fc` to `/backups/`, gated `service_healthy` |
+| Service         | What it does                                                                                                                                |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| `db`            | PostgreSQL 18 + named volume `pgdata` + healthcheck                                                                                         |
+| `web`           | Gunicorn (3 workers, 4 threads), Django production settings; `collectstatic` runs at image build, static served via whitenoise in-container |
+| `reverse-proxy` | `nginx:stable`, TLS termination, self-signed certs                                                                                          |
+| `init_db`       | Creates tables via `genreguru.db.init_db`, gated `service_completed_successfully`                                                           |
+| `backup`        | `pg_dump -Fc` to `/backups/`, gated `service_healthy`                                                                                       |
 
-The `web` service waits for `init_db` to complete before starting Gunicorn.
-`entrypoint.sh` runs `pg_isready` before executing the service command,
-so no service starts until PostgreSQL accepts connections.
+`depends_on` conditions in Compose orchestrate container startup order — `db` healthy → `init_db` runs → `web` starts. Each service's `entrypoint` script verifies the database is accepting connections before the service command executes.
 
 ## Validation
 
