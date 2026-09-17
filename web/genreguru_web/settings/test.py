@@ -32,6 +32,8 @@ from .base import (  # noqa: E401, F401, I001
     USE_TZ,
     STATIC_URL,
     STATICFILES_DIRS,
+    STATIC_ROOT,
+    WHITENOISE_AUTOREFRESH,
     DEFAULT_AUTO_FIELD,
 )
 

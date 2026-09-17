@@ -12,7 +12,8 @@ def main() -> None:
     )
     from genreguru_web.runtime import init_runtime
 
-    init_runtime()
+    if "collectstatic" not in sys.argv:
+        init_runtime()
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
