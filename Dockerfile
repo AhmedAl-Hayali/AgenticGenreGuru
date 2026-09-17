@@ -72,4 +72,6 @@ RUN --mount=type=secret,id=db_user,target=/run/secrets/db_user,required \
 COPY config/docker/entrypoint.sh /app/config/docker/entrypoint.sh
 RUN chmod +x /app/config/docker/entrypoint.sh
 
+EXPOSE 8000
+
 ENTRYPOINT ["/app/config/docker/entrypoint.sh"]
