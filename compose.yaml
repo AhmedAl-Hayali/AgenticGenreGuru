@@ -74,7 +74,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    command: uv run python -m genreguru.db.init_db
+    command: python -m genreguru.db.init_db db=prod logging=prod django=prod
 
 volumes:
   pgdata:
