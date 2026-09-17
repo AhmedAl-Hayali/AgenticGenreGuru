@@ -16,7 +16,7 @@ FROM python:3.14-slim AS backend-runtime
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libpq5 \
+    openssl \
     postgresql-client \
     curl \
     && rm -rf /var/lib/apt/lists/*
