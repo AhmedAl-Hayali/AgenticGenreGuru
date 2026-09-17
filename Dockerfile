@@ -52,6 +52,21 @@ RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
 ENV PYTHONPATH=/app/src:/app/web
 ENV GENREGURU_ENV=prod
 ENV DJANGO_SETTINGS_MODULE=genreguru_web.settings.production
+ENV PYTHONUNBUFFERED=1
+
+RUN --mount=type=secret,id=db_user,target=/run/secrets/db_user,required \
+    --mount=type=secret,id=db_password,target=/run/secrets/db_password,required \
+    --mount=type=secret,id=db_host,target=/run/secrets/db_host,required \
+    --mount=type=secret,id=db_port,target=/run/secrets/db_port,required \
+    --mount=type=secret,id=django_secret_key,target=/run/secrets/django_secret_key,required \
+    --mount=type=secret,id=django_allowed_hosts,target=/run/secrets/django_allowed_hosts,required \
+    export DB_USER=$(cat /run/secrets/db_user) && \
+    export DB_PASSWORD=$(cat /run/secrets/db_password) && \
+    export DB_HOST=$(cat /run/secrets/db_host) && \
+    export DB_PORT=$(cat /run/secrets/db_port) && \
+    export DJANGO_SECRET_KEY=$(cat /run/secrets/django_secret_key) && \
+    export DJANGO_ALLOWED_HOSTS=$(cat /run/secrets/django_allowed_hosts) && \
+    python web/manage.py collectstatic --noinput
 
 COPY config/docker/entrypoint.sh /app/config/docker/entrypoint.sh
 RUN chmod +x /app/config/docker/entrypoint.sh

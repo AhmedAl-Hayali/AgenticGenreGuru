@@ -18,7 +18,15 @@ services:
       start_period: 10s
 
   web:
-    build: .
+    build:
+      context: .
+      secrets:
+        - db_user
+        - db_password
+        - db_host
+        - db_port
+        - django_secret_key
+        - django_allowed_hosts
     env_file: .env
     environment:
       DB_HOST: db
@@ -66,7 +74,15 @@ services:
     command: sh -c "pg_dump -Fc > /backups/$(date +%Y%m%d_%H%M%S).dump"
 
   init_db:
-    build: .
+    build:
+      context: .
+      secrets:
+        - db_user
+        - db_password
+        - db_host
+        - db_port
+        - django_secret_key
+        - django_allowed_hosts
     env_file: .env
     environment:
       DB_HOST: db
@@ -80,3 +96,17 @@ volumes:
   pgdata:
   certs:
   backups:
+
+secrets:
+  db_user:
+    environment: DB_USER
+  db_password:
+    environment: DB_PASSWORD
+  db_host:
+    environment: DB_HOST
+  db_port:
+    environment: DB_PORT
+  django_secret_key:
+    environment: DJANGO_SECRET_KEY
+  django_allowed_hosts:
+    environment: DJANGO_ALLOWED_HOSTS
