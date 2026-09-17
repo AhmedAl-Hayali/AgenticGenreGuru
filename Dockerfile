@@ -35,6 +35,7 @@ RUN --mount=from=ghcr.io/astral-sh/uv:latest,source=/uv,target=/bin/uv \
 COPY src/ ./src/
 COPY web/genreguru_web/ ./web/genreguru_web/
 COPY web/manage.py ./web/
+COPY web/fingerprint_app/ ./web/fingerprint_app/
 COPY config/ ./config/
 
 COPY --from=frontend-builder /app/web/fingerprint_app/static/fingerprint_app/ ./web/fingerprint_app/static/fingerprint_app/
