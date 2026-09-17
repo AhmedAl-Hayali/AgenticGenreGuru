@@ -31,6 +31,12 @@ services:
     volumes:
       - certs:/certs
     command: gunicorn genreguru_web.wsgi:application --bind 0.0.0.0:8000 --workers 3 --threads 4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   reverse-proxy:
     image: nginx:stable
@@ -41,7 +47,8 @@ services:
       - ./config/docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - certs:/etc/nginx/certs:ro
     depends_on:
-      - web
+      web:
+        condition: service_healthy
 
   backup:
     image: postgres:18
