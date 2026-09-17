@@ -55,6 +55,10 @@ dev = [
     "uvicorn>=0.33.0",
 ]
 
+prod = [
+    "gunicorn>=26.2.0",
+]
+
 [tool.ruff]
 
 cache-dir = "~/.cache/ruff"
