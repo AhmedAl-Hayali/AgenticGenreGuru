@@ -190,7 +190,7 @@ export class PageController {
           body as ConfirmResponse,
           this.config.featureLabels,
         );
-        this.setStatus(Messages.fingerprintStored);
+        this.setStatus(Messages.fingerprintFetched);
       } else {
         switch (outcomeFor(response, body)) {
           case "unprocessable":

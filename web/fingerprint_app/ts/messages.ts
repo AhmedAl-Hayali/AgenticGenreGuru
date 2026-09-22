@@ -9,7 +9,7 @@ export const Messages = {
   genericConfirm: "Could not confirm this match. Please try again.",
   emptyQuery: "Enter a song title to search.",
   searching: "Searching…",
-  fingerprintStored: "Fingerprint stored successfully.",
+  fingerprintFetched: "Fingerprint fetched successfully.",
   foundMatches: (count: number) =>
     `Found ${count} match${count === 1 ? "" : "es"}. ` +
     "Click a match once to select, then click it again to confirm.",

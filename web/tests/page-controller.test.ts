@@ -387,7 +387,7 @@ describe("page controller", () => {
       expect(els.result.textContent).toContain("Spectral Centroid (Hz)");
       expect(els.result.textContent).toContain("2500.5000");
       expect(els.result.textContent).toContain("Vector Length");
-      expect(els.status.textContent).toBe("Fingerprint stored successfully.");
+      expect(els.status.textContent).toBe("Fingerprint fetched successfully.");
     });
 
     const confirmErrorCases: Array<{
